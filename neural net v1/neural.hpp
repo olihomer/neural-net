@@ -1,0 +1,81 @@
+//
+//  neural.hpp
+//  neural net v1
+//
+//  Created by Oliver Homer on 27/02/2024.
+//
+
+#ifndef neural_hpp
+#define neural_hpp
+
+#include <stdio.h>
+#include <vector>
+#include <iostream>
+#include "data_set.hpp"
+
+
+struct layer
+{
+    std::size_t size;
+    std::vector<double> pre_activation;
+    std::vector<double> error;
+    std::vector<double> bias_gradient;
+
+    std::vector<double> activation;
+    std::vector<double> bias;
+    std::vector<std::vector<double>> weight;
+    std::vector<std::vector<double>> weight_gradient;
+};
+
+class neural
+{
+public:
+    
+    //Constructor
+    neural(std::vector<int> nodes_per_layer);
+    
+    //Debug
+    void print_dimensions(std::ostream& stream);
+    void print_weights(std::ostream& stream);
+    void print_biases(std::ostream& stream);
+    void print_values(std::ostream& stream);
+    void print_errors(std::ostream& stream);
+    void print_training_errors(std::ostream& stream);
+    void print_network(std::ostream& stream);
+    
+    //Getters + setters
+    void set_input(std::size_t node, double value);
+    void set_input(data_set& data,std::size_t index);
+    void set_bias(std::size_t layer, std::vector<double>bias);
+    void set_weight(std::size_t layer, std::size_t node, std::vector<double>weight);
+    double get_output(std::size_t node);
+    int find_highest_output(void);
+
+    //Statics
+    static double sigmoid(double x){return (1/(1+exp(-x)));}
+    static double sigmoid_prime(double x){double z = sigmoid(x);return z*(1-z);}
+    const double learning_rate = 0.005;
+    
+    //Public methods
+    void propogate();
+    void gradient_descent();
+    void train(const data_set& training_data);
+    
+private:
+    // Internal data structure
+    std::size_t m_layers = 0;
+    std::size_t m_max_layers = 0;
+    std::vector<layer> m_layer;
+
+    //Internal methods
+    double cost_function(const std::vector<double>& target);
+    void zero_training_error();
+
+};
+
+
+
+
+
+
+#endif /* neural_hpp */
