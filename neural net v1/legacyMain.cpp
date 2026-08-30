@@ -14,10 +14,12 @@
 #include <vector>
 
 
-int main(int argc, const char * argv[])
+
+int LegacyApp(int argc, const char * argv[])
 {
-    
     neural net({784,10,10});
+    
+    
     
     //net.print_network(std::cout);
     
@@ -26,17 +28,20 @@ int main(int argc, const char * argv[])
     
     //training_data.print_data(std::cout);
     
+    double total_error;
  
     for (int i=0;i<1000;i++)
     {
-        net.train(mnist_training_data);
+        total_error = net.train(mnist_training_data);
         net.gradient_descent();
-        std::cout << i << " ";
+        if(i % 20==0)
+        {
+            std::cout << i << " ";
+            std::cout << "Total error: " << total_error << std::endl;
+            net.print_stats(std::cout);
+        }
     }
     
-    //net.print_errors();
-    //net.print_network(std::cout);
-   
     
    for(int i=0;i<50;i++)
     {
@@ -45,7 +50,7 @@ int main(int argc, const char * argv[])
         std::cout << "Guess = " << guess_label;
         
         net.set_input(mnist_training_data, guess);
-        net.propogate();
+        net.propagate();
         
         std::cout << ". Net guessed " << net.find_highest_output() << " with value of " << net.get_output(net.find_highest_output()) << std::endl;
         if(net.find_highest_output()!=guess_label)std::cout<<"WRONG!"<<std::endl;
@@ -54,3 +59,4 @@ int main(int argc, const char * argv[])
     
     return 0;
 }
+
