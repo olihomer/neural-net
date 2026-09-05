@@ -74,7 +74,9 @@ std::pair<int,float> AppEngine::sendRasterData(const float *data, std::size_t si
     
     for(std::size_t i = 0; i < size; i++)
         vectorData[i] = data[i];
-        
+    
+    std::cout << "Raster before processing:" << std::endl;
+    
     for(std::size_t y = 0; y < 28; y++)
     {
         for(std::size_t x = 0; x < 28; x++)
@@ -82,10 +84,80 @@ std::pair<int,float> AppEngine::sendRasterData(const float *data, std::size_t si
         std::cout << std::endl;
     }
     
-    net.set_input(vectorData);
+    vectorData = preProcess(vectorData);
+    
+    std::cout << "Raster after processing:" << std::endl;
+    
+    for(std::size_t y = 0; y < 28; y++)
+    {
+        for(std::size_t x = 0; x < 28; x++)
+            std::cout << (vectorData[x+y*28] > 50/255 ? "X" : " ");
+        std::cout << std::endl;
+    }
+    
+    
+    /*net.set_input(vectorData);
     net.propagate();
     net.print_values(std::cout);
     std::cout << ". Net guessed " << net.find_highest_output() << " with value of " << net.get_output(net.find_highest_output()) << std::endl;
-
+     */
     return std::pair<int,float>(net.find_highest_output(),net.get_output(net.find_highest_output()));
+     
+}
+
+
+std::vector<float> AppEngine::preProcess(std::vector<float> input)
+{
+    std::vector<float> output;
+    output.resize(input.size());
+    
+    std::size_t minX = 27;
+    std::size_t maxX = 0;
+    std::size_t minY = 27;
+    std::size_t maxY = 0;
+    
+    const float threshold = 5/255;
+    
+    //establish bounding box
+    
+    for(std::size_t y = 0; y < 28; y++)
+        for(std::size_t x = 0; x < 28; x++)
+        {
+            if(input[y*28+x] > threshold)
+            {
+                minX = x < minX ? x : minX;
+                minY = y < minY ? y : minY;
+                maxX = x > maxX ? x : maxX;
+                maxY = y > maxY ? y : maxY;
+            }
+        }
+    
+    std::cout << "X range: " << minX << " to " << maxX << std::endl;
+    std::cout << "Y range: " << minY << " to " << maxY << std::endl;
+    
+    //bilinear interpolation
+    
+    for(std::size_t yDest = 0; yDest < 28; yDest++)
+        for(std::size_t xDest = 0; xDest < 28; xDest++)
+        {
+            float xSrc = minX + ((((float)xDest)/27) * (maxX - minX));
+            int x1 = std::floor(xSrc);
+            int x2 = std::ceil(xSrc);
+            float dx = xSrc - x1;
+            
+            float ySrc = minY + ((((float)yDest)/27) * (maxY - minY));
+            int y1 = std::floor(ySrc);
+            int y2 = std::ceil(ySrc);
+            float dy = ySrc - y1;
+            
+            output[yDest * 28 + xDest] =    (1-dx)*(1-dy)*input[y1*28+x1] +
+                                            dx*(1-dy)*input[y1*28+x2] +
+                                            (1-dx)*dy*input[y2*28+x1] +
+                                            dx*dy*input[y2*28+x2];
+        }
+    
+    
+    
+    return output;
+    
 }
