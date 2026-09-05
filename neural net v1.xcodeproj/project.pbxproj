@@ -9,8 +9,13 @@
 /* Begin PBXBuildFile section */
 		DE40C6562BB2C27400C67031 /* data_set.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DE40C6542BB2C27400C67031 /* data_set.cpp */; };
 		DE40C6592BC5B00800C67031 /* mnist_data.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DE40C6572BC5B00800C67031 /* mnist_data.cpp */; };
-		DED68A262B824122004ED2CE /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DED68A252B824122004ED2CE /* main.cpp */; };
-		DED68A342B8E8C35004ED2CE /* neural.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DED68A322B8E8C35004ED2CE /* neural.cpp */; };
+		DE41437D302BE128009B4026 /* ActivationFunction.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DE41437C302BE11E009B4026 /* ActivationFunction.cpp */; };
+		DEA636E93044E3C40031E9F3 /* SwiftUIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEA636E83044E3C40031E9F3 /* SwiftUIView.swift */; };
+		DEA636EB3044EDCB0031E9F3 /* SwiftMain.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEA636EA3044EDCB0031E9F3 /* SwiftMain.swift */; };
+		DEA636F0304724990031E9F3 /* DrawingPad.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEA636EF304724990031E9F3 /* DrawingPad.swift */; };
+		DEA636F2304B60F80031E9F3 /* EngineBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEA636F1304B60F80031E9F3 /* EngineBox.swift */; };
+		DED68A262B824122004ED2CE /* AppEngine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DED68A252B824122004ED2CE /* AppEngine.cpp */; };
+		DED68A342B8E8C35004ED2CE /* Neural.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DED68A322B8E8C35004ED2CE /* Neural.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -30,11 +35,22 @@
 		DE40C6552BB2C27400C67031 /* data_set.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = data_set.hpp; sourceTree = "<group>"; };
 		DE40C6572BC5B00800C67031 /* mnist_data.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = mnist_data.cpp; sourceTree = "<group>"; };
 		DE40C6582BC5B00800C67031 /* mnist_data.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = mnist_data.hpp; sourceTree = "<group>"; };
+		DE414377302B626B009B4026 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
+		DE414378302B627E009B4026 /* PROJECT_NOTES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PROJECT_NOTES.md; sourceTree = "<group>"; };
+		DE414379302B6367009B4026 /* neuron_layer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = neuron_layer.hpp; sourceTree = "<group>"; };
+		DE41437B302BDE13009B4026 /* ActivationFunction.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ActivationFunction.hpp; sourceTree = "<group>"; };
+		DE41437C302BE11E009B4026 /* ActivationFunction.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ActivationFunction.cpp; sourceTree = "<group>"; };
+		DEA636E83044E3C40031E9F3 /* SwiftUIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUIView.swift; sourceTree = "<group>"; };
+		DEA636EA3044EDCB0031E9F3 /* SwiftMain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftMain.swift; sourceTree = "<group>"; };
+		DEA636EC3044F2E90031E9F3 /* AppEngine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AppEngine.hpp; sourceTree = "<group>"; };
+		DEA636ED3044F4810031E9F3 /* module.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
+		DEA636EF304724990031E9F3 /* DrawingPad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingPad.swift; sourceTree = SOURCE_ROOT; };
+		DEA636F1304B60F80031E9F3 /* EngineBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineBox.swift; sourceTree = "<group>"; };
 		DED68A222B824122004ED2CE /* neural net v1 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "neural net v1"; sourceTree = BUILT_PRODUCTS_DIR; };
-		DED68A252B824122004ED2CE /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		DED68A252B824122004ED2CE /* AppEngine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AppEngine.cpp; sourceTree = "<group>"; };
 		DED68A302B82477A004ED2CE /* data */ = {isa = PBXFileReference; lastKnownFileType = text; path = data; sourceTree = "<group>"; };
-		DED68A322B8E8C35004ED2CE /* neural.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = neural.cpp; sourceTree = "<group>"; };
-		DED68A332B8E8C35004ED2CE /* neural.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = neural.hpp; sourceTree = "<group>"; };
+		DED68A322B8E8C35004ED2CE /* Neural.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Neural.cpp; sourceTree = "<group>"; };
+		DED68A332B8E8C35004ED2CE /* Neural.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Neural.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -52,6 +68,8 @@
 			isa = PBXGroup;
 			children = (
 				DED68A302B82477A004ED2CE /* data */,
+				DE414377302B626B009B4026 /* AGENTS.md */,
+				DE414378302B627E009B4026 /* PROJECT_NOTES.md */,
 				DED68A242B824122004ED2CE /* neural net v1 */,
 				DED68A232B824122004ED2CE /* Products */,
 			);
@@ -68,13 +86,22 @@
 		DED68A242B824122004ED2CE /* neural net v1 */ = {
 			isa = PBXGroup;
 			children = (
-				DED68A252B824122004ED2CE /* main.cpp */,
-				DED68A322B8E8C35004ED2CE /* neural.cpp */,
-				DED68A332B8E8C35004ED2CE /* neural.hpp */,
+				DED68A252B824122004ED2CE /* AppEngine.cpp */,
+				DEA636EC3044F2E90031E9F3 /* AppEngine.hpp */,
+				DEA636ED3044F4810031E9F3 /* module.modulemap */,
+				DED68A322B8E8C35004ED2CE /* Neural.cpp */,
+				DED68A332B8E8C35004ED2CE /* Neural.hpp */,
+				DE41437B302BDE13009B4026 /* ActivationFunction.hpp */,
+				DE41437C302BE11E009B4026 /* ActivationFunction.cpp */,
 				DE40C6542BB2C27400C67031 /* data_set.cpp */,
 				DE40C6572BC5B00800C67031 /* mnist_data.cpp */,
 				DE40C6582BC5B00800C67031 /* mnist_data.hpp */,
 				DE40C6552BB2C27400C67031 /* data_set.hpp */,
+				DE414379302B6367009B4026 /* neuron_layer.hpp */,
+				DEA636EA3044EDCB0031E9F3 /* SwiftMain.swift */,
+				DEA636E83044E3C40031E9F3 /* SwiftUIView.swift */,
+				DEA636EF304724990031E9F3 /* DrawingPad.swift */,
+				DEA636F1304B60F80031E9F3 /* EngineBox.swift */,
 			);
 			path = "neural net v1";
 			sourceTree = "<group>";
@@ -110,6 +137,7 @@
 				TargetAttributes = {
 					DED68A212B824122004ED2CE = {
 						CreatedOnToolsVersion = 15.2;
+						LastSwiftMigration = 2660;
 					};
 				};
 			};
@@ -136,9 +164,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DEA636EB3044EDCB0031E9F3 /* SwiftMain.swift in Sources */,
 				DE40C6562BB2C27400C67031 /* data_set.cpp in Sources */,
-				DED68A262B824122004ED2CE /* main.cpp in Sources */,
-				DED68A342B8E8C35004ED2CE /* neural.cpp in Sources */,
+				DEA636E93044E3C40031E9F3 /* SwiftUIView.swift in Sources */,
+				DED68A262B824122004ED2CE /* AppEngine.cpp in Sources */,
+				DEA636F0304724990031E9F3 /* DrawingPad.swift in Sources */,
+				DEA636F2304B60F80031E9F3 /* EngineBox.swift in Sources */,
+				DE41437D302BE128009B4026 /* ActivationFunction.cpp in Sources */,
+				DED68A342B8E8C35004ED2CE /* Neural.cpp in Sources */,
 				DE40C6592BC5B00800C67031 /* mnist_data.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -205,6 +238,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
+				SWIFT_OBJC_INTEROP_MODE = objcxx;
 			};
 			name = Debug;
 		};
@@ -260,24 +294,32 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
+				SWIFT_OBJC_INTEROP_MODE = objcxx;
 			};
 			name = Release;
 		};
 		DED68A2A2B824122004ED2CE /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/** \"$(SRCROOT)/neural net v1\"/**";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
 		};
 		DED68A2B2B824122004ED2CE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/** \"$(SRCROOT)/neural net v1\"/**";
+				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};

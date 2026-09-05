@@ -3,13 +3,16 @@
 
 #include <vector>
 #include <cstddef>
+#include "ActivationFunction.hpp"
 
 // A simple, explicit container for a neural-network layer's state.
 // This mirrors the existing 'layer' struct fields to enable a staged migration
 // without obscuring the forward/backward equations.
+
 class NeuronLayer {
 public:
     std::size_t size{};
+    ActivationFunction& activation_function_;
     std::vector<double> pre_activation;
     std::vector<double> error;
     std::vector<double> bias_gradient;
@@ -18,19 +21,13 @@ public:
     std::vector<double> bias;
     std::vector<std::vector<double>> weight;
     std::vector<std::vector<double>> weight_gradient;
-
-    NeuronLayer() = default;
-
-    explicit NeuronLayer(std::size_t size_)
-        : size(size_)
+    
+    inline static Sigmoid default_activation_function_{};
+    
+    explicit NeuronLayer (ActivationFunction& af = default_activation_function_)
+        : activation_function_(af)
     {
-        activation.resize(size);
-        pre_activation.resize(size);
-        error.resize(size);
-        bias_gradient.resize(size);
-        bias.resize(size);
-        weight.resize(size);
-        weight_gradient.resize(size);
+        ;
     }
 
     // Ensure incoming connection dimensions match the previous layer.

@@ -12,27 +12,32 @@
 #include <vector>
 #include <iostream>
 #include "data_set.hpp"
+#include "neuron_layer.hpp"
 
-
+/*
+Reminder of old code
 struct layer
 {
-    std::size_t size;
-    std::vector<double> pre_activation;
-    std::vector<double> error;
-    std::vector<double> bias_gradient;
+     std::size_t size;
+     std::vector<double> pre_activation;
+     std::vector<double> error;
+     std::vector<double> bias_gradient;
 
-    std::vector<double> activation;
-    std::vector<double> bias;
-    std::vector<std::vector<double>> weight;
-    std::vector<std::vector<double>> weight_gradient;
+     std::vector<double> activation;
+     std::vector<double> bias;
+     std::vector<std::vector<double>> weight;
+     std::vector<std::vector<double>> weight_gradient;
 };
+*/
 
-class neural
+using layer = NeuronLayer;
+
+class Neural
 {
 public:
     
     //Constructor
-    neural(std::vector<int> nodes_per_layer);
+    Neural(std::vector<int> nodes_per_layer);
     
     //Debug
     void print_dimensions(std::ostream& stream);
@@ -42,14 +47,16 @@ public:
     void print_errors(std::ostream& stream);
     void print_training_errors(std::ostream& stream);
     void print_network(std::ostream& stream);
+    void print_stats(std::ostream& ostream);
     
     //Getters + setters
-    void set_input(std::size_t node, double value);
-    void set_input(data_set& data,std::size_t index);
+    void set_input(std::size_t node, double value); //directly change a single input
+    void set_input(std::vector<float>); // directly change all inputs from a vector
+    void set_input(data_set& data,std::size_t index); //directly change all inputs by selecting an entry from a data set
     void set_bias(std::size_t layer, std::vector<double>bias);
     void set_weight(std::size_t layer, std::size_t node, std::vector<double>weight);
     double get_output(std::size_t node);
-    int find_highest_output(void);
+    std::size_t find_highest_output(void);
 
     //Statics
     static double sigmoid(double x){return (1/(1+exp(-x)));}
@@ -57,9 +64,11 @@ public:
     const double learning_rate = 0.005;
     
     //Public methods
+    // propogate() is kept for compatibility and will call propagate()
     void propogate();
+    void propagate();
     void gradient_descent();
-    void train(const data_set& training_data);
+    double train(const data_set& training_data);
     
 private:
     // Internal data structure
@@ -79,3 +88,4 @@ private:
 
 
 #endif /* neural_hpp */
+

@@ -14,9 +14,9 @@
             filePath = "neural net v1/neural.hpp"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "36"
-            endingLineNumber = "36"
-            landmarkName = "neural"
+            startingLineNumber = "41"
+            endingLineNumber = "41"
+            landmarkName = "Neural"
             landmarkType = "3">
          </BreakpointContent>
       </BreakpointProxy>
@@ -30,9 +30,9 @@
             filePath = "neural net v1/neural.cpp"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "203"
-            endingLineNumber = "203"
-            landmarkName = "neural::set_input(data, index)"
+            startingLineNumber = "237"
+            endingLineNumber = "237"
+            landmarkName = "Neural::set_input(data, index)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

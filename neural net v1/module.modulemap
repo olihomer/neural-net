@@ -5,7 +5,7 @@
 //  Created by Oliver Homer on 31/08/2026.
 //
 
-module Neural {
-    header "legacyMain.hpp"
+module NeuralApp {
+    header "AppEngine.hpp"
     export *
 }

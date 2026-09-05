@@ -102,10 +102,10 @@ void mnist_data::print_data(std::ostream& stream)
         }
         
         
-        for(std::size_t x=0;x<X_DIM;x++)
+        for(std::size_t y=0;y<Y_DIM;y++)
         {
-            for(std::size_t y=0;y<Y_DIM;y++)
-                if(m_data[i].inputs[x*Y_DIM+y]>PRINT_THRESHOLD)
+            for(std::size_t x=0;x<X_DIM;x++)
+                if(m_data[i].inputs[y*Y_DIM+x]>PRINT_THRESHOLD)
                 {
                     stream << "X ";
                 }
