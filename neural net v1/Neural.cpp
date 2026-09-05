@@ -27,7 +27,7 @@ double Neural::train(const data_set &training_data)
     
     zero_training_error();
     
-    for(auto d : training_data.get_data()) //step through training set
+    for(const auto& d : training_data.get_data()) //step through training set
     {
         
         for(std::size_t input=0;input<training_data.n_inputs();input++)
@@ -53,30 +53,42 @@ double Neural::train(const data_set &training_data)
             
             const std::size_t previous_index = layer_index - 1;
             
-            for(std::size_t i=0;i<m_layer[previous_index].size;i++) //step through nodes
+            auto& current = m_layer[layer_index];
+            auto& previous = m_layer[previous_index];
+            
+            //Accumulate gradients for weights entering this layer. Process a complete weight row before moving on
+            for(std::size_t k = 0; k < current.size; k++)
             {
+                auto &gradients = current.weight_gradient[k];
+                const double error = current.error[k];
                 
-                for (std::size_t k=0;k<m_layer[previous_index+1].size;k++) //step through forward connected nodes
+                for(std::size_t i = 0; i < previous.size; i++)
                 {
-                    m_layer[previous_index+1].weight_gradient[k][i]+=m_layer[previous_index+1].error[k]*m_layer[previous_index].activation[i];
-               }
-                
-                if (previous_index == 0)
-                {
-                    continue;
+                    gradients[i] += error * previous.activation[i];
                 }
+            }
                 
+            //We need the weights coming from the input layer but we don't need errors or bias gradients of the input layer
+            if (previous_index == 0)
+            {
+                    continue;
+            }
+            
+            //Calculate the previous layer's errors and accumulate its bias gradients
+            for(std::size_t i = 0; i < previous.size; i++)
+            {
+            
                 double propagated_error = 0.0;
                 
-                for (std::size_t k=0;k<m_layer[previous_index+1].size;k++) //step through forward connected nodes
+                for (std::size_t k=0; k < current.size; k++) //step through forward connected nodes
                 {
-                    propagated_error += m_layer[previous_index+1].error[k] * m_layer[previous_index+1].weight[k][i];
+                    propagated_error += current.error[k] * current.weight[k][i];
                 }
  
                 
-                m_layer[previous_index].error[i] = propagated_error * m_layer[previous_index+1].activation_function_.derivative(m_layer[previous_index].pre_activation[i]);
+                previous.error[i] = propagated_error * previous.activation_function_.derivative(m_layer[previous_index].pre_activation[i]);
                 
-                m_layer[previous_index].bias_gradient[i] += m_layer[previous_index].error[i];
+                previous.bias_gradient[i] += previous.error[i];
               
             }
         }
@@ -122,7 +134,7 @@ void Neural::print_stats(std::ostream& stream)
             double mean_weight_gradient = 0.0;
             double mean_activation = 0.0;
             
-            for(auto vector_of_doubles: layer.weight_gradient)
+            for(const auto& vector_of_doubles: layer.weight_gradient)
                 for(auto value: vector_of_doubles)
                 {
                     count++;
