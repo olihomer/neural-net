@@ -12,10 +12,10 @@ import NeuralApp
 
 public struct SwiftUIView: View {
     @StateObject private var progress = TrainingProgressModel()
-    @StateObject private var engineBox: EngineBox
+    @ObservedObject private var engineBox: EngineBox
 
-    public init(engine: AppEngine) {
-        _engineBox = StateObject(wrappedValue: EngineBox(engine: engine))
+    init(engineBox: EngineBox) {
+        self.engineBox = engineBox
     }
 
     public var body: some View {

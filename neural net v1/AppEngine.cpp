@@ -18,25 +18,19 @@
 AppEngine::AppEngine()
 : net({784,128,10})
 {
-    ;
+    std::cout << "Constructing Engine" << std::endl;
 }
 
 AppEngine::~AppEngine()
 {
-    std::cout << "Deconstructing Engine";
+    std::cout << "Deconstructing Engine" << std::endl;
 }
 
 int AppEngine::runApp(void(*progress)(int32_t,double))
 {
-    //Neural net({784,128,10});
+    mnist_data mnist_training_data("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv",1000);
     
-    
-    
-    //net.print_network(std::cout);
-    
-    mnist_data mnist_training_data("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv",100);
-    
-    mnist_training_data.print_data(std::cout);
+    //mnist_training_data.print_data(std::cout);
     
     double total_error;
  
@@ -71,25 +65,10 @@ int AppEngine::runApp(void(*progress)(int32_t,double))
     return 0;
 }
 
-void AppEngine::sendRasterData(const float *data, std::size_t size)
+std::pair<int,float> AppEngine::sendRasterData(const float *data, std::size_t size)
 {
-    if(data==nullptr)return;
+    if(data==nullptr)return std::pair<int,float>(0,0);
 
-    mnist_data mnist_training_data("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv",100);
-    for(int i=0;i<50;i++)
-     {
-         int guess = rand()%100;
-         int guess_label = mnist_training_data.get_label(guess);
-         std::cout << "Guess = " << guess_label;
-         
-         net.set_input(mnist_training_data, guess);
-         net.propagate();
-         
-         std::cout << ". Net guessed " << net.find_highest_output() << " with value of " << net.get_output(net.find_highest_output()) << std::endl;
-         if(net.find_highest_output()!=guess_label)std::cout<<"WRONG!"<<std::endl;
-     }
-    
-    
     std::vector<float> vectorData;
     vectorData.resize(size);
     
@@ -108,5 +87,5 @@ void AppEngine::sendRasterData(const float *data, std::size_t size)
     net.print_values(std::cout);
     std::cout << ". Net guessed " << net.find_highest_output() << " with value of " << net.get_output(net.find_highest_output()) << std::endl;
 
-    
+    return std::pair<int,float>(net.find_highest_output(),net.get_output(net.find_highest_output()));
 }

@@ -40,11 +40,12 @@ struct DrawingPad: View {
     
     @State private var strokes: [Stroke] = []
     @State private var currentStroke = Stroke(points: [])
+    @State private var guess: (Int, Float) = (0, 0.0)
     private let padSize = CGSize(width: 400, height: 400)
-    @StateObject private var engineBox: EngineBox
+    @ObservedObject private var engineBox: EngineBox
 
-    public init(engine: AppEngine) {
-        _engineBox = StateObject(wrappedValue: EngineBox(engine: engine))
+    init(engineBox: EngineBox) {
+        self.engineBox = engineBox
     }
     
     var body: some View {
@@ -71,7 +72,7 @@ struct DrawingPad: View {
 
                 pixels.withUnsafeBufferPointer { buffer in
                     if let base = buffer.baseAddress {
-                        engineBox.sendRasterData(base, pixels.count)
+                        guess = engineBox.sendRasterData(base, pixels.count)
                     }
                 }
             }
@@ -80,6 +81,8 @@ struct DrawingPad: View {
                 currentStroke = Stroke(points: [])
             }
         }
+        
+        Text("Guess: \(guess.0) Prob: \(guess.1) ")
         .padding()
     }
     

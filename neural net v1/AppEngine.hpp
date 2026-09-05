@@ -12,7 +12,7 @@ class AppEngine {
     Neural net;
 public:
     int runApp(void(*progress)(int32_t,double));
-    void sendRasterData(const float *data, std::size_t size);
+    std::pair<int,float> sendRasterData(const float *data, std::size_t size);
     AppEngine();
     ~AppEngine();
 

@@ -19,12 +19,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 struct SwiftMain: App  {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    var appEngine = AppEngine()
+
+    @StateObject private var engineBox = EngineBox (engine: AppEngine())
 
     var body: some Scene {
         WindowGroup {
-            SwiftUIView(engine: appEngine)
-            DrawingPad(engine: appEngine)
+            SwiftUIView(engineBox: engineBox)
+            DrawingPad(engineBox: engineBox)
         }
     }
 }
