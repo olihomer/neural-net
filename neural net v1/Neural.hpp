@@ -45,11 +45,11 @@ public:
     //Statics
     static double sigmoid(double x){return (1/(1+exp(-x)));}
     static double sigmoid_prime(double x){double z = sigmoid(x);return z*(1-z);}
-    const double learning_rate = 0.005;
+    const double learning_rate = 0.5;
     
     //Public methods
     void propagate();
-    void gradient_descent();
+    void gradient_descent(const int trainingSize);
     double train(const data_set& training_data);
     
 private:

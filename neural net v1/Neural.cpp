@@ -106,16 +106,16 @@ double Neural::train(const data_set &training_data)
     
 }
 
-void Neural::gradient_descent()
+void Neural::gradient_descent(const int trainingSize)
 {
     for (std::size_t j=1;j<m_layers;j++) // loop through layers starting from second
     {
         for(std::size_t i=0;i<m_layer[j].size;i++) // loop through nodes
         {
-            m_layer[j].bias[i] -= m_layer[j].bias_gradient[i] * learning_rate;
+            m_layer[j].bias[i] -= m_layer[j].bias_gradient[i] * learning_rate / double(trainingSize);
             for(std::size_t k=0;k<m_layer[j-1].size;k++) // loop through connected nodes
             {
-                m_layer[j].weight[i][k]-=m_layer[j].weight_gradient[i][k] * learning_rate;
+                m_layer[j].weight[i][k]-=m_layer[j].weight_gradient[i][k] * learning_rate / double(trainingSize);
 
             }
         }

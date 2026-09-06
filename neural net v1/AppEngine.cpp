@@ -15,7 +15,7 @@
 #include <vector>
 
 namespace {
-Sigmoid hiddenActivationFunction;
+Relu hiddenActivationFunction;
 Sigmoid outputActivationFunction;
 }
 
@@ -41,7 +41,7 @@ int AppEngine::runApp(void(*progress)(int32_t,double))
     for (int i=0;i<1000;i++)
     {
         total_error = net.train(mnist_training_data);
-        net.gradient_descent();
+        net.gradient_descent(1000);
         if(i % 50==0)
         {
             std::cout << i << " ";
