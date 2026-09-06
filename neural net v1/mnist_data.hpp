@@ -27,7 +27,7 @@ public:
     static const int Y_DIM = 28;
     static const int IN_DIM = X_DIM * Y_DIM;
     static const int OUT_DIM = 10;
-    static const int PRINT_THRESHOLD = 50/255;
+    static constexpr float PRINT_THRESHOLD = 50.0f/255.0f;
 
 private:
     std::vector<int> m_label;

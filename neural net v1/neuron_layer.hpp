@@ -12,7 +12,7 @@
 class NeuronLayer {
 public:
     std::size_t size{};
-    ActivationFunction& activation_function_;
+    const ActivationFunction& activation_function_;
     std::vector<double> pre_activation;
     std::vector<double> error;
     std::vector<double> bias_gradient;
@@ -24,7 +24,7 @@ public:
     
     inline static Sigmoid default_activation_function_{};
     
-    explicit NeuronLayer (ActivationFunction& af = default_activation_function_)
+    explicit NeuronLayer (const ActivationFunction& af = default_activation_function_)
         : activation_function_(af)
     {
         ;

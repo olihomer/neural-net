@@ -185,22 +185,25 @@ void Neural::propagate()
     }
 }
 
-void Neural::propogate()
-{
-    propagate();
-}
-
-
-Neural::Neural(std::vector<int> nodes_per_layer)
+Neural::Neural(std::vector<int> nodes_per_layer, const ActivationFunction& hiddenActivationFunction, const ActivationFunction& outputActivationFunction)
 {
     m_layers=(int)nodes_per_layer.size();
     
     std::cout << "Constructing neural with " << m_layers << " layers." << std::endl;
- 
-    m_layer.resize(m_layers);
+    
+    //m_layer.resize(m_layers);
     
     for(std::size_t i=0;i<m_layers;i++)
     {
+        if(i < m_layers - 1)
+        {
+            m_layer.emplace_back(hiddenActivationFunction);
+        }
+        else
+        {
+            m_layer.emplace_back(outputActivationFunction);
+        }
+        
         if(nodes_per_layer[i]>m_max_layers)m_max_layers = nodes_per_layer[i];
         m_layer[i].size=nodes_per_layer[i];
         m_layer[i].activation.resize(m_layer[i].size);

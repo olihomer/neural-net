@@ -14,22 +14,6 @@
 #include "data_set.hpp"
 #include "neuron_layer.hpp"
 
-/*
-Reminder of old code
-struct layer
-{
-     std::size_t size;
-     std::vector<double> pre_activation;
-     std::vector<double> error;
-     std::vector<double> bias_gradient;
-
-     std::vector<double> activation;
-     std::vector<double> bias;
-     std::vector<std::vector<double>> weight;
-     std::vector<std::vector<double>> weight_gradient;
-};
-*/
-
 using layer = NeuronLayer;
 
 class Neural
@@ -37,7 +21,7 @@ class Neural
 public:
     
     //Constructor
-    Neural(std::vector<int> nodes_per_layer);
+    Neural(std::vector<int> nodes_per_layer, const ActivationFunction& hiddenActivationFunction, const ActivationFunction& outputActivationFunction);
     
     //Debug
     void print_dimensions(std::ostream& stream);
@@ -64,8 +48,6 @@ public:
     const double learning_rate = 0.005;
     
     //Public methods
-    // propogate() is kept for compatibility and will call propagate()
-    void propogate();
     void propagate();
     void gradient_descent();
     double train(const data_set& training_data);

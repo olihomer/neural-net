@@ -9,7 +9,9 @@
 #include <functional>
 
 class AppEngine {
+private:
     Neural net;
+
 public:
     int runApp(void(*progress)(int32_t,double));
     std::pair<int,float> sendRasterData(const float *data, std::size_t size);
