@@ -43,7 +43,7 @@ double Neural::train(const data_set &training_data)
         for(std::size_t i=0;i<m_layer[m_layers-1].size;i++)
         {
             //m_layer[m_layers-1].error[i] = (get_output(i)-d.o[i]) * sigmoid_prime(m_layer[m_layers-1].weighted_input[i]);  QUADRATIC
-            m_layer[m_layers-1].error[i] = (get_output(i)-d.outputs[i]); //cross-entropy loss with sigmoid simplification
+            m_layer[m_layers-1].error[i] = (get_output(i)-d.outputs[i]); //cross-entropy loss with sigmoid simplification (also ok for softmax)
             m_layer[m_layers-1].bias_gradient[i] += m_layer[m_layers-1].error[i];
         }
         
@@ -106,7 +106,7 @@ double Neural::train(const data_set &training_data)
     
 }
 
-void Neural::gradient_descent(const int trainingSize)
+void Neural::gradient_descent(const std::size_t trainingSize)
 {
     for (std::size_t j=1;j<m_layers;j++) // loop through layers starting from second
     {
@@ -180,9 +180,11 @@ void Neural::propagate()
             }
             z+=m_layer[i].bias[j];
             m_layer[i].pre_activation[j]=z;
-            m_layer[i].activation[j]=m_layer[i].activation_function_.activate(z);
+            //m_layer[i].activation[j]=m_layer[i].activation_function_.activate(z);
         }
+        m_layer[i].activation_function_.activate(m_layer[i].pre_activation,m_layer[i].activation);
     }
+    
 }
 
 Neural::Neural(std::vector<int> nodes_per_layer, const ActivationFunction& hiddenActivationFunction, const ActivationFunction& outputActivationFunction)

@@ -49,7 +49,7 @@ public:
     
     //Public methods
     void propagate();
-    void gradient_descent(const int trainingSize);
+    void gradient_descent(const std::size_t trainingSize);
     double train(const data_set& training_data);
     
 private:

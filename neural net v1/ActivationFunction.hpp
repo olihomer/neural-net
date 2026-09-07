@@ -5,13 +5,15 @@
 //  Created by Oliver Homer on 11/08/2026.
 //
 
+#include <vector>
+
 #ifndef ActivationFunction_hpp
 #define ActivationFunction_hpp
 
 class ActivationFunction
 {
 public:
-    virtual double activate(double preactivation) const = 0;
+    virtual void activate(const std::vector<double>& z, std::vector<double>& a) const = 0;
     virtual double derivative(double preactivation) const = 0;
     virtual ~ActivationFunction() = default;
 };
@@ -19,14 +21,21 @@ public:
 class Sigmoid final : public ActivationFunction
 {
 public:
-    double activate(double preactivation) const override;
+    void activate(const std::vector<double>& z, std::vector<double>& a) const override;
     double derivative(double preactivation) const override;
 };
 
 class Relu final : public ActivationFunction
 {
 public:
-    double activate(double preactivation) const override;
+    void activate(const std::vector<double>& z, std::vector<double>& a) const override;
+    double derivative(double preactivation) const override;
+};
+
+class Softmax final : public ActivationFunction
+{
+public:
+    void activate(const std::vector<double>& z, std::vector<double>& a) const override;
     double derivative(double preactivation) const override;
 };
 

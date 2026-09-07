@@ -41,7 +41,7 @@ int AppEngine::runApp(void(*progress)(int32_t,double))
     for (int i=0;i<1000;i++)
     {
         total_error = net.train(mnist_training_data);
-        net.gradient_descent(1000);
+        net.gradient_descent(mnist_training_data.size());
         if(i % 50==0)
         {
             std::cout << i << " ";
