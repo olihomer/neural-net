@@ -16,7 +16,7 @@
 
 namespace {
 Relu hiddenActivationFunction;
-Sigmoid outputActivationFunction;
+Softmax outputActivationFunction;
 }
 
 AppEngine::AppEngine()
@@ -32,17 +32,17 @@ AppEngine::~AppEngine()
 
 int AppEngine::runApp(void(*progress)(int32_t,double))
 {
-    mnist_data mnist_training_data("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv",1000);
+    mnist_data mnist_training_data("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv",9000);
     
     //mnist_training_data.print_data(std::cout);
     
     double total_error;
  
-    for (int i=0;i<1000;i++)
+    for (int i = 0; i < 500; i++)
     {
         total_error = net.train(mnist_training_data);
         net.gradient_descent(mnist_training_data.size());
-        if(i % 50==0)
+        if((i+1) % 50 == 0)
         {
             std::cout << i << " ";
             std::cout << "Total error: " << total_error << std::endl;
@@ -51,20 +51,24 @@ int AppEngine::runApp(void(*progress)(int32_t,double))
         }
     }
     
+    mnist_data mnist_training_data2("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv",10000);
+
+    int wrong = 0;
     
-   for(int i=0;i<50;i++)
+    for(int i=0;i<1000;i++)
     {
-        int guess = rand()%100;
-        int guess_label = mnist_training_data.get_label(guess);
+        int guess = i;
+        int guess_label = mnist_training_data2.get_label(guess+9000);
         std::cout << "Guess = " << guess_label;
         
-        net.set_input(mnist_training_data, guess);
+        net.set_input(mnist_training_data2, guess+9000);
         net.propagate();
         
         std::cout << ". Net guessed " << net.find_highest_output() << " with value of " << net.get_output(net.find_highest_output()) << std::endl;
-        if(net.find_highest_output()!=guess_label)std::cout<<"WRONG!"<<std::endl;
+        if(net.find_highest_output()!=guess_label){std::cout<<"WRONG!"<<std::endl;wrong++;}
     }
     
+    std::cout << "Success rate: " << (1 - ( (float)wrong / 1000) );
     
     return 0;
 }
@@ -102,7 +106,7 @@ std::pair<int,float> AppEngine::sendRasterData(const float *data, std::size_t si
     
     net.set_input(vectorData);
     net.propagate();
-    net.print_values(std::cout);
+    
     std::cout << ". Net guessed " << net.find_highest_output() << " with value of " << net.get_output(net.find_highest_output()) << std::endl;
     
     return std::pair<int,float>(net.find_highest_output(),net.get_output(net.find_highest_output()));

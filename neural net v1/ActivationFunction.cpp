@@ -24,7 +24,7 @@ double Sigmoid::derivative(double preactivation) const
 
 void Relu::activate(const std::vector<double>& z, std::vector<double>& a) const
 {
-for(std::size_t i = 0; i < z.size(); i++)
+    for(std::size_t i = 0; i < z.size(); i++)
     a[i] = z[i] > 0.0 ? z[i] : 0.0;
 }
 
@@ -35,7 +35,17 @@ double Relu::derivative(double preactivation) const
 
 void Softmax::activate(const std::vector<double>& z, std::vector<double>& a) const
 {
-   ;
+    double zmax = *std::max_element(z.begin(), z.end());
+    double sum = 0;
+    
+    for(std::size_t i = 0; i < z.size(); i++)
+    {
+        a[i] = std::exp(z[i] - zmax);
+        sum += a[i];
+    }
+    
+    for(double& value : a)
+        value /= sum;
 }
 
 
