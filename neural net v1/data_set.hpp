@@ -28,6 +28,7 @@ public:
     const std::size_t n_inputs() const {return m_n_inputs;};
     const std::size_t n_outputs() const {return m_n_outputs;};
     const std::size_t size() const {return m_size;};
+    virtual const std::size_t get_order(const std::size_t index) const {return index;};
     //Debug
     void print_data(std::ostream& stream);
     

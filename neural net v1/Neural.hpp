@@ -50,7 +50,7 @@ public:
     //Public methods
     void propagate();
     void gradient_descent(std::size_t trainingSize, double learningRate);
-    double train(const data_set& training_data);
+    double train(const data_set& training_data, std::size_t batch_size, std::size_t start);
     void save(const std::string& filename) const;
     void load(const std::string& filename);
     

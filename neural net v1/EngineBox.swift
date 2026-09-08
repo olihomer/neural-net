@@ -59,4 +59,16 @@ final class EngineBox: ObservableObject, @unchecked Sendable {
         let result = engine.sendRasterData(data, size)
         return (Int(result.first), Float(result.second))
     }
+
+    func saveNetwork(to path: String) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return path.withCString { engine.saveNetwork($0) }
+    }
+
+    func loadNetwork(from path: String) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return path.withCString { engine.loadNetwork($0) }
+    }
 }

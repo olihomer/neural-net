@@ -23,9 +23,15 @@ void Neural::load(const std::string& filename)
     char MAGIC[] = {'X','X','X','X'};
     file.read(reinterpret_cast<char*>(&MAGIC), sizeof(MAGIC));
     
+    if(std::string(MAGIC,sizeof(MAGIC))!="NNET")
+        throw std::runtime_error("Not a valid neural network file");
+    
     //Version
     std::uint8_t version;
     file.read(reinterpret_cast<char*>(&version),sizeof(version));
+    
+    if(version!=1)
+        throw std::runtime_error("Unsupported file version");
     
     //Number of layers
     file.read(reinterpret_cast<char*>(&m_layers),sizeof(m_layers));
@@ -41,15 +47,14 @@ void Neural::load(const std::string& filename)
         
         
     }
-        
     
-    
-    
+    m_max_layers = 0;
     
     //Load each layer
     for(auto &layer: m_layer)
     {
         layer.load(file);
+        if(layer.size > m_max_layers)m_max_layers = layer.size;
     }
     
     if(!file)
@@ -94,7 +99,7 @@ void Neural::save(const std::string& filename) const
 
 
 
-double Neural::train(const data_set &training_data)
+double Neural::train(const data_set &training_data, std::size_t batch_size, std::size_t start)
 {
     //std::cout << "Training with " << training_data.size() << " data points." << std::endl;
     
@@ -106,13 +111,13 @@ double Neural::train(const data_set &training_data)
         exit(1);
     }
     
-    
     double total_error = 0;
     
     zero_training_error();
     
-    for(const auto& d : training_data.get_data()) //step through training set
+    for(std::size_t batch_index = 0; batch_index < batch_size; batch_index++)
     {
+        const auto& d = training_data.get_data()[training_data.get_order(batch_index + start)];
         
         for(std::size_t input=0;input<training_data.n_inputs();input++)
         {
@@ -194,12 +199,8 @@ double Neural::train(const data_set &training_data)
         
         total_error += cost_function(d.outputs);
         
-        //std::cout << "Out:" << get_output(0) << std::endl;
-        //std::cout << "Delta: " << get_output(0)-d.o << std::endl;
-        //std::cout << "Training error: " << m_layer[m_layers-1].training_error[0] << std::endl;
-        
     } //end of training loop;
-    total_error /= (training_data.get_data().size()*2);
+    total_error /= (batch_size * 2);
     
     return total_error;
     

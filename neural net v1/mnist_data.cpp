@@ -9,17 +9,24 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <numeric>
+#include <random>
+#include <algorithm>
 
+std::random_device mnist_data::rd;
+std::mt19937 mnist_data::rng(mnist_data::rd());
 
 mnist_data::mnist_data()
 {
     data_set();
 }
 
-
 mnist_data::mnist_data(const std::string &filename, int size)
 {
     data_set(); //call base ctor
+    
+    m_order.resize(size);
+    std::iota(m_order.begin(),m_order.end(),0);
     
     m_n_inputs = IN_DIM;;
     m_n_outputs = OUT_DIM;
@@ -81,11 +88,20 @@ mnist_data::mnist_data(const std::string &filename, int size)
 }
 
 
+void mnist_data::shuffle()
+{
+    std::shuffle(m_order.begin(),m_order.end(), rng);
+}
+
+const std::size_t mnist_data::get_order(const std::size_t index) const
+{
+    return m_order[index];
+}
+
+
 void mnist_data::print_data(std::ostream& stream)
 {
     stream << "Mnist Data. Size: " << m_size << std::endl;
-    
-  
     
     for(std::size_t i=0;i<m_size;i++)
     {

@@ -15,6 +15,7 @@
 #include <cmath>
 #include <string>
 #include <vector>
+#include <numeric>
 
 namespace {
 Relu reluActivationFunction;
@@ -61,21 +62,33 @@ int AppEngine::runApp(void(*progress)(int32_t,double), int hiddenLayerSize, int 
 
     mnist_data mnist_training_data("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", trainingExamples);
     
-    //mnist_training_data.print_data(std::cout);
-    
-    double total_error;
+    const std::size_t batchSize = 50;
+    const std::size_t trainingExampleCount = static_cast<std::size_t>(trainingExamples);
+    double total_error = 0;
  
-    for (int i = 0; i < epochs; i++)
+    for(std::size_t i = 0; i < epochs; i++)
     {
-        total_error = net.train(mnist_training_data);
-        net.gradient_descent(mnist_training_data.get_data().size(), learningRate);
+        double epoch_error = 0;
+        std::size_t batches = 0;
+
+        for(std::size_t training_index = 0; training_index < trainingExampleCount; training_index += batchSize)
+        {
+            const std::size_t currentBatchSize = std::min(batchSize, trainingExampleCount - training_index);
+            epoch_error += net.train(mnist_training_data, currentBatchSize, training_index);
+            net.gradient_descent(currentBatchSize, learningRate);
+            batches++;
+        }
+
+        total_error = epoch_error / double(batches);
+
         if((i+1) % 50 == 0 || i == epochs - 1)
         {
             std::cout << i << " ";
             std::cout << "Total error: " << total_error << std::endl;
             net.print_stats(std::cout);
-            progress(i,total_error);
+            progress(int(i),total_error);
         }
+        mnist_training_data.shuffle();
     }
     
     mnist_data mnist_training_data2("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", trainingExamples);
@@ -99,6 +112,38 @@ int AppEngine::runApp(void(*progress)(int32_t,double), int hiddenLayerSize, int 
     std::cout << "Success rate: " << (1 - (float(wrong) / float(evaluationExamples)) );
     
     return 0;
+}
+
+bool AppEngine::saveNetwork(const char *path)
+{
+    if(path == nullptr)return false;
+
+    try
+    {
+        net.save(path);
+        return true;
+    }
+    catch(const std::exception& error)
+    {
+        std::cout << "Save failed: " << error.what() << std::endl;
+        return false;
+    }
+}
+
+bool AppEngine::loadNetwork(const char *path)
+{
+    if(path == nullptr)return false;
+
+    try
+    {
+        net.load(path);
+        return true;
+    }
+    catch(const std::exception& error)
+    {
+        std::cout << "Load failed: " << error.what() << std::endl;
+        return false;
+    }
 }
 
 std::pair<int,float> AppEngine::sendRasterData(const float *data, std::size_t size)

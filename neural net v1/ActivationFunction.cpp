@@ -22,6 +22,7 @@ const ActivationFunction& activationFromType(ActivationType type)
         case ActivationType::Relu: return relu;
         case ActivationType::Softmax: return softmax;
     }
+    throw std::runtime_error("Unknown activation function");
 }
 
 void Sigmoid::activate(const std::vector<double>& z, std::vector<double>& a) const

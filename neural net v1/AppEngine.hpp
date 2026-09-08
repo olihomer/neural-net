@@ -18,6 +18,8 @@ private:
 public:
     int runApp(void(*progress)(int32_t,double), int hiddenLayerSize, int epochs, int trainingExamples, double learningRate, int hiddenActivation, int outputActivation);
     std::pair<int,float> sendRasterData(const float *data, std::size_t size);
+    bool saveNetwork(const char *path);
+    bool loadNetwork(const char *path);
     std::vector<float> preProcess(std::vector<float>);
     AppEngine();
     ~AppEngine();

@@ -43,7 +43,8 @@ void NeuronLayer::load(std::ifstream& file)
     
     //Number of inputs
     std::size_t inputs;
-    file.read(reinterpret_cast<char*>(&inputs),sizeof(inputs));
+    if(!file.read(reinterpret_cast<char*>(&inputs),sizeof(inputs)))
+        throw std::runtime_error("Could not read input layer count");
     
     resize_for_previous(inputs);
     

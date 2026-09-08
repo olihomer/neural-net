@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import NeuralApp
 
 @MainActor final class TrainingProgressModel: ObservableObject {
@@ -26,6 +27,7 @@ public struct SwiftUIView: View {
     @State private var trainingExamplesText = "100"
     @State private var learningRateText = "0.5"
     @State private var isTraining = false
+    @State private var fileStatus = ""
     @FocusState private var focusedField: FocusedField?
 
     init(engineBox: EngineBox) {
@@ -66,6 +68,7 @@ public struct SwiftUIView: View {
                 commitNumericSettings()
                 isTraining = true
                 progress.runResult = nil
+                fileStatus = ""
                 globalProgressModel = progress
                 let engineBox = engineBox
                 let settings = settings
@@ -80,6 +83,24 @@ public struct SwiftUIView: View {
                 }
             }
             .disabled(isTraining)
+
+            HStack {
+                Button("Save") {
+                    saveNetwork()
+                }
+                .disabled(isTraining)
+
+                Button("Load") {
+                    loadNetwork()
+                }
+                .disabled(isTraining)
+            }
+
+            if !fileStatus.isEmpty {
+                Text(fileStatus)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             if isTraining {
                 HStack(spacing: 8) {
@@ -132,6 +153,33 @@ public struct SwiftUIView: View {
         commitInteger($epochsText, to: $settings.epochs, range: 1...5000)
         commitInteger($trainingExamplesText, to: $settings.trainingExamples, range: 1...60000)
         commitDouble($learningRateText, to: $settings.learningRate, range: 0.0...2.0)
+    }
+
+    private func saveNetwork() {
+        let panel = NSSavePanel()
+        panel.title = "Save Neural Network"
+        panel.nameFieldStringValue = "network.nnet"
+        panel.canCreateDirectories = true
+
+        guard panel.runModal() == .OK, let url = panel.url else {
+            return
+        }
+
+        fileStatus = engineBox.saveNetwork(to: url.path) ? "Saved network" : "Save failed"
+    }
+
+    private func loadNetwork() {
+        let panel = NSOpenPanel()
+        panel.title = "Load Neural Network"
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+
+        guard panel.runModal() == .OK, let url = panel.url else {
+            return
+        }
+
+        fileStatus = engineBox.loadNetwork(from: url.path) ? "Loaded network" : "Load failed"
     }
 
     private func commitInteger(_ text: Binding<String>, to value: Binding<Int>, range: ClosedRange<Int>) {
