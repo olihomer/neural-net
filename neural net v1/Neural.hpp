@@ -51,6 +51,8 @@ public:
     void propagate();
     void gradient_descent(std::size_t trainingSize, double learningRate);
     double train(const data_set& training_data);
+    void save(const std::string& filename) const;
+    void load(const std::string& filename);
     
 private:
     // Internal data structure

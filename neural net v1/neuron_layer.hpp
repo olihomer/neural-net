@@ -30,6 +30,10 @@ public:
         ;
     }
 
+    void save(std::ofstream& file) const;
+    
+    void load(std::ifstream& file);
+    
     // Ensure incoming connection dimensions match the previous layer.
     void resize_for_previous(std::size_t prev_size) {
         for (std::size_t j = 0; j < size; ++j) {

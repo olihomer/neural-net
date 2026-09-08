@@ -10,6 +10,20 @@
 #include <cmath>
 #include <stdexcept>
 
+const ActivationFunction& activationFromType(ActivationType type)
+{
+    static const Sigmoid sigmoid;
+    static const Relu relu;
+    static const Softmax softmax;
+    
+    switch(type)
+    {
+        case ActivationType::Sigmoid: return sigmoid;
+        case ActivationType::Relu: return relu;
+        case ActivationType::Softmax: return softmax;
+    }
+}
+
 void Sigmoid::activate(const std::vector<double>& z, std::vector<double>& a) const
 {
     for(std::size_t i = 0; i < z.size(); i++)

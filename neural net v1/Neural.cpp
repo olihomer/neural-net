@@ -6,8 +6,92 @@
 //
 
 #include "Neural.hpp"
+#include "neuron_layer.hpp"
 #include <iostream>
+#include <fstream>
 #include <cmath>
+
+
+void Neural::load(const std::string& filename)
+{
+    std::ifstream file(filename, std::ios::binary);
+    
+    if(!file)
+        throw std::runtime_error("Load file could not be opened");
+    
+    //Magic number
+    char MAGIC[] = {'X','X','X','X'};
+    file.read(reinterpret_cast<char*>(&MAGIC), sizeof(MAGIC));
+    
+    //Version
+    std::uint8_t version;
+    file.read(reinterpret_cast<char*>(&version),sizeof(version));
+    
+    //Number of layers
+    file.read(reinterpret_cast<char*>(&m_layers),sizeof(m_layers));
+    
+    m_layer.clear();
+
+    //Activation functions, create layers
+    for(std::size_t i = 0 ; i < m_layers; i++)
+    {
+        std::uint8_t activation;
+        file.read(reinterpret_cast<char*>(&activation),sizeof(activation));
+        m_layer.emplace_back(activationFromType(static_cast<ActivationType>(activation)));
+        
+        
+    }
+        
+    
+    
+    
+    
+    //Load each layer
+    for(auto &layer: m_layer)
+    {
+        layer.load(file);
+    }
+    
+    if(!file)
+        throw std::runtime_error("Failed while loading");
+}
+
+void Neural::save(const std::string& filename) const
+{
+    std::ofstream file(filename, std::ios::binary);
+    
+    if(!file)
+        throw std::runtime_error("Save file could not be opened");
+    
+    //Magic number
+    constexpr char MAGIC[] = {'N','N','E','T'};
+    file.write(MAGIC, sizeof(MAGIC));
+    
+    //Version
+    const uint8_t version = 1;
+    file.write(reinterpret_cast<const char*>(&version),sizeof(version));
+    
+    //Number of layers
+    file.write(reinterpret_cast<const char*>(&m_layers),sizeof(m_layers));
+    
+    //Activation functions
+    for(std::size_t i = 0 ; i < m_layers; i++)
+    {
+        const std::uint8_t activation = (std::uint8_t)m_layer[i].activation_function_.type();
+        file.write(reinterpret_cast<const char*>(&activation),sizeof(activation));
+    }
+    
+    //Save each layer
+    for(const auto &layer: m_layer)
+    {
+        layer.save(file);
+    }
+    
+    if(!file)
+        throw std::runtime_error("Failed while saving");
+}
+
+
 
 
 double Neural::train(const data_set &training_data)
