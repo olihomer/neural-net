@@ -118,14 +118,14 @@ std::pair<int,float> AppEngine::sendRasterData(const float *data, std::size_t si
     for(std::size_t i = 0; i < size; i++)
         vectorData[i] = data[i];
     
-    std::cout << "Raster with side " << side << " before processing:" << std::endl;
+    /*std::cout << "Raster with side " << side << " before processing:" << std::endl;
     
     for(std::size_t y = 0; y < side; y++)
     {
         for(std::size_t x = 0; x < side; x++)
             std::cout << (vectorData[x + y * side] > 50.0f/255.0f ? "X" : " ");
         std::cout << std::endl;
-    }
+    }*/
     
     vectorData = preProcess(vectorData);
     
@@ -168,12 +168,21 @@ std::vector<float> AppEngine::preProcess(std::vector<float> input)
     
     const float threshold = 5.0f/255.0f;
     
-    //establish bounding box
+    //establish bounding box and centre of mass
+    
+    float weighted_x = 0;
+    float weighted_y = 0;
+    float total_weight = 0;
     
     for(std::size_t y = 0; y < sizeofside; y++)
         for(std::size_t x = 0; x < sizeofside; x++)
         {
-            if(input[y*sizeofside+x] > threshold)
+            float pixel = input[y*sizeofside+x];
+            weighted_x += x * pixel;
+            weighted_y += y * pixel;
+            total_weight += pixel;
+            
+            if(pixel > threshold)
             {
                 minX = x < minX ? x : minX;
                 minY = y < minY ? y : minY;
@@ -198,17 +207,22 @@ std::vector<float> AppEngine::preProcess(std::vector<float> input)
     const float centreX = (float(minX) + float(maxX)) / 2.0f;
     const float centreY = (float(minY) + float(maxY)) / 2.0f;
     
+    const float weighted_centreX = weighted_x / total_weight;
+    const float weighted_centreY = weighted_y / total_weight;
+    
+    std::cout << "Centre: " << centreX << "," << centreY << " Weighted: " << weighted_centreX << "," << weighted_centreY << std::endl;
+ 
     //bilinear interpolation
     
     for(std::size_t yDest = 0; yDest < 28; yDest++)
         for(std::size_t xDest = 0; xDest < 28; xDest++)
         {
-            const float xSrc = centreX + (float(xDest) - 13.5f) * step;
+            const float xSrc = weighted_centreX + (float(xDest) - 13.5f) * step;
             int x1 = std::floor(xSrc);
             int x2 = std::ceil(xSrc);
             float dx = xSrc - x1;
             
-            const float ySrc = centreY + (float(yDest) - 13.5f) * step;
+            const float ySrc = weighted_centreY + (float(yDest) - 13.5f) * step;
             int y1 = std::floor(ySrc);
             int y2 = std::ceil(ySrc);
             float dy = ySrc - y1;
