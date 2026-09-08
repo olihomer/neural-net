@@ -74,22 +74,37 @@ double Neural::train(const data_set &training_data)
                     continue;
             }
             
-            //Calculate the previous layer's errors and accumulate its bias gradients
+            //Calculate the previous layer's errors and accumulate its bias gradients.
+            std::vector<double> propagated_errors(previous.size, 0.0);
             for(std::size_t i = 0; i < previous.size; i++)
             {
-            
-                double propagated_error = 0.0;
-                
                 for (std::size_t k=0; k < current.size; k++) //step through forward connected nodes
                 {
-                    propagated_error += current.error[k] * current.weight[k][i];
+                    propagated_errors[i] += current.error[k] * current.weight[k][i];
                 }
- 
-                
-                previous.error[i] = propagated_error * previous.activation_function_.derivative(m_layer[previous_index].pre_activation[i]);
-                
-                previous.bias_gradient[i] += previous.error[i];
-              
+            }
+
+            if(dynamic_cast<const Softmax*>(&previous.activation_function_) != nullptr)
+            {
+                double activation_weighted_error = 0.0;
+                for(std::size_t i = 0; i < previous.size; i++)
+                {
+                    activation_weighted_error += propagated_errors[i] * previous.activation[i];
+                }
+
+                for(std::size_t i = 0; i < previous.size; i++)
+                {
+                    previous.error[i] = previous.activation[i] * (propagated_errors[i] - activation_weighted_error);
+                    previous.bias_gradient[i] += previous.error[i];
+                }
+            }
+            else
+            {
+                for(std::size_t i = 0; i < previous.size; i++)
+                {
+                    previous.error[i] = propagated_errors[i] * previous.activation_function_.derivative(previous.pre_activation[i]);
+                    previous.bias_gradient[i] += previous.error[i];
+                }
             }
         }
         
@@ -106,16 +121,16 @@ double Neural::train(const data_set &training_data)
     
 }
 
-void Neural::gradient_descent(const std::size_t trainingSize)
+void Neural::gradient_descent(std::size_t trainingSize, double learningRate)
 {
     for (std::size_t j=1;j<m_layers;j++) // loop through layers starting from second
     {
         for(std::size_t i=0;i<m_layer[j].size;i++) // loop through nodes
         {
-            m_layer[j].bias[i] -= m_layer[j].bias_gradient[i] * learning_rate / double(trainingSize);
+            m_layer[j].bias[i] -= m_layer[j].bias_gradient[i] * learningRate / double(trainingSize);
             for(std::size_t k=0;k<m_layer[j-1].size;k++) // loop through connected nodes
             {
-                m_layer[j].weight[i][k]-=m_layer[j].weight_gradient[i][k] * learning_rate / double(trainingSize);
+                m_layer[j].weight[i][k]-=m_layer[j].weight_gradient[i][k] * learningRate / double(trainingSize);
 
             }
         }
@@ -189,11 +204,17 @@ void Neural::propagate()
 
 Neural::Neural(std::vector<int> nodes_per_layer, const ActivationFunction& hiddenActivationFunction, const ActivationFunction& outputActivationFunction)
 {
-    m_layers=(int)nodes_per_layer.size();
+    configure(nodes_per_layer, hiddenActivationFunction, outputActivationFunction);
+}
+
+void Neural::configure(std::vector<int> nodes_per_layer, const ActivationFunction& hiddenActivationFunction, const ActivationFunction& outputActivationFunction)
+{
+    m_layers = nodes_per_layer.size();
+    m_max_layers = 0;
+    m_layer.clear();
+    m_layer.reserve(m_layers);
     
-    std::cout << "Constructing neural with " << m_layers << " layers." << std::endl;
-    
-    //m_layer.resize(m_layers);
+    std::cout << "Configuring neural with " << m_layers << " layers." << std::endl;
     
     for(std::size_t i=0;i<m_layers;i++)
     {
@@ -263,6 +284,14 @@ void Neural::set_input(data_set& data,std::size_t index)
 
 void Neural::set_input(std::vector<float> input_vector)
 {
+    if(input_vector.size() != m_layer[0].size)
+    {
+        std::cout << "Error: input vector size " << input_vector.size()
+                  << " does not match net input layer size " << m_layer[0].size
+                  << std::endl;
+        return;
+    }
+
     for(std::size_t i = 0; i < input_vector.size(); i++)
     {
         set_input(i,input_vector[i]);

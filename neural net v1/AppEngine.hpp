@@ -6,14 +6,17 @@
 //
 
 #include "Neural.hpp"
+#include <cstdint>
 #include <functional>
+#include <utility>
+#include <vector>
 
 class AppEngine {
 private:
     Neural net;
 
 public:
-    int runApp(void(*progress)(int32_t,double));
+    int runApp(void(*progress)(int32_t,double), int hiddenLayerSize, int epochs, int trainingExamples, double learningRate, int hiddenActivation, int outputActivation);
     std::pair<int,float> sendRasterData(const float *data, std::size_t size);
     std::vector<float> preProcess(std::vector<float>);
     AppEngine();

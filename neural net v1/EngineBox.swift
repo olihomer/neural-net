@@ -1,6 +1,34 @@
 import Foundation
 import NeuralApp
 
+enum ActivationChoice: Int32, CaseIterable, Identifiable, Sendable {
+    case relu = 0
+    case sigmoid = 1
+    case softmax = 2
+
+    var id: Int32 { rawValue }
+
+    var title: String {
+        switch self {
+        case .relu:
+            return "ReLU"
+        case .sigmoid:
+            return "Sigmoid"
+        case .softmax:
+            return "Softmax"
+        }
+    }
+}
+
+struct TrainingSettings: Sendable {
+    var hiddenLayerSize: Int = 128
+    var epochs: Int = 500
+    var trainingExamples: Int = 100
+    var learningRate: Double = 0.5
+    var hiddenActivation: ActivationChoice = .relu
+    var outputActivation: ActivationChoice = .softmax
+}
+
 final class EngineBox: ObservableObject, @unchecked Sendable {
     static let shared = EngineBox(engine: AppEngine())
 
@@ -11,10 +39,18 @@ final class EngineBox: ObservableObject, @unchecked Sendable {
         self.engine = engine
     }
 
-    func runApp() -> Int32 {
+    func runApp(settings: TrainingSettings) -> Int32 {
         lock.lock()
         defer { lock.unlock() }
-        return engine.runApp(progress_callback)
+        return engine.runApp(
+            progress_callback,
+            CInt(settings.hiddenLayerSize),
+            CInt(settings.epochs),
+            CInt(settings.trainingExamples),
+            settings.learningRate,
+            CInt(settings.hiddenActivation.rawValue),
+            CInt(settings.outputActivation.rawValue)
+        )
     }
 
     func sendRasterData(_ data: UnsafePointer<Float>, _ size: Int) -> (Int, Float) {

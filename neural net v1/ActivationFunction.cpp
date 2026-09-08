@@ -6,7 +6,9 @@
 //
 
 #include "ActivationFunction.hpp"
+#include <algorithm>
 #include <cmath>
+#include <stdexcept>
 
 void Sigmoid::activate(const std::vector<double>& z, std::vector<double>& a) const
 {

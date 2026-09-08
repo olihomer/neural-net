@@ -22,6 +22,7 @@ public:
     
     //Constructor
     Neural(std::vector<int> nodes_per_layer, const ActivationFunction& hiddenActivationFunction, const ActivationFunction& outputActivationFunction);
+    void configure(std::vector<int> nodes_per_layer, const ActivationFunction& hiddenActivationFunction, const ActivationFunction& outputActivationFunction);
     
     //Debug
     void print_dimensions(std::ostream& stream);
@@ -45,11 +46,10 @@ public:
     //Statics
     static double sigmoid(double x){return (1/(1+exp(-x)));}
     static double sigmoid_prime(double x){double z = sigmoid(x);return z*(1-z);}
-    const double learning_rate = 0.5;
     
     //Public methods
     void propagate();
-    void gradient_descent(const std::size_t trainingSize);
+    void gradient_descent(std::size_t trainingSize, double learningRate);
     double train(const data_set& training_data);
     
 private:

@@ -49,40 +49,41 @@ struct DrawingPad: View {
     }
     
     var body: some View {
-        DrawingCanvas(strokes: strokes, currentStroke: currentStroke, sourceSize: padSize)
-            .frame(width: padSize.width, height: padSize.height)
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { value in
-                        currentStroke.points.append(value.location)
-                    }
-                    .onEnded { value in
-                        currentStroke.points.append(value.location)
-                        strokes.append(currentStroke)
-                        currentStroke = Stroke(points: [])
-                    }
-            )
-            .padding()
-        
-        HStack {
-            Button("Rasterise") {
-                let pixels = rasterisewithImageRenderer()
-                let nonZero = pixels.reduce(0) { $0 + ($1 > 0 ? 1 : 0) }
-                print("pixels.count=\(pixels.count), nonZero=\(nonZero)")
+        VStack(spacing: 12) {
+            DrawingCanvas(strokes: strokes, currentStroke: currentStroke, sourceSize: padSize)
+                .frame(width: padSize.width, height: padSize.height)
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            currentStroke.points.append(value.location)
+                        }
+                        .onEnded { value in
+                            currentStroke.points.append(value.location)
+                            strokes.append(currentStroke)
+                            currentStroke = Stroke(points: [])
+                        }
+                )
+            
+            HStack {
+                Button("Rasterise") {
+                    let pixels = rasterisewithImageRenderer()
+                    let nonZero = pixels.reduce(0) { $0 + ($1 > 0 ? 1 : 0) }
+                    print("pixels.count=\(pixels.count), nonZero=\(nonZero)")
 
-                pixels.withUnsafeBufferPointer { buffer in
-                    if let base = buffer.baseAddress {
-                        guess = engineBox.sendRasterData(base, pixels.count)
+                    pixels.withUnsafeBufferPointer { buffer in
+                        if let base = buffer.baseAddress {
+                            guess = engineBox.sendRasterData(base, pixels.count)
+                        }
                     }
                 }
+                Button("Clear") {
+                    strokes.removeAll()
+                    currentStroke = Stroke(points: [])
+                }
             }
-            Button("Clear") {
-                strokes.removeAll()
-                currentStroke = Stroke(points: [])
-            }
+            
+            Text("Guess: \(guess.0) Prob: \(guess.1) ")
         }
-        
-        Text("Guess: \(guess.0) Prob: \(guess.1) ")
         .padding()
     }
     
@@ -92,10 +93,10 @@ struct DrawingPad: View {
             currentStroke: currentStroke,
             sourceSize: padSize
         )
-        .frame(width: 28, height: 28)
+        .frame(width: 280, height: 280)
         
         let renderer = ImageRenderer(content: drawingView)
-        renderer.proposedSize = ProposedViewSize(width: 28, height: 28)
+        renderer.proposedSize = ProposedViewSize(width: 280, height: 280)
         renderer.scale = 1.0
         
         guard let cgImage = renderer.cgImage else {
@@ -136,7 +137,7 @@ func draw(_ stroke: Stroke, in context: inout GraphicsContext) {
     context.stroke(
         path,
         with: .color(.white),
-        style: StrokeStyle(lineWidth: 12, lineCap: .round, lineJoin: .round)
+        style: StrokeStyle(lineWidth: 20, lineCap: .round, lineJoin: .round)
     )
 }
 

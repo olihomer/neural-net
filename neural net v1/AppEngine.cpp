@@ -11,16 +11,34 @@
 #include "Neural.hpp"
 #include "data_set.hpp"
 #include "mnist_data.hpp"
+#include <algorithm>
+#include <cmath>
 #include <string>
 #include <vector>
 
 namespace {
-Relu hiddenActivationFunction;
-Softmax outputActivationFunction;
+Relu reluActivationFunction;
+Sigmoid sigmoidActivationFunction;
+Softmax softmaxActivationFunction;
+
+const ActivationFunction& activationFunctionFor(int choice)
+{
+    switch(choice)
+    {
+        case 0:
+            return reluActivationFunction;
+        case 1:
+            return sigmoidActivationFunction;
+        case 2:
+            return softmaxActivationFunction;
+        default:
+            return sigmoidActivationFunction;
+    }
+}
 }
 
 AppEngine::AppEngine()
-: net({784,128,10}, hiddenActivationFunction, outputActivationFunction)
+: net({784,128,10}, reluActivationFunction, softmaxActivationFunction)
 {
     std::cout << "Constructing Engine" << std::endl;
 }
@@ -30,19 +48,28 @@ AppEngine::~AppEngine()
     std::cout << "Deconstructing Engine" << std::endl;
 }
 
-int AppEngine::runApp(void(*progress)(int32_t,double))
+int AppEngine::runApp(void(*progress)(int32_t,double), int hiddenLayerSize, int epochs, int trainingExamples, double learningRate, int hiddenActivation, int outputActivation)
 {
-    mnist_data mnist_training_data("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv",9000);
+    hiddenLayerSize = std::max(hiddenLayerSize, 1);
+    epochs = std::max(epochs, 1);
+    trainingExamples = std::max(trainingExamples, 1);
+    learningRate = std::max(learningRate, 0.0);
+
+    const ActivationFunction& hiddenActivationFunction = activationFunctionFor(hiddenActivation);
+    const ActivationFunction& outputActivationFunction = activationFunctionFor(outputActivation);
+    net.configure({784, hiddenLayerSize, 10}, hiddenActivationFunction, outputActivationFunction);
+
+    mnist_data mnist_training_data("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", trainingExamples);
     
     //mnist_training_data.print_data(std::cout);
     
     double total_error;
  
-    for (int i = 0; i < 500; i++)
+    for (int i = 0; i < epochs; i++)
     {
         total_error = net.train(mnist_training_data);
-        net.gradient_descent(mnist_training_data.size());
-        if((i+1) % 50 == 0)
+        net.gradient_descent(mnist_training_data.get_data().size(), learningRate);
+        if((i+1) % 50 == 0 || i == epochs - 1)
         {
             std::cout << i << " ";
             std::cout << "Total error: " << total_error << std::endl;
@@ -51,24 +78,25 @@ int AppEngine::runApp(void(*progress)(int32_t,double))
         }
     }
     
-    mnist_data mnist_training_data2("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv",10000);
+    mnist_data mnist_training_data2("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", trainingExamples);
 
     int wrong = 0;
+    const int evaluationExamples = std::min(trainingExamples, 100);
     
-    for(int i=0;i<1000;i++)
+    for(int i=0;i<evaluationExamples;i++)
     {
         int guess = i;
-        int guess_label = mnist_training_data2.get_label(guess+9000);
+        int guess_label = mnist_training_data2.get_label(guess);
         std::cout << "Guess = " << guess_label;
         
-        net.set_input(mnist_training_data2, guess+9000);
+        net.set_input(mnist_training_data2, guess);
         net.propagate();
         
         std::cout << ". Net guessed " << net.find_highest_output() << " with value of " << net.get_output(net.find_highest_output()) << std::endl;
         if(net.find_highest_output()!=guess_label){std::cout<<"WRONG!"<<std::endl;wrong++;}
     }
     
-    std::cout << "Success rate: " << (1 - ( (float)wrong / 1000) );
+    std::cout << "Success rate: " << (1 - (float(wrong) / float(evaluationExamples)) );
     
     return 0;
 }
@@ -77,18 +105,25 @@ std::pair<int,float> AppEngine::sendRasterData(const float *data, std::size_t si
 {
     if(data==nullptr)return std::pair<int,float>(0,0);
 
+    const std::size_t side = static_cast<std::size_t>(std::sqrt(size));
+    if(side * side != size)
+    {
+        std::cout << "Error: raster size " << size << " is not square" << std::endl;
+        return std::pair<int,float>(0,0);
+    }
+
     std::vector<float> vectorData;
     vectorData.resize(size);
     
     for(std::size_t i = 0; i < size; i++)
         vectorData[i] = data[i];
     
-    std::cout << "Raster before processing:" << std::endl;
+    std::cout << "Raster with side " << side << " before processing:" << std::endl;
     
-    for(std::size_t y = 0; y < 28; y++)
+    for(std::size_t y = 0; y < side; y++)
     {
-        for(std::size_t x = 0; x < 28; x++)
-            std::cout << (vectorData[x+y*28] > 50.0f/255.0f ? "X " : "  ");
+        for(std::size_t x = 0; x < side; x++)
+            std::cout << (vectorData[x + y * side] > 50.0f/255.0f ? "X" : " ");
         std::cout << std::endl;
     }
     
@@ -117,21 +152,28 @@ std::pair<int,float> AppEngine::sendRasterData(const float *data, std::size_t si
 std::vector<float> AppEngine::preProcess(std::vector<float> input)
 {
     std::vector<float> output;
-    output.resize(input.size());
+    output.resize(28 * 28);
     
-    std::size_t minX = 27;
+    const std::size_t sizeofside = static_cast<std::size_t>(std::sqrt(input.size()));
+    if(input.empty() || sizeofside * sizeofside != input.size())
+    {
+        std::cout << "Error: input raster size " << input.size() << " is not square" << std::endl;
+        return output;
+    }
+    
+    std::size_t minX = sizeofside - 1;
     std::size_t maxX = 0;
-    std::size_t minY = 27;
+    std::size_t minY = sizeofside - 1;
     std::size_t maxY = 0;
     
     const float threshold = 5.0f/255.0f;
     
     //establish bounding box
     
-    for(std::size_t y = 0; y < 28; y++)
-        for(std::size_t x = 0; x < 28; x++)
+    for(std::size_t y = 0; y < sizeofside; y++)
+        for(std::size_t x = 0; x < sizeofside; x++)
         {
-            if(input[y*28+x] > threshold)
+            if(input[y*sizeofside+x] > threshold)
             {
                 minX = x < minX ? x : minX;
                 minY = y < minY ? y : minY;
@@ -172,12 +214,12 @@ std::vector<float> AppEngine::preProcess(std::vector<float> input)
             float dy = ySrc - y1;
             
             //leave black if virtual square extends beyond original
-            if(xSrc < 0.0f || xSrc > 27.0f || ySrc < 0.0f || ySrc > 27.0f) continue;
+            if(xSrc < 0.0f || xSrc > float(sizeofside - 1) || ySrc < 0.0f || ySrc > float(sizeofside - 1)) continue;
             
-            output[yDest * 28 + xDest] =    (1-dx)*(1-dy)*input[y1*28+x1] +
-                                            dx*(1-dy)*input[y1*28+x2] +
-                                            (1-dx)*dy*input[y2*28+x1] +
-                                            dx*dy*input[y2*28+x2];
+            output[yDest * 28 + xDest] =    (1-dx)*(1-dy)*input[y1*sizeofside+x1] +
+                                            dx*(1-dy)*input[y1*sizeofside+x2] +
+                                            (1-dx)*dy*input[y2*sizeofside+x1] +
+                                            dx*dy*input[y2*sizeofside+x2];
         }
     
     return output;

@@ -77,11 +77,6 @@ mnist_data::mnist_data(const std::string &filename, int size)
 
     }
     
-    for(std::size_t i=0;i<size;i++)
-    {
-        std::cout << m_label[i] << std::endl;
-    }
-    
     myfile.close();
 }
 

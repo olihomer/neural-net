@@ -11,6 +11,11 @@ import AppKit
 import NeuralApp
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApplication.shared.setActivationPolicy(.regular)
+        NSApplication.shared.activate(ignoringOtherApps: true)
+    }
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         true
     }
@@ -24,8 +29,15 @@ struct SwiftMain: App  {
 
     var body: some Scene {
         WindowGroup {
-            SwiftUIView(engineBox: engineBox)
-            DrawingPad(engineBox: engineBox)
+            HStack(spacing: 0) {
+                SwiftUIView(engineBox: engineBox)
+                    .frame(width: 320)
+
+                Divider()
+
+                DrawingPad(engineBox: engineBox)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
     }
 }
