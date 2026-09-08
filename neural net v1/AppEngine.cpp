@@ -49,11 +49,12 @@ AppEngine::~AppEngine()
     std::cout << "Deconstructing Engine" << std::endl;
 }
 
-int AppEngine::runApp(void(*progress)(int32_t,double), int hiddenLayerSize, int epochs, int trainingExamples, double learningRate, int hiddenActivation, int outputActivation)
+int AppEngine::runApp(void(*progress)(int32_t,double), int hiddenLayerSize, int epochs, int trainingExamples, int batchSize, double learningRate, int hiddenActivation, int outputActivation)
 {
     hiddenLayerSize = std::max(hiddenLayerSize, 1);
     epochs = std::max(epochs, 1);
     trainingExamples = std::max(trainingExamples, 1);
+    batchSize = std::max(batchSize, 1);
     learningRate = std::max(learningRate, 0.0);
 
     const ActivationFunction& hiddenActivationFunction = activationFunctionFor(hiddenActivation);
@@ -62,7 +63,7 @@ int AppEngine::runApp(void(*progress)(int32_t,double), int hiddenLayerSize, int 
 
     mnist_data mnist_training_data("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", trainingExamples);
     
-    const std::size_t batchSize = 50;
+    const std::size_t requestedBatchSize = static_cast<std::size_t>(batchSize);
     const std::size_t trainingExampleCount = static_cast<std::size_t>(trainingExamples);
     double total_error = 0;
  
@@ -71,9 +72,9 @@ int AppEngine::runApp(void(*progress)(int32_t,double), int hiddenLayerSize, int 
         double epoch_error = 0;
         std::size_t batches = 0;
 
-        for(std::size_t training_index = 0; training_index < trainingExampleCount; training_index += batchSize)
+        for(std::size_t training_index = 0; training_index < trainingExampleCount; training_index += requestedBatchSize)
         {
-            const std::size_t currentBatchSize = std::min(batchSize, trainingExampleCount - training_index);
+            const std::size_t currentBatchSize = std::min(requestedBatchSize, trainingExampleCount - training_index);
             epoch_error += net.train(mnist_training_data, currentBatchSize, training_index);
             net.gradient_descent(currentBatchSize, learningRate);
             batches++;

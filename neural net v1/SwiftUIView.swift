@@ -16,6 +16,7 @@ public struct SwiftUIView: View {
         case hiddenLayerSize
         case epochs
         case trainingExamples
+        case batchSize
         case learningRate
     }
 
@@ -25,6 +26,7 @@ public struct SwiftUIView: View {
     @State private var hiddenLayerSizeText = "128"
     @State private var epochsText = "500"
     @State private var trainingExamplesText = "100"
+    @State private var batchSizeText = "50"
     @State private var learningRateText = "0.5"
     @State private var isTraining = false
     @State private var fileStatus = ""
@@ -47,6 +49,9 @@ public struct SwiftUIView: View {
             }
             integerField("Training examples", text: $trainingExamplesText, field: .trainingExamples) {
                 commitInteger($trainingExamplesText, to: $settings.trainingExamples, range: 1...60000)
+            }
+            integerField("Batch size", text: $batchSizeText, field: .batchSize) {
+                commitInteger($batchSizeText, to: $settings.batchSize, range: 1...60000)
             }
             decimalField("Learning rate", text: $learningRateText, field: .learningRate) {
                 commitDouble($learningRateText, to: $settings.learningRate, range: 0.0...2.0)
@@ -152,6 +157,7 @@ public struct SwiftUIView: View {
         commitInteger($hiddenLayerSizeText, to: $settings.hiddenLayerSize, range: 1...512)
         commitInteger($epochsText, to: $settings.epochs, range: 1...5000)
         commitInteger($trainingExamplesText, to: $settings.trainingExamples, range: 1...60000)
+        commitInteger($batchSizeText, to: $settings.batchSize, range: 1...60000)
         commitDouble($learningRateText, to: $settings.learningRate, range: 0.0...2.0)
     }
 
