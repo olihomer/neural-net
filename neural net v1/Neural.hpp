@@ -13,6 +13,7 @@
 #include <iostream>
 #include "data_set.hpp"
 #include "neuron_layer.hpp"
+#include "ActivationFunction.hpp"
 
 using layer = NeuronLayer;
 
@@ -21,8 +22,8 @@ class Neural
 public:
     
     //Constructor
-    Neural(std::vector<int> nodes_per_layer, const ActivationFunction& hiddenActivationFunction, const ActivationFunction& outputActivationFunction);
-    void configure(std::vector<int> nodes_per_layer, const ActivationFunction& hiddenActivationFunction, const ActivationFunction& outputActivationFunction);
+    Neural(std::vector<int> nodes_per_layer, const ActivationType hiddenActivationType, const ActivationType outputActivationType);
+    void configure(std::vector<int> nodes_per_layer, const ActivationType hiddenActivationType, const ActivationType outputActivationType);
     
     //Debug
     void print_dimensions(std::ostream& stream);

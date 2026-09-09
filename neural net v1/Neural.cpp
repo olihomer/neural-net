@@ -287,12 +287,12 @@ void Neural::propagate()
     
 }
 
-Neural::Neural(std::vector<int> nodes_per_layer, const ActivationFunction& hiddenActivationFunction, const ActivationFunction& outputActivationFunction)
+Neural::Neural(std::vector<int> nodes_per_layer, const ActivationType hiddenActivationType, const ActivationType outputActivationType)
 {
-    configure(nodes_per_layer, hiddenActivationFunction, outputActivationFunction);
+    configure(nodes_per_layer, hiddenActivationType, outputActivationType);
 }
 
-void Neural::configure(std::vector<int> nodes_per_layer, const ActivationFunction& hiddenActivationFunction, const ActivationFunction& outputActivationFunction)
+void Neural::configure(std::vector<int> nodes_per_layer, const ActivationType hiddenActivationType, const ActivationType outputActivationType)
 {
     m_layers = nodes_per_layer.size();
     m_max_layers = 0;
@@ -305,11 +305,11 @@ void Neural::configure(std::vector<int> nodes_per_layer, const ActivationFunctio
     {
         if(i < m_layers - 1)
         {
-            m_layer.emplace_back(hiddenActivationFunction);
+            m_layer.emplace_back(activationFromType(hiddenActivationType));
         }
         else
         {
-            m_layer.emplace_back(outputActivationFunction);
+            m_layer.emplace_back(activationFromType(outputActivationType));
         }
         
         if(nodes_per_layer[i]>m_max_layers)m_max_layers = nodes_per_layer[i];

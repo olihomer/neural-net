@@ -11,6 +11,8 @@
 #include "Neural.hpp"
 #include "data_set.hpp"
 #include "mnist_data.hpp"
+#include "ActivationFunction.hpp"
+#include "Trainer.hpp"
 #include <algorithm>
 #include <cmath>
 #include <string>
@@ -18,28 +20,25 @@
 #include <numeric>
 
 namespace {
-Relu reluActivationFunction;
-Sigmoid sigmoidActivationFunction;
-Softmax softmaxActivationFunction;
 
-const ActivationFunction& activationFunctionFor(int choice)
+const ActivationType activationTypeFor(int choice)
 {
     switch(choice)
     {
         case 0:
-            return reluActivationFunction;
+            return ActivationType::Relu;
         case 1:
-            return sigmoidActivationFunction;
+            return ActivationType::Sigmoid;
         case 2:
-            return softmaxActivationFunction;
+            return ActivationType::Softmax;
         default:
-            return sigmoidActivationFunction;
+            return ActivationType::Sigmoid;
     }
 }
 }
 
 AppEngine::AppEngine()
-: net({784,128,10}, reluActivationFunction, softmaxActivationFunction)
+: net({784,128,10}, ActivationType::Relu, ActivationType::Softmax)
 {
     std::cout << "Constructing Engine" << std::endl;
 }
@@ -49,6 +48,7 @@ AppEngine::~AppEngine()
     std::cout << "Deconstructing Engine" << std::endl;
 }
 
+
 int AppEngine::runApp(void(*progress)(int32_t,double), int hiddenLayerSize, int epochs, int trainingExamples, int batchSize, double learningRate, int hiddenActivation, int outputActivation)
 {
     hiddenLayerSize = std::max(hiddenLayerSize, 1);
@@ -57,40 +57,18 @@ int AppEngine::runApp(void(*progress)(int32_t,double), int hiddenLayerSize, int 
     batchSize = std::max(batchSize, 1);
     learningRate = std::max(learningRate, 0.0);
 
-    const ActivationFunction& hiddenActivationFunction = activationFunctionFor(hiddenActivation);
-    const ActivationFunction& outputActivationFunction = activationFunctionFor(outputActivation);
-    net.configure({784, hiddenLayerSize, 10}, hiddenActivationFunction, outputActivationFunction);
-
+    const ActivationType hiddenActivationType = activationTypeFor(hiddenActivation);
+    const ActivationType outputActivationType = activationTypeFor(outputActivation);
+    
+    net.configure({784, hiddenLayerSize, 10}, hiddenActivationType, outputActivationType);
+    
+    Trainer trainer(net);
+   
     mnist_data mnist_training_data("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", trainingExamples);
     
-    const std::size_t requestedBatchSize = static_cast<std::size_t>(batchSize);
-    const std::size_t trainingExampleCount = static_cast<std::size_t>(trainingExamples);
-    double total_error = 0;
- 
-    for(std::size_t i = 0; i < epochs; i++)
-    {
-        double epoch_error = 0;
-        std::size_t batches = 0;
-
-        for(std::size_t training_index = 0; training_index < trainingExampleCount; training_index += requestedBatchSize)
-        {
-            const std::size_t currentBatchSize = std::min(requestedBatchSize, trainingExampleCount - training_index);
-            epoch_error += net.train(mnist_training_data, currentBatchSize, training_index);
-            net.gradient_descent(currentBatchSize, learningRate);
-            batches++;
-        }
-
-        total_error = epoch_error / double(batches);
-
-        if((i+1) % 50 == 0 || i == epochs - 1)
-        {
-            std::cout << i << " ";
-            std::cout << "Total error: " << total_error << std::endl;
-            net.print_stats(std::cout);
-            progress(int(i),total_error);
-        }
-        mnist_training_data.shuffle();
-    }
+    trainer.train(mnist_training_data, epochs, batchSize, learningRate, progress);
+    
+    // Verification
     
     mnist_data mnist_training_data2("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", trainingExamples);
 
