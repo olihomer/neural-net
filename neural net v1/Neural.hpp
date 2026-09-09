@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <vector>
 #include <iostream>
+#include <span>
 #include "data_set.hpp"
 #include "neuron_layer.hpp"
 #include "ActivationFunction.hpp"
@@ -51,7 +52,7 @@ public:
     //Public methods
     void propagate();
     void gradient_descent(std::size_t trainingSize, double learningRate);
-    double train(const data_set& training_data, std::size_t batch_size, std::size_t start);
+    double trainBatch(const data_set& training_data, const std::span<std::size_t> batch);
     void save(const std::string& filename) const;
     void load(const std::string& filename);
     std::pair<std::size_t, double> predict(const std::vector<float>& input);

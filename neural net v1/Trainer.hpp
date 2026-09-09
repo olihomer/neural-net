@@ -25,6 +25,9 @@ public:
                void(*progressCallback)(int32_t,double));
 private:
     Neural& network_;
+    static std::random_device rd;
+    static std::mt19937 rng;
+    std::vector<std::size_t> order_;
 };
 
 

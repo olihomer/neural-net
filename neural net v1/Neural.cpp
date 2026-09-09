@@ -107,7 +107,7 @@ void Neural::save(const std::string& filename) const
 
 
 
-double Neural::train(const data_set &training_data, std::size_t batch_size, std::size_t start)
+double Neural::trainBatch(const data_set &training_data, const std::span<std::size_t> batch)
 {
     //std::cout << "Training with " << training_data.size() << " data points." << std::endl;
     
@@ -123,9 +123,9 @@ double Neural::train(const data_set &training_data, std::size_t batch_size, std:
     
     zero_training_error();
     
-    for(std::size_t batch_index = 0; batch_index < batch_size; batch_index++)
+    for(auto batch_index: batch)
     {
-        const auto& d = training_data.get_data()[training_data.get_order(batch_index + start)];
+        const auto& d = training_data.get_data()[batch_index];
         
         for(std::size_t input=0;input<training_data.n_inputs();input++)
         {
@@ -208,7 +208,7 @@ double Neural::train(const data_set &training_data, std::size_t batch_size, std:
         total_error += cost_function(d.outputs);
         
     } //end of training loop;
-    total_error /= (batch_size * 2);
+    total_error /= (batch.size() * 2);
     
     return total_error;
     

@@ -134,11 +134,7 @@ std::pair<int,float> AppEngine::sendRasterData(const float *data, std::size_t si
         return std::pair<int,float>(0,0);
     }
 
-    std::vector<float> vectorData;
-    vectorData.resize(size);
-    
-    for(std::size_t i = 0; i < size; i++)
-        vectorData[i] = data[i];
+    std::vector<float> vectorData(data, data + size);
     
     vectorData = mnist_data::preProcess(vectorData);
     
