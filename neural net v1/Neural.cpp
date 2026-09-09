@@ -17,7 +17,8 @@ std::pair<std::size_t, Scalar> Neural::predict(const std::vector<Scalar>& input)
 {
     set_input(input);
     propagate();
-    return std::pair<std::size_t, double>(find_highest_output(),get_output(find_highest_output()));
+    const auto index = find_highest_output();
+    return {index,get_output(index)};
 }
 
 void Neural::load(const std::string& filename)
