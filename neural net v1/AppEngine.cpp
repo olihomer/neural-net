@@ -146,12 +146,8 @@ std::pair<int,float> AppEngine::sendRasterData(const float *data, std::size_t si
             std::cout << (vectorData[x+y*28] > 50.0f/255.0f ? "X " : "  ");
         std::cout << std::endl;
     }
-    
-    auto prediction = net.predict(vectorData);
 
-    std::cout << ". Net guessed " << prediction.first << " with value of " << prediction.second << std::endl;
-    
-    return prediction;
+    return net.predict(vectorData);;
      
 }
 
