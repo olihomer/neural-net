@@ -91,10 +91,10 @@
 		DED68A242B824122004ED2CE /* neural net v1 */ = {
 			isa = PBXGroup;
 			children = (
-				DEA636F73051B5730031E9F3 /* Trainer.hpp */,
-				DEA636F83051B5730031E9F3 /* Trainer.cpp */,
 				DED68A252B824122004ED2CE /* AppEngine.cpp */,
 				DEA636EC3044F2E90031E9F3 /* AppEngine.hpp */,
+				DEA636F73051B5730031E9F3 /* Trainer.hpp */,
+				DEA636F83051B5730031E9F3 /* Trainer.cpp */,
 				DEA636ED3044F4810031E9F3 /* module.modulemap */,
 				DED68A322B8E8C35004ED2CE /* Neural.cpp */,
 				DED68A332B8E8C35004ED2CE /* Neural.hpp */,

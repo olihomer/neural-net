@@ -35,6 +35,7 @@ public:
 
     static std::random_device rd;
     static std::mt19937 rng;
+    static std::vector<float> preProcess(std::vector<float> rasterInput);
     
 private:
     std::vector<int> m_label;

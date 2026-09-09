@@ -54,6 +54,7 @@ public:
     double train(const data_set& training_data, std::size_t batch_size, std::size_t start);
     void save(const std::string& filename) const;
     void load(const std::string& filename);
+    std::pair<std::size_t, double> predict(const std::vector<float>& input);
     
 private:
     // Internal data structure

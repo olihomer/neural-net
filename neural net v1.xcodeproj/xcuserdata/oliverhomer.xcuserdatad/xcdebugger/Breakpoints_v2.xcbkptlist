@@ -30,8 +30,8 @@
             filePath = "neural net v1/neural.cpp"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "339"
-            endingLineNumber = "339"
+            startingLineNumber = "347"
+            endingLineNumber = "347"
             landmarkName = "Neural::configure(nodes_per_layer, hiddenActivationType, outputActivationType)"
             landmarkType = "7">
          </BreakpointContent>

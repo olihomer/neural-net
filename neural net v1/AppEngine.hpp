@@ -17,11 +17,12 @@ private:
 
 public:
     int runApp(void(*progress)(int32_t,double), int hiddenLayerSize, int epochs, int trainingExamples, int batchSize, double learningRate, int hiddenActivation, int outputActivation);
+    void extracted(const std::vector<float> &vectorData);
+    
     std::pair<int,float> sendRasterData(const float *data, std::size_t size);
     bool saveNetwork(const char *path);
     bool loadNetwork(const char *path);
-    std::vector<float> preProcess(std::vector<float>);
     AppEngine();
-    ~AppEngine();
+    ~AppEngine(){std::cout << "Deconstructing Engine" << std::endl;};
 
 };

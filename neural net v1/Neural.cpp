@@ -12,6 +12,14 @@
 #include <cmath>
 
 
+
+std::pair<std::size_t, double> Neural::predict(const std::vector<float>& input)
+{
+    set_input(input);
+    propagate();
+    return std::pair<std::size_t, double>(find_highest_output(),get_output(find_highest_output()));
+}
+
 void Neural::load(const std::string& filename)
 {
     std::ifstream file(filename, std::ios::binary);
