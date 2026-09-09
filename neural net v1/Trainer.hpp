@@ -18,7 +18,7 @@ public:
     Trainer (Neural &network);
     
     void train(
-               mnist_data& data,
+               const data_set& data,
                std::size_t epochs,
                std::size_t batchSize,
                double learningRate,

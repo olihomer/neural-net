@@ -8,6 +8,8 @@
 #include "data_set.hpp"
 #include <fstream>
 #include <iostream>
+#include <string>
+#include <iosfwd>
 
 
 data_set::data_set(const std::string& filename)

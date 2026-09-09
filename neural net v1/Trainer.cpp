@@ -7,6 +7,8 @@
 
 #include "Trainer.hpp"
 #include <span>
+#include <algorithm>
+#include <numeric>
 
 std::random_device Trainer::rd;
 std::mt19937 Trainer::rng(Trainer::rd());
@@ -17,7 +19,7 @@ Trainer::Trainer(Neural& network)
 }
 
 
-void Trainer::train(mnist_data& data, std::size_t epochs, std::size_t batchSize, double learningRate, void(*progressCallback)(int32_t,double))
+void Trainer::train(const data_set& data, std::size_t epochs, std::size_t batchSize, double learningRate, void(*progressCallback)(int32_t,double))
 {
     const std::size_t requestedBatchSize = static_cast<std::size_t>(batchSize);
     const std::size_t trainingExampleCount = static_cast<std::size_t>(data.size());
@@ -38,12 +40,12 @@ void Trainer::train(mnist_data& data, std::size_t epochs, std::size_t batchSize,
             const std::size_t currentBatchSize = std::min(requestedBatchSize, trainingExampleCount - training_index);
             
             std::span<std::size_t> batch(order_.data() + training_index,currentBatchSize);
-            epoch_error += network_.trainBatch(data, batch);
+            epoch_error += network_.trainBatch(data, batch) * currentBatchSize;
             network_.gradient_descent(currentBatchSize, learningRate);
             batches++;
         }
 
-        total_error = epoch_error / double(batches);
+        total_error = epoch_error / trainingExampleCount;
 
         if((i+1) % 50 == 0 || i == epochs - 1)
         {

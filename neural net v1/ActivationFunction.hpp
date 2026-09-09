@@ -6,6 +6,7 @@
 //
 
 #include <vector>
+#include <cstdint>
 #include "NeuralTypes.hpp"
 
 #ifndef ActivationFunction_hpp

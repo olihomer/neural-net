@@ -5,6 +5,7 @@
 #include <cstddef>
 #include "ActivationFunction.hpp"
 #include "NeuralTypes.hpp"
+#include <iosfwd>
 
 // A simple, explicit container for a neural-network layer's state.
 // This mirrors the existing 'layer' struct fields to enable a staged migration

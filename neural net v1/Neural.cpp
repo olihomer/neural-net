@@ -13,7 +13,7 @@
 
 
 
-std::pair<std::size_t, double> Neural::predict(const std::vector<float>& input)
+std::pair<std::size_t, Scalar> Neural::predict(const std::vector<float>& input)
 {
     set_input(input);
     propagate();
@@ -38,7 +38,7 @@ void Neural::load(const std::string& filename)
     std::uint8_t version;
     file.read(reinterpret_cast<char*>(&version),sizeof(version));
     
-    if(version!=1)
+    if(version!=2)
         throw std::runtime_error("Unsupported file version");
     
     //Number of layers
@@ -81,7 +81,7 @@ void Neural::save(const std::string& filename) const
     file.write(MAGIC, sizeof(MAGIC));
     
     //Version
-    const uint8_t version = 1;
+    const uint8_t version = 2;
     file.write(reinterpret_cast<const char*>(&version),sizeof(version));
     
     //Number of layers
@@ -107,7 +107,7 @@ void Neural::save(const std::string& filename) const
 
 
 
-double Neural::trainBatch(const data_set &training_data, const std::span<std::size_t> batch)
+double Neural::trainBatch(const data_set &training_data, const std::span<const std::size_t> batch)
 {
     //std::cout << "Training with " << training_data.size() << " data points." << std::endl;
     
@@ -157,7 +157,7 @@ double Neural::trainBatch(const data_set &training_data, const std::span<std::si
             for(std::size_t k = 0; k < current.size; k++)
             {
                 auto &gradients = current.weight_gradient[k];
-                const double error = current.error[k];
+                const Scalar error = current.error[k];
                 
                 for(std::size_t i = 0; i < previous.size; i++)
                 {
@@ -172,7 +172,7 @@ double Neural::trainBatch(const data_set &training_data, const std::span<std::si
             }
             
             //Calculate the previous layer's errors and accumulate its bias gradients.
-            std::vector<double> propagated_errors(previous.size, 0.0);
+            std::vector<Scalar> propagated_errors(previous.size, 0.0);
             for(std::size_t i = 0; i < previous.size; i++)
             {
                 for (std::size_t k=0; k < current.size; k++) //step through forward connected nodes
@@ -183,7 +183,7 @@ double Neural::trainBatch(const data_set &training_data, const std::span<std::si
 
             if(dynamic_cast<const Softmax*>(&previous.activation_function_) != nullptr)
             {
-                double activation_weighted_error = 0.0;
+                Scalar activation_weighted_error = 0.0;
                 for(std::size_t i = 0; i < previous.size; i++)
                 {
                     activation_weighted_error += propagated_errors[i] * previous.activation[i];
@@ -220,10 +220,10 @@ void Neural::gradient_descent(std::size_t trainingSize, double learningRate)
     {
         for(std::size_t i=0;i<m_layer[j].size;i++) // loop through nodes
         {
-            m_layer[j].bias[i] -= m_layer[j].bias_gradient[i] * learningRate / double(trainingSize);
+            m_layer[j].bias[i] -= m_layer[j].bias_gradient[i] * learningRate / Scalar(trainingSize);
             for(std::size_t k=0;k<m_layer[j-1].size;k++) // loop through connected nodes
             {
-                m_layer[j].weight[i][k]-=m_layer[j].weight_gradient[i][k] * learningRate / double(trainingSize);
+                m_layer[j].weight[i][k]-=m_layer[j].weight_gradient[i][k] * learningRate / Scalar(trainingSize);
 
             }
         }
@@ -275,7 +275,7 @@ Scalar Neural::cost_function(const std::vector<Scalar>& target)
 void Neural::propagate()
 {
     
-    double z;
+    Scalar z;
     
     for(std::size_t i=1;i<m_layers;i++) // step through layers
     {
@@ -375,7 +375,7 @@ void Neural::set_input(data_set& data,std::size_t index)
 }
 
 
-void Neural::set_input(std::vector<float> input_vector)
+void Neural::set_input(std::vector<Scalar> input_vector)
 {
     if(input_vector.size() != m_layer[0].size)
     {

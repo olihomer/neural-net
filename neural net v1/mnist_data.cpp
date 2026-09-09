@@ -9,9 +9,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
-#include <numeric>
-#include <random>
-#include <algorithm>
+
 
 mnist_data::mnist_data()
 {
