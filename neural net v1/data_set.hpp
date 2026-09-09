@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <vector>
 #include "NeuralTypes.hpp"
+#include <string>
+#include <iosfwd>
 
 struct data
 {

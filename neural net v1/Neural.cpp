@@ -13,7 +13,7 @@
 
 
 
-std::pair<std::size_t, Scalar> Neural::predict(const std::vector<float>& input)
+std::pair<std::size_t, Scalar> Neural::predict(const std::vector<Scalar>& input)
 {
     set_input(input);
     propagate();
@@ -216,14 +216,16 @@ double Neural::trainBatch(const data_set &training_data, const std::span<const s
 
 void Neural::gradient_descent(std::size_t trainingSize, double learningRate)
 {
+    const Scalar scale = static_cast<Scalar>(learningRate) / static_cast<Scalar>(trainingSize);
+    
     for (std::size_t j=1;j<m_layers;j++) // loop through layers starting from second
     {
         for(std::size_t i=0;i<m_layer[j].size;i++) // loop through nodes
         {
-            m_layer[j].bias[i] -= m_layer[j].bias_gradient[i] * learningRate / Scalar(trainingSize);
+            m_layer[j].bias[i] -= m_layer[j].bias_gradient[i] * scale;
             for(std::size_t k=0;k<m_layer[j-1].size;k++) // loop through connected nodes
             {
-                m_layer[j].weight[i][k]-=m_layer[j].weight_gradient[i][k] * learningRate / Scalar(trainingSize);
+                m_layer[j].weight[i][k]-=m_layer[j].weight_gradient[i][k] * scale;
 
             }
         }
@@ -375,7 +377,7 @@ void Neural::set_input(data_set& data,std::size_t index)
 }
 
 
-void Neural::set_input(std::vector<Scalar> input_vector)
+void Neural::set_input(const std::vector<Scalar>& input_vector)
 {
     if(input_vector.size() != m_layer[0].size)
     {
