@@ -10,11 +10,12 @@
 
 #include <stdio.h>
 #include <vector>
+#include "NeuralTypes.hpp"
 
 struct data
 {
-    std::vector<double> inputs;
-    std::vector<double> outputs;
+    std::vector<Scalar> inputs;
+    std::vector<Scalar> outputs;
 };
 
 class data_set

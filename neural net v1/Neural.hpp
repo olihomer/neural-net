@@ -13,8 +13,9 @@
 #include <iostream>
 #include <span>
 #include "data_set.hpp"
-#include "neuron_layer.hpp"
+#include "NeuronLayer.hpp"
 #include "ActivationFunction.hpp"
+#include "NeuralTypes.hpp"
 
 using layer = NeuronLayer;
 
@@ -37,17 +38,13 @@ public:
     void print_stats(std::ostream& ostream);
     
     //Getters + setters
-    void set_input(std::size_t node, double value); //directly change a single input
+    void set_input(std::size_t node, Scalar value); //directly change a single input
     void set_input(std::vector<float>); // directly change all inputs from a vector
     void set_input(data_set& data,std::size_t index); //directly change all inputs by selecting an entry from a data set
-    void set_bias(std::size_t layer, std::vector<double>bias);
-    void set_weight(std::size_t layer, std::size_t node, std::vector<double>weight);
-    double get_output(std::size_t node);
+    void set_bias(std::size_t layer, std::vector<Scalar>bias);
+    void set_weight(std::size_t layer, std::size_t node, std::vector<Scalar>weight);
+    Scalar get_output(std::size_t node);
     std::size_t find_highest_output(void);
-
-    //Statics
-    static double sigmoid(double x){return (1/(1+exp(-x)));}
-    static double sigmoid_prime(double x){double z = sigmoid(x);return z*(1-z);}
     
     //Public methods
     void propagate();
@@ -64,7 +61,7 @@ private:
     std::vector<layer> m_layer;
 
     //Internal methods
-    double cost_function(const std::vector<double>& target);
+    Scalar cost_function(const std::vector<Scalar>& target);
     void zero_training_error();
 
 };

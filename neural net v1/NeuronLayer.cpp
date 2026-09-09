@@ -6,7 +6,7 @@
 //
 
 #include <fstream>
-#include "neuron_layer.hpp"
+#include "NeuronLayer.hpp"
 
 void NeuronLayer::save(std::ofstream& file) const
 {

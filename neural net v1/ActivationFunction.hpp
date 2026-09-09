@@ -6,6 +6,7 @@
 //
 
 #include <vector>
+#include "NeuralTypes.hpp"
 
 #ifndef ActivationFunction_hpp
 #define ActivationFunction_hpp
@@ -20,8 +21,8 @@ enum class ActivationType: std::uint8_t
 class ActivationFunction
 {
 public:
-    virtual void activate(const std::vector<double>& z, std::vector<double>& a) const = 0;
-    virtual double derivative(double preactivation) const = 0;
+    virtual void activate(const std::vector<Scalar>& z, std::vector<Scalar>& a) const = 0;
+    virtual Scalar derivative(Scalar preactivation) const = 0;
     virtual ~ActivationFunction() = default;
     virtual ActivationType type() const noexcept = 0;
 };
@@ -31,16 +32,16 @@ const ActivationFunction& activationFromType(ActivationType type);
 class Sigmoid final : public ActivationFunction
 {
 public:
-    void activate(const std::vector<double>& z, std::vector<double>& a) const override;
-    double derivative(double preactivation) const override;
+    void activate(const std::vector<Scalar>& z, std::vector<Scalar>& a) const override;
+    Scalar derivative(Scalar preactivation) const override;
     ActivationType type() const noexcept override {return ActivationType::Sigmoid;};
 };
 
 class Relu final : public ActivationFunction
 {
 public:
-    void activate(const std::vector<double>& z, std::vector<double>& a) const override;
-    double derivative(double preactivation) const override;
+    void activate(const std::vector<Scalar>& z, std::vector<Scalar>& a) const override;
+    Scalar derivative(Scalar preactivation) const override;
     ActivationType type() const noexcept override {return ActivationType::Relu;};
 
 };
@@ -48,8 +49,8 @@ public:
 class Softmax final : public ActivationFunction
 {
 public:
-    void activate(const std::vector<double>& z, std::vector<double>& a) const override;
-    double derivative(double preactivation) const override;
+    void activate(const std::vector<Scalar>& z, std::vector<Scalar>& a) const override;
+    Scalar derivative(Scalar preactivation) const override;
     ActivationType type() const noexcept override {return ActivationType::Softmax;};
 
 };

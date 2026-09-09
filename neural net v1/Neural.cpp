@@ -6,7 +6,7 @@
 //
 
 #include "Neural.hpp"
-#include "neuron_layer.hpp"
+#include "NeuronLayer.hpp"
 #include <iostream>
 #include <fstream>
 #include <cmath>
@@ -119,7 +119,7 @@ double Neural::trainBatch(const data_set &training_data, const std::span<std::si
         exit(1);
     }
     
-    double total_error = 0;
+    Scalar total_error = 0;
     
     zero_training_error();
     
@@ -261,7 +261,7 @@ void Neural::print_stats(std::ostream& stream)
     }
 
 
-double Neural::cost_function(const std::vector<double>& target)
+Scalar Neural::cost_function(const std::vector<Scalar>& target)
 {
     double cost=0;
     for(std::size_t i=0;i<target.size();i++)
@@ -514,17 +514,17 @@ void Neural::print_training_errors(std::ostream& stream)
     }
 }
 
-void Neural::set_input(std::size_t node, double value)
+void Neural::set_input(std::size_t node, Scalar value)
 {
     m_layer[0].activation[node] = value;
 }
 
-double Neural::get_output(std::size_t node)
+Scalar Neural::get_output(std::size_t node)
 {
     return m_layer[m_layers-1].activation[node];
 }
 
-void Neural::set_bias(std::size_t layer, std::vector<double> bias)
+void Neural::set_bias(std::size_t layer, std::vector<Scalar> bias)
 {
     if(bias.size() == m_layer[layer].bias.size())
     {
@@ -536,7 +536,7 @@ void Neural::set_bias(std::size_t layer, std::vector<double> bias)
     }
 }
 
-void Neural::set_weight(std::size_t layer, std::size_t node, std::vector<double> weight)
+void Neural::set_weight(std::size_t layer, std::size_t node, std::vector<Scalar> weight)
 {
     if(weight.size() == m_layer[layer].weight[node].size())
     {

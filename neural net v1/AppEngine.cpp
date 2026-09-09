@@ -85,7 +85,7 @@ int AppEngine::runApp(void(*progress)(int32_t,double), int hiddenLayerSize, int 
         if(net.find_highest_output()!=guess_label){std::cout<<"WRONG!"<<std::endl;wrong++;}
     }
     
-    std::cout << "Success rate: " << (1 - (float(wrong) / float(evaluationExamples)) );
+    std::cout << "Success rate: " << (1 - (float(wrong) / float(evaluationExamples)) ) << std::endl;
     
     return 0;
 }

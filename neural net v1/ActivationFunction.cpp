@@ -25,35 +25,35 @@ const ActivationFunction& activationFromType(ActivationType type)
     throw std::runtime_error("Unknown activation function");
 }
 
-void Sigmoid::activate(const std::vector<double>& z, std::vector<double>& a) const
+void Sigmoid::activate(const std::vector<Scalar>& z, std::vector<Scalar>& a) const
 {
     for(std::size_t i = 0; i < z.size(); i++)
         a[i]=(1/(1+ exp(-z[i])));
 }
 
-double Sigmoid::derivative(double preactivation) const
+Scalar Sigmoid::derivative(Scalar preactivation) const
 {
-    std::vector<double> z = {preactivation};
-    std::vector<double> a = {0.0};
+    std::vector<Scalar> z = {preactivation};
+    std::vector<Scalar> a = {0.0};
     activate(z,a);
     return a[0]*(1-a[0]);
 }
 
-void Relu::activate(const std::vector<double>& z, std::vector<double>& a) const
+void Relu::activate(const std::vector<Scalar>& z, std::vector<Scalar>& a) const
 {
     for(std::size_t i = 0; i < z.size(); i++)
     a[i] = z[i] > 0.0 ? z[i] : 0.0;
 }
 
-double Relu::derivative(double preactivation) const
+Scalar Relu::derivative(Scalar preactivation) const
 {
     return preactivation > 0.0 ? 1.0 : 0.0;
 }
 
-void Softmax::activate(const std::vector<double>& z, std::vector<double>& a) const
+void Softmax::activate(const std::vector<Scalar>& z, std::vector<Scalar>& a) const
 {
-    double zmax = *std::max_element(z.begin(), z.end());
-    double sum = 0;
+    Scalar zmax = *std::max_element(z.begin(), z.end());
+    Scalar sum = 0;
     
     for(std::size_t i = 0; i < z.size(); i++)
     {
@@ -61,12 +61,12 @@ void Softmax::activate(const std::vector<double>& z, std::vector<double>& a) con
         sum += a[i];
     }
     
-    for(double& value : a)
+    for(Scalar& value : a)
         value /= sum;
 }
 
 
-double Softmax::derivative(double preactivation) const
+Scalar Softmax::derivative(Scalar preactivation) const
 {
     throw std::logic_error("Softmax derivative not implemented");
 }
