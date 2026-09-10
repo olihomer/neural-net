@@ -107,8 +107,6 @@ void Neural::save(const std::string& filename) const
         throw std::runtime_error("Failed while saving");
 }
 
-
-
 double Neural::trainBatch(const data_set &training_data, const std::span<const std::size_t> batch)
 {
     //std::cout << "Training with " << training_data.size() << " data points." << std::endl;
@@ -144,7 +142,7 @@ double Neural::trainBatch(const data_set &training_data, const std::span<const s
         // dB = error
         // error_prev = W T * error hadamard f'(z_prev)
         
-        output.bias_gradient = output.bias_gradient + output.error;
+        output.bias_gradient += output.error;
         
         for(std::size_t layer_index = m_layers - 1;layer_index > 0;layer_index--)
         {
@@ -155,7 +153,7 @@ double Neural::trainBatch(const data_set &training_data, const std::span<const s
             auto& current = m_layer[layer_index];
             auto& previous = m_layer[previous_index];
             
-            current.weight_gradient = current.weight_gradient + Matrix::outer(current.error, previous.activation);
+            current.weight_gradient += Matrix::outer(current.error, previous.activation);
             
             //We need the weights coming from the input layer but we don't need errors or bias gradients of the input layer
             if (previous_index == 0)
@@ -165,9 +163,8 @@ double Neural::trainBatch(const data_set &training_data, const std::span<const s
             
             Matrix propagated_error = Matrix::multiply(current.weight.transpose(), current.error);
             previous.error = Matrix::hadamard(propagated_error, previous.activation_function_.derivative(previous.activation));
-            previous.bias_gradient = previous.bias_gradient + previous.error;
+            previous.bias_gradient += previous.error;
         }
-        
         
         total_error += cost_function(d.outputs);
         
@@ -183,8 +180,8 @@ void Neural::gradient_descent(std::size_t trainingSize, double learningRate)
     
     for (std::size_t j=1;j<m_layers;j++) // loop through layers starting from second
     {
-        m_layer[j].bias = m_layer[j].bias - m_layer[j].bias_gradient * scale;
-        m_layer[j].weight = m_layer[j].weight - m_layer[j].weight_gradient * scale;
+        m_layer[j].bias -= m_layer[j].bias_gradient * scale;
+        m_layer[j].weight -= m_layer[j].weight_gradient * scale;
     }
 }
 
@@ -200,14 +197,15 @@ void Neural::print_stats(std::ostream& stream)
             double mean_weight_gradient = 0.0;
             double mean_activation = 0.0;
             
-                for(const auto& value: layer.weight_gradient.getData())
-                {
-                    count++;
-                    mean_weight_gradient+=std::abs(value);
-                }
+            for(std::size_t i = 0; i < layer.weight_gradient.size(); i++)
+            {
+                count++;
+                mean_weight_gradient += std::abs(layer.weight_gradient.data()[i]);
+            }
             mean_weight_gradient/=count;
             
-            for(const auto& A: layer.activation.getData()) mean_activation+=std::abs(A);
+            for(std::size_t i = 0; i < layer.activation.size(); i++)
+                mean_activation += std::abs(layer.activation.data()[i]);
             
             mean_activation /= layer.activation.size();
             

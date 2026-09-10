@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -17,11 +17,25 @@
 		DEA636F4305040ED0031E9F3 /* NeuronLayer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEA636F3305040ED0031E9F3 /* NeuronLayer.cpp */; };
 		DEA636F93051B5730031E9F3 /* Trainer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEA636F83051B5730031E9F3 /* Trainer.cpp */; };
 		DEA636FD3052C3500031E9F3 /* Matrix.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEA636FC3052C3500031E9F3 /* Matrix.cpp */; };
+		DEA63719305364DD0031E9F3 /* Matrix.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEA636FC3052C3500031E9F3 /* Matrix.cpp */; };
+		DEA6371A305364F20031E9F3 /* Neural.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DED68A322B8E8C35004ED2CE /* Neural.cpp */; };
+		DEA6371B305364FB0031E9F3 /* NeuronLayer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEA636F3305040ED0031E9F3 /* NeuronLayer.cpp */; };
+		DEA6371C305365040031E9F3 /* ActivationFunction.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DE41437C302BE11E009B4026 /* ActivationFunction.cpp */; };
+		DEA6371D3053655F0031E9F3 /* data_set.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DE40C6542BB2C27400C67031 /* data_set.cpp */; };
 		DED68A262B824122004ED2CE /* AppEngine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DED68A252B824122004ED2CE /* AppEngine.cpp */; };
 		DED68A342B8E8C35004ED2CE /* Neural.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DED68A322B8E8C35004ED2CE /* Neural.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		DEA63700305363490031E9F3 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		DED68A202B824122004ED2CE /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -55,6 +69,7 @@
 		DEA636FA305206CD0031E9F3 /* NeuralTypes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = NeuralTypes.hpp; sourceTree = "<group>"; };
 		DEA636FB3052C3500031E9F3 /* Matrix.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Matrix.hpp; sourceTree = "<group>"; };
 		DEA636FC3052C3500031E9F3 /* Matrix.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Matrix.cpp; sourceTree = "<group>"; };
+		DEA63702305363490031E9F3 /* neural net v1 tests */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "neural net v1 tests"; sourceTree = BUILT_PRODUCTS_DIR; };
 		DED68A222B824122004ED2CE /* neural net v1 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "neural net v1"; sourceTree = BUILT_PRODUCTS_DIR; };
 		DED68A252B824122004ED2CE /* AppEngine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AppEngine.cpp; sourceTree = "<group>"; };
 		DED68A302B82477A004ED2CE /* data */ = {isa = PBXFileReference; lastKnownFileType = text; path = data; sourceTree = "<group>"; };
@@ -62,7 +77,18 @@
 		DED68A332B8E8C35004ED2CE /* Neural.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Neural.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		DEA63703305363490031E9F3 /* neural net v1 tests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "neural net v1 tests"; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
+		DEA636FF305363490031E9F3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DED68A1F2B824122004ED2CE /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -80,6 +106,7 @@
 				DE414377302B626B009B4026 /* AGENTS.md */,
 				DE414378302B627E009B4026 /* PROJECT_NOTES.md */,
 				DED68A242B824122004ED2CE /* neural net v1 */,
+				DEA63703305363490031E9F3 /* neural net v1 tests */,
 				DED68A232B824122004ED2CE /* Products */,
 			);
 			sourceTree = "<group>";
@@ -88,6 +115,7 @@
 			isa = PBXGroup;
 			children = (
 				DED68A222B824122004ED2CE /* neural net v1 */,
+				DEA63702305363490031E9F3 /* neural net v1 tests */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -124,6 +152,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		DEA63701305363490031E9F3 /* neural net v1 tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DEA63706305363490031E9F3 /* Build configuration list for PBXNativeTarget "neural net v1 tests" */;
+			buildPhases = (
+				DEA636FE305363490031E9F3 /* Sources */,
+				DEA636FF305363490031E9F3 /* Frameworks */,
+				DEA63700305363490031E9F3 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				DEA63703305363490031E9F3 /* neural net v1 tests */,
+			);
+			name = "neural net v1 tests";
+			packageProductDependencies = (
+			);
+			productName = "neural net v1 tests";
+			productReference = DEA63702305363490031E9F3 /* neural net v1 tests */;
+			productType = "com.apple.product-type.tool";
+		};
 		DED68A212B824122004ED2CE /* neural net v1 */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = DED68A292B824122004ED2CE /* Build configuration list for PBXNativeTarget "neural net v1" */;
@@ -150,6 +200,9 @@
 				BuildIndependentTargetsInParallel = 1;
 				LastUpgradeCheck = 1530;
 				TargetAttributes = {
+					DEA63701305363490031E9F3 = {
+						CreatedOnToolsVersion = 26.6;
+					};
 					DED68A212B824122004ED2CE = {
 						CreatedOnToolsVersion = 15.2;
 						LastSwiftMigration = 2660;
@@ -170,11 +223,24 @@
 			projectRoot = "";
 			targets = (
 				DED68A212B824122004ED2CE /* neural net v1 */,
+				DEA63701305363490031E9F3 /* neural net v1 tests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		DEA636FE305363490031E9F3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DEA6371D3053655F0031E9F3 /* data_set.cpp in Sources */,
+				DEA6371B305364FB0031E9F3 /* NeuronLayer.cpp in Sources */,
+				DEA63719305364DD0031E9F3 /* Matrix.cpp in Sources */,
+				DEA6371C305365040031E9F3 /* ActivationFunction.cpp in Sources */,
+				DEA6371A305364F20031E9F3 /* Neural.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DED68A1E2B824122004ED2CE /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -197,6 +263,24 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		DEA63707305363490031E9F3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				MACOSX_DEPLOYMENT_TARGET = 26.5;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		DEA63708305363490031E9F3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				MACOSX_DEPLOYMENT_TARGET = 26.5;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		DED68A272B824122004ED2CE /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -345,6 +429,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		DEA63706305363490031E9F3 /* Build configuration list for PBXNativeTarget "neural net v1 tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DEA63707305363490031E9F3 /* Debug */,
+				DEA63708305363490031E9F3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		DED68A1D2B824122004ED2CE /* Build configuration list for PBXProject "neural net v1" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

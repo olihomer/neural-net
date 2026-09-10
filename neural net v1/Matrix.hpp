@@ -24,9 +24,10 @@ public:
     std::size_t rows() const {return rows_;};
     std::size_t cols() const {return cols_;};
     std::size_t size() const {return rows_ * cols_;};
-    const std::vector<Scalar>& getData() const {return data_;};
-    std::vector<Scalar>& putData() {return data_;};
-
+    
+    const Scalar* data() const {return data_.data();};
+    Scalar* data() {return data_.data();};
+ 
     Scalar max() const {return *std::max_element(data_.begin(),data_.end());};
     
     Scalar& operator()(std::size_t row, std::size_t col){return data_[row*cols_+col];};
@@ -35,6 +36,9 @@ public:
     Matrix operator+(const Matrix&) const;
     Matrix operator-(const Matrix&) const;
     Matrix operator*(Scalar scalar) const;
+    Matrix& operator+=(const Matrix&);
+    Matrix& operator-=(const Matrix&);
+    Matrix& operator*=(Scalar scalar);
     
     static Matrix multiply(const Matrix&, const Matrix&);
     static Matrix hadamard(const Matrix&, const Matrix&);

@@ -18,10 +18,10 @@ void NeuronLayer::save(std::ofstream& file) const
     file.write(reinterpret_cast<const char*>(&inputs),sizeof(inputs));
 
     //Weights
-    file.write(reinterpret_cast<const char*>(&weight.getData()),sizeof(weight.getData()));
+    file.write(reinterpret_cast<const char*>(weight.data()),weight.size()*sizeof(Scalar));
 
     //Biases
-    file.write(reinterpret_cast<const char*>(&bias.getData()),sizeof(bias.getData()));
+    file.write(reinterpret_cast<const char*>(bias.data()),bias.size()*sizeof(Scalar));
 }
 
 void NeuronLayer::load(std::ifstream& file)
@@ -45,8 +45,8 @@ void NeuronLayer::load(std::ifstream& file)
 
 
     //Weights
-    file.read(reinterpret_cast<char*>(&weight.putData()),sizeof(weight.putData()));
+    file.read(reinterpret_cast<char*>(weight.data()),weight.size()*sizeof(Scalar));
 
     //Biases
-    file.read(reinterpret_cast<char*>(&bias.putData()),sizeof(bias.putData()));
+    file.read(reinterpret_cast<char*>(bias.data()),bias.size()*sizeof(Scalar));
 }

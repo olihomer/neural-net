@@ -9,6 +9,7 @@
 #include <span>
 #include <algorithm>
 #include <numeric>
+#include <chrono>
 
 std::random_device Trainer::rd;
 std::mt19937 Trainer::rng(Trainer::rd());
@@ -27,6 +28,8 @@ void Trainer::train(const data_set& data, std::size_t epochs, std::size_t batchS
  
     order_.resize(data.size());
     std::iota(order_.begin(),order_.end(),0);
+
+    const auto trainingStart = std::chrono::steady_clock::now();
     
     for(std::size_t i = 0; i < epochs; i++)
     {
@@ -56,5 +59,14 @@ void Trainer::train(const data_set& data, std::size_t epochs, std::size_t batchS
         }
         
     }
+
+    const auto trainingEnd = std::chrono::steady_clock::now();
+    const std::chrono::duration<double> elapsed = trainingEnd - trainingStart;
+    const double samplesTrained = static_cast<double>(epochs) * static_cast<double>(trainingExampleCount);
+    const double samplesPerSecond = elapsed.count() > 0.0 ? samplesTrained / elapsed.count() : 0.0;
+
+    std::cout << "Training benchmark: " << samplesTrained << " samples in "
+              << elapsed.count() << " seconds, "
+              << samplesPerSecond << " samples/second" << std::endl;
    
 }

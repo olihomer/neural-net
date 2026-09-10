@@ -23,37 +23,54 @@ Matrix::Matrix(std::size_t rows, std::size_t cols)
 
 Matrix Matrix::operator+(const Matrix& rhs) const
 {
-    if(cols_ != rhs.cols()  || rows_ != rhs.rows())throw std::runtime_error("Matrices cannot be added");
-
-    Matrix m(rows_,cols_);
-    for(std::size_t row = 0; row < m.rows(); row++)
-        for(std::size_t col = 0; col < m.cols(); col++)
-            m(row,col) = (*this)(row,col) + rhs(row,col);
-    
+    Matrix m = *this;
+    m += rhs;
     return m;
 }
 
 Matrix Matrix::operator-(const Matrix& rhs) const
 {
-    if(cols_ != rhs.cols()  || rows_ != rhs.rows())throw std::runtime_error("Matrices cannot be subtracted");
-
-    Matrix m(rows_,cols_);
-    
-        for(std::size_t row = 0; row < m.rows(); row++)
-        for(std::size_t col = 0; col < m.cols(); col++)
-            m(row,col) = (*this)(row,col) - rhs(row,col);
-    
+    Matrix m = *this;
+    m -= rhs;
     return m;
 }
 
 Matrix Matrix::operator*(Scalar scalar) const
 {
-    Matrix m(rows_,cols_);
-    for(std::size_t row = 0; row < m.rows(); row++)
-        for(std::size_t col = 0; col < m.cols(); col++)
-            m(row,col) = (*this)(row,col) * scalar;
-
+    Matrix m = *this;
+    m *= scalar;
     return m;
+}
+
+Matrix& Matrix::operator+=(const Matrix& rhs)
+{
+    if(cols_ != rhs.cols()  || rows_ != rhs.rows())throw std::runtime_error("Matrices cannot be added");
+
+    for(std::size_t row = 0; row < rows_; row++)
+        for(std::size_t col = 0; col < cols_; col++)
+            (*this)(row,col) += rhs(row,col);
+
+    return *this;
+}
+
+Matrix& Matrix::operator-=(const Matrix& rhs)
+{
+    if(cols_ != rhs.cols()  || rows_ != rhs.rows())throw std::runtime_error("Matrices cannot be subtracted");
+
+    for(std::size_t row = 0; row < rows_; row++)
+        for(std::size_t col = 0; col < cols_; col++)
+            (*this)(row,col) -= rhs(row,col);
+
+    return *this;
+}
+
+Matrix& Matrix::operator*=(Scalar scalar)
+{
+    for(std::size_t row = 0; row < rows_; row++)
+        for(std::size_t col = 0; col < cols_; col++)
+            (*this)(row,col) *= scalar;
+
+    return *this;
 }
 
 Matrix Matrix::multiply(const Matrix& lhs, const Matrix& rhs)
