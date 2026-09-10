@@ -25,6 +25,7 @@ public:
     std::size_t rows() const {return rows_;};
     std::size_t cols() const {return cols_;};
     std::size_t size() const {return rows_ * cols_;};
+    std::vector<Scalar> getData() const {return data_;};
     
     Scalar& operator()(std::size_t row, std::size_t col){return data_[row*cols_+col];};
     const Scalar& operator()(std::size_t row, std::size_t col) const {return data_[row*cols_+col];};
@@ -40,6 +41,17 @@ public:
     Matrix transpose() const;
     
     void print() const;
+    
+    template <typename Func>
+    Matrix apply(Func func) const
+    {
+        Matrix result(rows_, cols_);
+        
+        for(std::size_t i=0; i<data_.size(); i++)
+            result.data_[i]=func(data_[i]);
+        
+        return result;
+    }
     
 private:
     std::vector<Scalar> data_;

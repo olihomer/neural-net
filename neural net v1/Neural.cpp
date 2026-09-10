@@ -10,6 +10,8 @@
 #include <iostream>
 #include <fstream>
 #include <cmath>
+#include "Matrix.hpp"
+#include <vector>
 
 
 
@@ -275,24 +277,51 @@ Scalar Neural::cost_function(const std::vector<Scalar>& target)
 
 void Neural::propagate()
 {
+    // Pre-activation z = W a_prev + b
+    // Activation a = f(z)
+    // input activations matrix a_prev: N x 1
+    // weights matrix W: M x N
+    // biases matrix b: M x 1
     
-    Scalar z;
+    for(std::size_t i=1;i<m_layers;i++) // step through layers
+    {
+        Matrix a_prev(m_layer[i-1].size, 1, m_layer[i-1].activation);
+        
+        //weights currently implemented as vector of vectors so need to flatten
+        std::vector<Scalar> flatVec;
+        flatVec.reserve(m_layer[i-1].size * m_layer[i].size);
+        
+        for(auto &weight: m_layer[i].weight)
+            flatVec.insert(flatVec.end(),weight.begin(),weight.end());
+        
+        Matrix W(m_layer[i].size, m_layer[i-1].size,std::move(flatVec));
+        
+        Matrix b(m_layer[i].size, 1, m_layer[i].bias);
+        
+        Matrix z = Matrix::multiply(W, a_prev) + b;
+        
+        m_layer[i].pre_activation = z.getData();
+        
+        m_layer[i].activation_function_.activate(m_layer[i].pre_activation,m_layer[i].activation);
+        
+    }
+    
+    /*Scalar z;
     
     for(std::size_t i=1;i<m_layers;i++) // step through layers
     {
         for(std::size_t j=0;j<m_layer[i].size;j++)  // step through nodes
         {
-            z=0;
+            z = 0;
             for(std::size_t k=0;k<m_layer[i].weight[j].size();k++)    // step through connections
             {
                 z+=m_layer[i-1].activation[k]*m_layer[i].weight[j][k];
             }
             z+=m_layer[i].bias[j];
             m_layer[i].pre_activation[j]=z;
-            //m_layer[i].activation[j]=m_layer[i].activation_function_.activate(z);
         }
         m_layer[i].activation_function_.activate(m_layer[i].pre_activation,m_layer[i].activation);
-    }
+    }*/
     
 }
 
