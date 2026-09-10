@@ -35,8 +35,11 @@ Matrix Matrix::operator+(const Matrix& rhs) const
 
 Matrix Matrix::operator-(const Matrix& rhs) const
 {
-    Matrix m(std::max(rows_,rhs.rows()),std::max(cols_,rhs.cols()));
-    for(std::size_t row = 0; row < m.rows(); row++)
+    if(cols_ != rhs.cols()  || rows_ != rhs.rows())throw std::runtime_error("Matrices cannot be subtracted");
+
+    Matrix m(rows_,cols_);
+    
+        for(std::size_t row = 0; row < m.rows(); row++)
         for(std::size_t col = 0; col < m.cols(); col++)
             m(row,col) = (*this)(row,col) - rhs(row,col);
     
@@ -82,7 +85,7 @@ Matrix Matrix::hadamard(const Matrix& lhs, const Matrix& rhs)
 
 Matrix Matrix::outer(const Matrix& lhs, const Matrix& rhs)
 {
-    if(lhs.cols()!=1 || rhs.rows()!=1)throw std::runtime_error("Outer product requires column vectors");
+    if(lhs.cols()!=1 || rhs.cols()!=1)throw std::runtime_error("Outer product requires column vectors");
     Matrix m = Matrix::multiply(lhs,rhs.transpose());
     return m;
 }

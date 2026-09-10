@@ -41,8 +41,7 @@ public:
     void set_input(std::size_t node, Scalar value); //directly change a single input
     void set_input(const std::vector<Scalar>&); // directly change all inputs from a vector
     void set_input(data_set& data,std::size_t index); //directly change all inputs by selecting an entry from a data set
-    void set_bias(std::size_t layer, std::vector<Scalar>bias);
-    void set_weight(std::size_t layer, std::size_t node, std::vector<Scalar>weight);
+
     Scalar get_output(std::size_t node);
     std::size_t find_highest_output(void);
     

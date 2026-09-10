@@ -5,6 +5,7 @@
 #include <cstddef>
 #include "ActivationFunction.hpp"
 #include "NeuralTypes.hpp"
+#include "Matrix.hpp"
 #include <iosfwd>
 
 // A simple, explicit container for a neural-network layer's state.
@@ -15,19 +16,19 @@ class NeuronLayer {
 public:
     std::size_t size{};
     const ActivationFunction& activation_function_;
-    std::vector<Scalar> pre_activation;
-    std::vector<Scalar> error;
-    std::vector<Scalar> bias_gradient;
-
-    std::vector<Scalar> activation;
-    std::vector<Scalar> bias;
-    std::vector<std::vector<Scalar>> weight;
-    std::vector<std::vector<Scalar>> weight_gradient;
+    
+    Matrix error;
+    Matrix bias_gradient;
+    Matrix pre_activation;
+    Matrix activation;
+    Matrix bias;
+    Matrix weight;
+    Matrix weight_gradient;
     
     inline static Sigmoid default_activation_function_{};
     
     explicit NeuronLayer (const ActivationFunction& af = default_activation_function_)
-        : activation_function_(af)
+        : activation_function_(af), weight(0,0), activation(0,0), bias(0,0), pre_activation(0,0), error(0,0), bias_gradient(0,0), weight_gradient(0,0)
     {
         ;
     }
@@ -36,22 +37,11 @@ public:
     
     void load(std::ifstream& file);
     
-    // Ensure incoming connection dimensions match the previous layer.
-    void resize_for_previous(std::size_t prev_size) {
-        for (std::size_t j = 0; j < size; ++j) {
-            weight[j].resize(prev_size);
-            weight_gradient[j].resize(prev_size);
-        }
-    }
 
-    // Zero accumulated gradients for this layer given the previous layer's size.
-    void zero_gradients(std::size_t prev_size) {
-        for (std::size_t j = 0; j < size; ++j) {
-            bias_gradient[j] = 0.0;
-            for (std::size_t k = 0; k < prev_size; ++k) {
-                weight_gradient[j][k] = 0.0;
-            }
-        }
+    void zero_gradients(std::size_t prev_size)
+    {
+        bias_gradient = Matrix(bias_gradient.rows(),bias_gradient.cols());
+        weight_gradient = Matrix(weight_gradient.rows(),weight_gradient.cols());
     }
 };
 

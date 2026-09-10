@@ -8,6 +8,7 @@
 #include <vector>
 #include <cstdint>
 #include "NeuralTypes.hpp"
+#include "Matrix.hpp"
 
 #ifndef ActivationFunction_hpp
 #define ActivationFunction_hpp
@@ -22,38 +23,66 @@ enum class ActivationType: std::uint8_t
 class ActivationFunction
 {
 public:
-    virtual void activate(const std::vector<Scalar>& z, std::vector<Scalar>& a) const = 0;
-    virtual Scalar derivative(Scalar preactivation) const = 0;
+    virtual Matrix activate(const Matrix&) const = 0;
+    virtual Matrix derivative(const Matrix& ) const = 0;
     virtual ~ActivationFunction() = default;
     virtual ActivationType type() const noexcept = 0;
 };
 
-const ActivationFunction& activationFromType(ActivationType type);
-
-class Sigmoid final : public ActivationFunction
+class ElementalActivationFunction : public ActivationFunction
 {
 public:
-    void activate(const std::vector<Scalar>& z, std::vector<Scalar>& a) const override;
-    Scalar derivative(Scalar preactivation) const override;
+    Matrix activate(const Matrix& input) const override
+    {
+        return input.apply(
+                           [this](Scalar x)
+                           {
+                               return activateScalar(x);
+                           }
+                           );
+    }
+    Matrix derivative(const Matrix& input) const override
+    {
+        return input.apply(
+                           [this](Scalar x)
+                           {
+                               return derivativeScalar(x);
+                           }
+                           );
+    }
+protected:
+    virtual Scalar activateScalar(Scalar x) const = 0;
+    virtual Scalar derivativeScalar(Scalar x) const = 0;
+};
+
+const ActivationFunction& activationFromType(ActivationType type);
+
+class Sigmoid final : public ElementalActivationFunction
+{
+public:
+    Matrix activate(const Matrix& input) const override;
+    Matrix derivative(const Matrix& activation) const override;
+    Scalar activateScalar(Scalar x) const override;
+    Scalar derivativeScalar(Scalar x) const override;
     ActivationType type() const noexcept override {return ActivationType::Sigmoid;};
 };
 
-class Relu final : public ActivationFunction
+class Relu final : public ElementalActivationFunction
 {
 public:
-    void activate(const std::vector<Scalar>& z, std::vector<Scalar>& a) const override;
-    Scalar derivative(Scalar preactivation) const override;
+    Matrix activate(const Matrix& input) const override;
+    Matrix derivative(const Matrix& activation) const override;
+    Scalar activateScalar(Scalar x) const override;
+    Scalar derivativeScalar(Scalar x) const override;
     ActivationType type() const noexcept override {return ActivationType::Relu;};
-
 };
 
 class Softmax final : public ActivationFunction
 {
 public:
-    void activate(const std::vector<Scalar>& z, std::vector<Scalar>& a) const override;
-    Scalar derivative(Scalar preactivation) const override;
+    Matrix activate(const Matrix& input) const override;
+    Matrix derivative(const Matrix& activation) const override;
     ActivationType type() const noexcept override {return ActivationType::Softmax;};
-
 };
 
 #endif // !ActivationFunction_hpp

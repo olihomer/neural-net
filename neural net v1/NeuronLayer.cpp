@@ -14,17 +14,14 @@ void NeuronLayer::save(std::ofstream& file) const
     file.write(reinterpret_cast<const char*>(&size),sizeof(size));
 
     //Number of inputs
-    std::size_t inputs = weight[0].size();
+    std::size_t inputs = weight.cols();
     file.write(reinterpret_cast<const char*>(&inputs),sizeof(inputs));
 
     //Weights
-    for(std::size_t i = 0; i < size; i++)
-        for(std::size_t j = 0; j < weight[i].size(); j++)
-            file.write(reinterpret_cast<const char*>(&weight[i][j]),sizeof(weight[i][j]));
+    file.write(reinterpret_cast<const char*>(&weight),sizeof(weight));
 
     //Biases
-    for(std::size_t i = 0; i < size; i++)
-        file.write(reinterpret_cast<const char*>(&bias[i]),sizeof(bias[i]));
+    file.write(reinterpret_cast<const char*>(&bias),sizeof(bias));
 }
 
 void NeuronLayer::load(std::ifstream& file)
@@ -32,28 +29,24 @@ void NeuronLayer::load(std::ifstream& file)
     //Size of layer
     file.read(reinterpret_cast<char*>(&size),sizeof(size));
     
-    activation.resize(size);
-    pre_activation.resize(size);
-    error.resize(size);
-    bias_gradient.resize(size);
-
-    bias.resize(size);
-    weight.resize(size);
-    weight_gradient.resize(size);
     
     //Number of inputs
     std::size_t inputs;
     if(!file.read(reinterpret_cast<char*>(&inputs),sizeof(inputs)))
         throw std::runtime_error("Could not read input layer count");
     
-    resize_for_previous(inputs);
-    
+    activation = Matrix(size,1);
+    pre_activation = Matrix(size,1);
+    weight = Matrix(size,inputs);
+    bias = Matrix(size,1);
+    error = Matrix(size,1);
+    bias_gradient = Matrix(size,1);
+    weight_gradient = Matrix(size,inputs);
+
+
     //Weights
-    for(std::size_t i = 0; i < size; i++)
-        for(std::size_t j = 0; j < weight[i].size(); j++)
-            file.read(reinterpret_cast<char*>(&weight[i][j]),sizeof(weight[i][j]));
+    file.read(reinterpret_cast<char*>(&weight),sizeof(weight));
 
     //Biases
-    for(std::size_t i = 0; i < size; i++)
-        file.read(reinterpret_cast<char*>(&bias[i]),sizeof(bias[i]));
+    file.read(reinterpret_cast<char*>(&bias),sizeof(bias));
 }

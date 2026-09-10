@@ -25,48 +25,64 @@ const ActivationFunction& activationFromType(ActivationType type)
     throw std::runtime_error("Unknown activation function");
 }
 
-void Sigmoid::activate(const std::vector<Scalar>& z, std::vector<Scalar>& a) const
+Scalar Sigmoid::activateScalar(Scalar z) const
 {
-    for(std::size_t i = 0; i < z.size(); i++)
-        a[i]=(1/(1+ exp(-z[i])));
+        return (1/(1+ exp(-z)));
 }
 
-Scalar Sigmoid::derivative(Scalar preactivation) const
+Matrix Sigmoid::activate(const Matrix& input) const
 {
-    std::vector<Scalar> z = {preactivation};
-    std::vector<Scalar> a = {0.0};
-    activate(z,a);
-    return a[0]*(1-a[0]);
+    return ElementalActivationFunction::activate(input);
 }
 
-void Relu::activate(const std::vector<Scalar>& z, std::vector<Scalar>& a) const
+Matrix Sigmoid::derivative(const Matrix& input) const
 {
-    for(std::size_t i = 0; i < z.size(); i++)
-    a[i] = z[i] > 0.0 ? z[i] : 0.0;
+    return ElementalActivationFunction::derivative(input);
 }
 
-Scalar Relu::derivative(Scalar preactivation) const
+Scalar Sigmoid::derivativeScalar(Scalar a) const
 {
-    return preactivation > 0.0 ? 1.0 : 0.0;
+    auto z = activateScalar(a);
+    return z * (1-z);
 }
 
-void Softmax::activate(const std::vector<Scalar>& z, std::vector<Scalar>& a) const
+Scalar Relu::activateScalar(Scalar z) const
 {
-    Scalar zmax = *std::max_element(z.begin(), z.end());
+    return z > 0.0 ? z : 0.0;
+}
+
+Matrix Relu::activate(const Matrix& input) const
+{
+    return ElementalActivationFunction::activate(input);
+}
+
+Matrix Relu::derivative(const Matrix& input) const
+{
+    return ElementalActivationFunction::derivative(input);
+}
+
+Scalar Relu::derivativeScalar(Scalar a) const
+{
+    return a > 0.0 ? 1.0 : 0.0;
+}
+
+Matrix Softmax::activate(const Matrix& z) const
+{
+    Scalar zmax = z.max();
     Scalar sum = 0;
+    Matrix a(z.rows(),1);
     
-    for(std::size_t i = 0; i < z.size(); i++)
+    for(std::size_t i = 0; i < z.rows(); i++)
     {
-        a[i] = std::exp(z[i] - zmax);
-        sum += a[i];
+        a(i,0) = std::exp(z(i,0) - zmax);
+        sum += a(i,0);
     }
     
-    for(Scalar& value : a)
-        value /= sum;
+    a = a * (1/sum);
+    return a;
 }
 
-
-Scalar Softmax::derivative(Scalar preactivation) const
+Matrix Softmax::derivative(const Matrix &a) const
 {
     throw std::logic_error("Softmax derivative not implemented");
 }
