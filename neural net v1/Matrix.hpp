@@ -10,13 +10,17 @@
 
 #include "NeuralTypes.hpp"
 #include <vector>
+#include <stdexcept>
+#include <algorithm>
 
 
 class Matrix
 {
 public:
 
-    explicit Matrix(const std::size_t rows, const std::size_t cols, const std::vector<Scalar> data);
+    explicit Matrix(std::size_t rows, std::size_t cols, const std::vector<Scalar> data);
+    explicit Matrix(std::size_t rows, std::size_t cols);
+
     
     std::size_t rows() const {return rows_;};
     std::size_t cols() const {return cols_;};
@@ -39,8 +43,8 @@ public:
     
 private:
     std::vector<Scalar> data_;
-    const std::size_t rows_;
-    const std::size_t cols_;
+    std::size_t rows_;
+    std::size_t cols_;
 };
 
 
