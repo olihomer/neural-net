@@ -16,6 +16,7 @@
 		DEA636F2304B60F80031E9F3 /* EngineBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEA636F1304B60F80031E9F3 /* EngineBox.swift */; };
 		DEA636F4305040ED0031E9F3 /* NeuronLayer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEA636F3305040ED0031E9F3 /* NeuronLayer.cpp */; };
 		DEA636F93051B5730031E9F3 /* Trainer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEA636F83051B5730031E9F3 /* Trainer.cpp */; };
+		DEA636FD3052C3500031E9F3 /* Matrix.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEA636FC3052C3500031E9F3 /* Matrix.cpp */; };
 		DED68A262B824122004ED2CE /* AppEngine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DED68A252B824122004ED2CE /* AppEngine.cpp */; };
 		DED68A342B8E8C35004ED2CE /* Neural.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DED68A322B8E8C35004ED2CE /* Neural.cpp */; };
 /* End PBXBuildFile section */
@@ -52,6 +53,8 @@
 		DEA636F73051B5730031E9F3 /* Trainer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Trainer.hpp; sourceTree = "<group>"; };
 		DEA636F83051B5730031E9F3 /* Trainer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Trainer.cpp; sourceTree = "<group>"; };
 		DEA636FA305206CD0031E9F3 /* NeuralTypes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = NeuralTypes.hpp; sourceTree = "<group>"; };
+		DEA636FB3052C3500031E9F3 /* Matrix.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Matrix.hpp; sourceTree = "<group>"; };
+		DEA636FC3052C3500031E9F3 /* Matrix.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Matrix.cpp; sourceTree = "<group>"; };
 		DED68A222B824122004ED2CE /* neural net v1 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "neural net v1"; sourceTree = BUILT_PRODUCTS_DIR; };
 		DED68A252B824122004ED2CE /* AppEngine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AppEngine.cpp; sourceTree = "<group>"; };
 		DED68A302B82477A004ED2CE /* data */ = {isa = PBXFileReference; lastKnownFileType = text; path = data; sourceTree = "<group>"; };
@@ -92,6 +95,8 @@
 		DED68A242B824122004ED2CE /* neural net v1 */ = {
 			isa = PBXGroup;
 			children = (
+				DEA636FB3052C3500031E9F3 /* Matrix.hpp */,
+				DEA636FC3052C3500031E9F3 /* Matrix.cpp */,
 				DED68A252B824122004ED2CE /* AppEngine.cpp */,
 				DEA636EC3044F2E90031E9F3 /* AppEngine.hpp */,
 				DEA636F73051B5730031E9F3 /* Trainer.hpp */,
@@ -174,6 +179,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DEA636FD3052C3500031E9F3 /* Matrix.cpp in Sources */,
 				DEA636EB3044EDCB0031E9F3 /* SwiftMain.swift in Sources */,
 				DE40C6562BB2C27400C67031 /* data_set.cpp in Sources */,
 				DEA636E93044E3C40031E9F3 /* SwiftUIView.swift in Sources */,

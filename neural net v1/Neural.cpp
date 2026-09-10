@@ -106,8 +106,6 @@ void Neural::save(const std::string& filename) const
 }
 
 
-
-
 double Neural::trainBatch(const data_set &training_data, const std::span<const std::size_t> batch)
 {
     //std::cout << "Training with " << training_data.size() << " data points." << std::endl;

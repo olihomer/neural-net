@@ -18,6 +18,8 @@
 #include <string>
 #include <vector>
 #include <numeric>
+#include "Matrix.hpp"
+
 
 namespace {
 
@@ -36,6 +38,7 @@ const ActivationType activationTypeFor(int choice)
     }
 }
 }
+
 
 AppEngine::AppEngine()
 : net({784,128,10}, ActivationType::Relu, ActivationType::Softmax)
@@ -90,6 +93,7 @@ int AppEngine::runApp(void(*progress)(int32_t,double), int hiddenLayerSize, int 
     return 0;
 }
 
+
 bool AppEngine::saveNetwork(const char *path)
 {
     if(path == nullptr)return false;
@@ -105,6 +109,7 @@ bool AppEngine::saveNetwork(const char *path)
         return false;
     }
 }
+
 
 bool AppEngine::loadNetwork(const char *path)
 {
