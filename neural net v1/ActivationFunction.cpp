@@ -42,8 +42,7 @@ Matrix Sigmoid::derivative(const Matrix& input) const
 
 Scalar Sigmoid::derivativeScalar(Scalar a) const
 {
-    auto z = activateScalar(a);
-    return z * (1-z);
+    return a * (1.0f - a);
 }
 
 Scalar Relu::activateScalar(Scalar z) const

@@ -25,6 +25,8 @@ public:
     std::size_t cols() const {return cols_;};
     std::size_t size() const {return rows_ * cols_;};
     const std::vector<Scalar>& getData() const {return data_;};
+    std::vector<Scalar>& putData() {return data_;};
+
     Scalar max() const {return *std::max_element(data_.begin(),data_.end());};
     
     Scalar& operator()(std::size_t row, std::size_t col){return data_[row*cols_+col];};

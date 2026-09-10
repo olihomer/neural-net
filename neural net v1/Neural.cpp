@@ -131,7 +131,7 @@ double Neural::trainBatch(const data_set &training_data, const std::span<const s
         auto& input = m_layer[0];
         auto& output = m_layer[m_layers-1];
         
-        input.pre_activation = Matrix(d.inputs.size(),1,d.inputs);
+        input.activation = Matrix(d.inputs.size(),1,d.inputs);
         
         propagate();
         
@@ -165,6 +165,7 @@ double Neural::trainBatch(const data_set &training_data, const std::span<const s
             
             Matrix propagated_error = Matrix::multiply(current.weight.transpose(), current.error);
             previous.error = Matrix::hadamard(propagated_error, previous.activation_function_.derivative(previous.activation));
+            previous.bias_gradient = previous.bias_gradient + previous.error;
         }
         
         
