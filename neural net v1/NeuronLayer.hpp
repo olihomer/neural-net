@@ -41,7 +41,6 @@ public:
     void zero_gradients(std::size_t prev_size)
     {
         bias_gradient = Matrix(bias_gradient.rows(),bias_gradient.cols());
-        weight_gradient = Matrix(weight_gradient.rows(),weight_gradient.cols());
     }
 };
 

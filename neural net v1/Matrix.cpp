@@ -80,9 +80,14 @@ Matrix Matrix::multiply(const Matrix& lhs, const Matrix& rhs)
     Matrix m(lhs.rows(), rhs.cols());
     
     for(std::size_t row = 0; row < m.rows(); row++)
-        for(std::size_t col = 0; col < m.cols(); col++)
-            for(std::size_t i=0; i < lhs.cols(); i++)
-                m(row,col) += lhs(row,i) * rhs (i,col);
+    {
+        for(std::size_t i=0; i < lhs.cols(); i++)
+        {
+            const Scalar weight = lhs(row,i);
+            for(std::size_t col = 0; col < m.cols(); col++)
+                m(row,col) += weight * rhs (i,col);
+        }
+    }
     
     return m;
 }

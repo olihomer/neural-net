@@ -124,14 +124,6 @@ double Neural::trainBatch(const data_set &training_data, const std::span<const s
         std::cout << "Outputs: " << training_data.n_outputs() << " in data versus " << m_layer[m_layers-1].size << " in net." << std::endl;
         exit(1);
     }
-
-    //resize pre_activation, activation and error matrices to hold entire batch
-    for(auto &layer: m_layer)
-    {
-        layer.pre_activation = Matrix(layer.size,batch.size());
-        layer.activation = Matrix(layer.size,batch.size());
-        layer.error = Matrix(layer.size,batch.size());
-    }
     
     Scalar total_error = 0;
     
@@ -142,6 +134,8 @@ double Neural::trainBatch(const data_set &training_data, const std::span<const s
     
     //set input layer activations and target output activations for entire batch
 
+    input.activation = Matrix(input.size, batch.size());
+    
     Matrix target_output(training_data.n_outputs(),batch.size());
     
     for(std::size_t col = 0; col < batch.size(); col++)
@@ -187,12 +181,12 @@ double Neural::trainBatch(const data_set &training_data, const std::span<const s
         auto& current = m_layer[layer_index];
         auto& previous = m_layer[previous_index];
         
-        current.weight_gradient += Matrix::multiply(current.error, previous.activation.transpose());
+        current.weight_gradient = Matrix::multiply(current.error, previous.activation.transpose());
         
         //We need the weights coming from the input layer but we don't need errors or bias gradients of the input layer
         if (previous_index == 0)
         {
-                continue;
+            continue;
         }
         
         Matrix propagated_error = Matrix::multiply(current.weight.transpose(), current.error);
@@ -200,9 +194,15 @@ double Neural::trainBatch(const data_set &training_data, const std::span<const s
         
         //accumulate output layer bias gradient across each row
         
-        for(std::size_t col = 0; col < batch.size(); col++)
-            for(std::size_t row = 0; row < previous.size; row++)
-                previous.bias_gradient(row,0) += previous.error(row,col);
+        for(std::size_t row = 0; row < previous.size; row++)
+        {
+            Scalar sum = 0;
+            
+            for(std::size_t col = 0; col < batch.size(); col++)
+                sum += previous.error(row,col);
+            
+            previous.bias_gradient(row,0) += sum;
+        }
     }
         
     return total_error;
