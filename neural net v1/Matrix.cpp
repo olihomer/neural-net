@@ -103,10 +103,10 @@ Matrix Matrix::broadcastAdd(const Matrix& matrix, const Matrix& vector)
 
 Scalar Matrix::colMax(std::size_t col) const
 {
-    Scalar max{};
-        for(std::size_t i = 0 ; i < rows_ ; i++)
-            (*this)(i,col) > max ? max = (*this)(i,col) : max = max;
-    return max;
+    Scalar maximum = (*this)(0,col);
+        for(std::size_t i = 1 ; i < rows_ ; i++)
+            maximum = std::max(maximum, (*this)(i,col));
+    return maximum;
 }
 
 Matrix Matrix::hadamard(const Matrix& lhs, const Matrix& rhs)

@@ -17,6 +17,14 @@
 
 std::pair<std::size_t, Scalar> Neural::predict(const std::vector<Scalar>& input)
 {
+    //resize pre_activation, activation and error matrices to hold column vectors
+    for(auto &layer: m_layer)
+    {
+        layer.pre_activation = Matrix(layer.size,1);
+        layer.activation = Matrix(layer.size,1);
+        layer.error = Matrix(layer.size,1);
+    }
+    
     set_input(input);
     propagate();
     const auto index = find_highest_output();
@@ -141,7 +149,7 @@ double Neural::trainBatch(const data_set &training_data, const std::span<const s
         for(std::size_t row = 0; row < training_data.n_inputs(); row++)
             input.activation(row,col) = training_data.get_data()[batch[col]].inputs[row];
         for(std::size_t row = 0; row < training_data.n_outputs(); row++)
-            target_output(row,col) = training_data.get_data()[batch[col]].inputs[row];
+            target_output(row,col) = training_data.get_data()[batch[col]].outputs[row];
     }
     
     //propagate through network
@@ -161,8 +169,9 @@ double Neural::trainBatch(const data_set &training_data, const std::span<const s
     for(std::size_t col = 0; col < batch.size(); col++)
         for(std::size_t row = 0; row < output.size; row++)
         {
-            output.bias_gradient(row,0) += output.error(row,col);
-            total_error += output.error(row,col);
+            const Scalar error = output.error(row,col);
+            output.bias_gradient(row,0) += error;
+            total_error += 0.5 * error * error;
         }
     
     total_error /= batch.size();
@@ -192,7 +201,7 @@ double Neural::trainBatch(const data_set &training_data, const std::span<const s
         //accumulate output layer bias gradient across each row
         
         for(std::size_t col = 0; col < batch.size(); col++)
-            for(std::size_t row = 0; row < output.size; row++)
+            for(std::size_t row = 0; row < previous.size; row++)
                 previous.bias_gradient(row,0) += previous.error(row,col);
     }
         
@@ -357,7 +366,7 @@ void Neural::zero_training_error()
 
 void Neural::set_input(data_set& data,std::size_t index)
 {
-    //std::cout << "Inputs set to: ";
+    m_layer[0].activation = Matrix(m_layer[0].size, 1);
     for(std::size_t j=0;j<data.n_inputs();j++)
     {
         double input=data.get_data()[index].inputs[j];
@@ -369,6 +378,7 @@ void Neural::set_input(data_set& data,std::size_t index)
 
 void Neural::set_input(const std::vector<Scalar>& input_vector)
 {
+    m_layer[0].activation = Matrix(m_layer[0].size, 1);
     if(input_vector.size() != m_layer[0].size)
     {
         std::cout << "Error: input vector size " << input_vector.size()
@@ -508,6 +518,7 @@ void Neural::print_training_errors(std::ostream& stream)
 
 void Neural::set_input(std::size_t node, Scalar value)
 {
+    m_layer[0].activation = Matrix(m_layer[0].size, 1);
     m_layer[0].activation(node,0) = value;
 }
 
