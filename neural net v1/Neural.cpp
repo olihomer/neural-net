@@ -518,7 +518,6 @@ void Neural::print_training_errors(std::ostream& stream)
 
 void Neural::set_input(std::size_t node, Scalar value)
 {
-    m_layer[0].activation = Matrix(m_layer[0].size, 1);
     m_layer[0].activation(node,0) = value;
 }
 
