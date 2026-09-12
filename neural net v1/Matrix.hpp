@@ -29,6 +29,7 @@ public:
     Scalar* data() {return data_.data();};
  
     Scalar max() const {return *std::max_element(data_.begin(),data_.end());};
+    Scalar colMax(std::size_t col) const;
     
     Scalar& operator()(std::size_t row, std::size_t col){return data_[row*cols_+col];};
     const Scalar& operator()(std::size_t row, std::size_t col) const {return data_[row*cols_+col];};
@@ -41,6 +42,7 @@ public:
     Matrix& operator*=(Scalar scalar);
     
     static Matrix multiply(const Matrix&, const Matrix&);
+    static Matrix broadcastAdd(const Matrix&, const Matrix&);
     static Matrix hadamard(const Matrix&, const Matrix&);
     static Matrix outer(const Matrix&, const Matrix&);
 

@@ -109,8 +109,6 @@ void Neural::save(const std::string& filename) const
 
 double Neural::trainBatch(const data_set &training_data, const std::span<const std::size_t> batch)
 {
-    //std::cout << "Training with " << training_data.size() << " data points." << std::endl;
-    
     if(training_data.n_inputs() != m_layer[0].size || training_data.n_outputs() != m_layer[m_layers-1].size)
     {
         std::cout << "Error: training data size does not match net topology" << std::endl;
@@ -118,32 +116,52 @@ double Neural::trainBatch(const data_set &training_data, const std::span<const s
         std::cout << "Outputs: " << training_data.n_outputs() << " in data versus " << m_layer[m_layers-1].size << " in net." << std::endl;
         exit(1);
     }
+
+    //resize pre_activation, activation and error matrices to hold entire batch
+    for(auto &layer: m_layer)
+    {
+        layer.pre_activation = Matrix(layer.size,batch.size());
+        layer.activation = Matrix(layer.size,batch.size());
+        layer.error = Matrix(layer.size,batch.size());
+    }
     
     Scalar total_error = 0;
     
     zero_training_error();
     
-    for(auto batch_index: batch)
-    {
-        const auto& d = training_data.get_data()[batch_index];
-        auto& input = m_layer[0];
-        auto& output = m_layer[m_layers-1];
-        
-        input.activation = Matrix(d.inputs.size(),1,d.inputs);
-        
-        propagate();
-        
-        // calculate error in output layer
-        
-        Matrix target_output(d.outputs.size(),1,d.outputs);
-        output.error = output.activation - target_output;
+    auto& input = m_layer[0];
+    auto& output = m_layer[m_layers-1];
     
-        // dW = error * a_prev T
-        // dB = error
-        // error_prev = W T * error hadamard f'(z_prev)
+    //set input layer activations and target output activations for entire batch
+
+    Matrix target_output(training_data.n_outputs(),batch.size());
+    
+    for(std::size_t col = 0; col < batch.size(); col++)
+    {
+        for(std::size_t row = 0; row < training_data.n_inputs(); row++)
+            input.activation(row,col) = training_data.get_data()[batch[col]].inputs[row];
+        for(std::size_t row = 0; row < training_data.n_outputs(); row++)
+            target_output(row,col) = training_data.get_data()[batch[col]].inputs[row];
+    }
+    
+    //propagate through network
+    
+    propagateBatch();
         
-        output.bias_gradient += output.error;
-        
+    // calculate error in output layer
+
+    output.error = output.activation - target_output;
+    
+    // dW = error * a_prev T
+    // dB = error
+    // error_prev = W T * error hadamard f'(z_prev)
+
+    //accumulate output layer bias gradient across each row
+    
+    for(std::size_t col = 0; col < batch.size(); col++)
+        for(std::size_t row = 0; row < output.size; row++)
+            output.bias_gradient(row,0) += output.error(row,col);
+    
         for(std::size_t layer_index = m_layers - 1;layer_index > 0;layer_index--)
         {
             //step backwards through previous layers
@@ -243,6 +261,26 @@ void Neural::propagate()
     }
   
 }
+
+void Neural::propagateBatch()
+{
+    // Pre-activation z = W a_prev + b
+    // Activation a = f(z)
+    // input activations matrix a_prev: N x 1
+    // weights matrix W: M x N
+    // biases matrix b: M x 1
+    
+    for(std::size_t i=1;i<m_layers;i++) // step through layers
+    {
+        auto &current = m_layer[i];
+        const auto& previous = m_layer[i - 1];
+        
+        current.pre_activation = Matrix::broadcastAdd(Matrix::multiply(current.weight, previous.activation), current.bias);
+        current.activation = current.activation_function_.activate(current.pre_activation);
+    }
+  
+}
+
 
 Neural::Neural(std::vector<int> nodes_per_layer, const ActivationType hiddenActivationType, const ActivationType outputActivationType)
 {

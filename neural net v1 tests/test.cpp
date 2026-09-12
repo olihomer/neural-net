@@ -122,6 +122,46 @@ void testMatrixProducts()
     requireMatrixValue(outer, 1, 2, 18.0f, "outer product should multiply each pair of vector values");
 }
 
+void testMatrixBroadcastAdd()
+{
+    Matrix matrix(3, 2, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    Matrix columnVector(3, 1, {10.0f, 20.0f, 30.0f});
+
+    Matrix result = Matrix::broadcastAdd(matrix, columnVector);
+
+    require(result.rows() == 3 && result.cols() == 2, "broadcastAdd should keep the matrix dimensions");
+    requireMatrixValue(result, 0, 0, 11.0f, "broadcastAdd should add row 0 vector value to each column");
+    requireMatrixValue(result, 0, 1, 12.0f, "broadcastAdd should add row 0 vector value to each column");
+    requireMatrixValue(result, 1, 0, 23.0f, "broadcastAdd should add row 1 vector value to each column");
+    requireMatrixValue(result, 1, 1, 24.0f, "broadcastAdd should add row 1 vector value to each column");
+    requireMatrixValue(result, 2, 0, 35.0f, "broadcastAdd should add row 2 vector value to each column");
+    requireMatrixValue(result, 2, 1, 36.0f, "broadcastAdd should add row 2 vector value to each column");
+
+    bool rowMismatchThrew = false;
+    try
+    {
+        Matrix::broadcastAdd(matrix, Matrix(2, 1));
+    }
+    catch(const std::runtime_error&)
+    {
+        rowMismatchThrew = true;
+    }
+
+    require(rowMismatchThrew, "broadcastAdd should reject vectors with the wrong row count");
+
+    bool nonColumnVectorThrew = false;
+    try
+    {
+        Matrix::broadcastAdd(matrix, Matrix(3, 2));
+    }
+    catch(const std::runtime_error&)
+    {
+        nonColumnVectorThrew = true;
+    }
+
+    require(nonColumnVectorThrew, "broadcastAdd should reject non-column vectors");
+}
+
 void testMatrixDimensionChecks()
 {
     bool addThrew = false;
@@ -187,11 +227,12 @@ int main()
 {
     try
     {
-        runTest("Matrix construction", testMatrixConstruction);
-        runTest("Matrix arithmetic", testMatrixArithmetic);
-        runTest("Matrix products", testMatrixProducts);
-        runTest("Matrix dimension checks", testMatrixDimensionChecks);
-        runTest("Neural save/load round trip", testNeuralSaveLoadRoundTrip);
+    runTest("Matrix construction", testMatrixConstruction);
+    runTest("Matrix arithmetic", testMatrixArithmetic);
+    runTest("Matrix products", testMatrixProducts);
+    runTest("Matrix broadcastAdd", testMatrixBroadcastAdd);
+    runTest("Matrix dimension checks", testMatrixDimensionChecks);
+    runTest("Neural save/load round trip", testNeuralSaveLoadRoundTrip);
     }
     catch(const std::exception& error)
     {

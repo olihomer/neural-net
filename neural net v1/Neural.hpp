@@ -41,12 +41,14 @@ public:
     void set_input(std::size_t node, Scalar value); //directly change a single input
     void set_input(const std::vector<Scalar>&); // directly change all inputs from a vector
     void set_input(data_set& data,std::size_t index); //directly change all inputs by selecting an entry from a data set
+    std::size_t numLayers(){return m_layers;};
 
     Scalar get_output(std::size_t node);
     std::size_t find_highest_output(void);
     
     //Public methods
     void propagate();
+    void propagateBatch();
     void gradient_descent(std::size_t trainingSize, double learningRate);
     double trainBatch(const data_set& training_data, const std::span<const std::size_t> batch);
     void save(const std::string& filename) const;

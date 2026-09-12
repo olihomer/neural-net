@@ -28,7 +28,7 @@ void Trainer::train(const data_set& data, std::size_t epochs, std::size_t batchS
  
     order_.resize(data.size());
     std::iota(order_.begin(),order_.end(),0);
-
+    
     const auto trainingStart = std::chrono::steady_clock::now();
     
     for(std::size_t i = 0; i < epochs; i++)

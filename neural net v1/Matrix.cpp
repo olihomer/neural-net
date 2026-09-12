@@ -87,6 +87,28 @@ Matrix Matrix::multiply(const Matrix& lhs, const Matrix& rhs)
     return m;
 }
 
+Matrix Matrix::broadcastAdd(const Matrix& matrix, const Matrix& vector)
+{
+    if(matrix.rows() != vector.rows())throw std::runtime_error("Matrix and vector have different number of rows");
+    if(vector.cols() != 1)throw std::runtime_error("broadcastAdd requires a column vector");
+    
+    Matrix result(matrix.rows(), matrix.cols());
+    
+    for(std::size_t j=0; j < matrix.cols(); j++)
+        for(std::size_t i=0; i < vector.rows(); i++)
+            result(i,j) = matrix(i,j) + vector(i,0);
+    
+    return result;
+}
+
+Scalar Matrix::colMax(std::size_t col) const
+{
+    Scalar max{};
+        for(std::size_t i = 0 ; i < rows_ ; i++)
+            (*this)(i,col) > max ? max = (*this)(i,col) : max = max;
+    return max;
+}
+
 Matrix Matrix::hadamard(const Matrix& lhs, const Matrix& rhs)
 {
     if(lhs.cols() != rhs.cols()  || lhs.rows() != rhs.rows())throw std::runtime_error("Matrices cannot be hadamarded");

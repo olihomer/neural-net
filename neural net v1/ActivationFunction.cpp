@@ -69,15 +69,20 @@ Matrix Softmax::activate(const Matrix& z) const
 {
     Scalar zmax = z.max();
     Scalar sum = 0;
-    Matrix a(z.rows(),1);
+    Matrix a(z.rows(),z.cols());
     
-    for(std::size_t i = 0; i < z.rows(); i++)
+    for(std::size_t j = 0; j < z.cols(); j++)
     {
-        a(i,0) = std::exp(z(i,0) - zmax);
-        sum += a(i,0);
+        sum = 0;
+        zmax = z.colMax(j);
+        for(std::size_t i = 0; i < z.rows(); i++)
+        {
+            a(i,j) = std::exp(z(i,j) - zmax);
+            sum += a(i,j);
+        }
+        for(std::size_t i = 0; i < z.rows(); i++)
+            a(i,j) = a(i,j) * (1/sum);
     }
-    
-    a = a * (1/sum);
     return a;
 }
 
