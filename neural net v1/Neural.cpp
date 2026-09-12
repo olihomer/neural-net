@@ -160,35 +160,42 @@ double Neural::trainBatch(const data_set &training_data, const std::span<const s
     
     for(std::size_t col = 0; col < batch.size(); col++)
         for(std::size_t row = 0; row < output.size; row++)
-            output.bias_gradient(row,0) += output.error(row,col);
-    
-        for(std::size_t layer_index = m_layers - 1;layer_index > 0;layer_index--)
         {
-            //step backwards through previous layers
-            
-            const std::size_t previous_index = layer_index - 1;
-            
-            auto& current = m_layer[layer_index];
-            auto& previous = m_layer[previous_index];
-            
-            current.weight_gradient += Matrix::outer(current.error, previous.activation);
-            
-            //We need the weights coming from the input layer but we don't need errors or bias gradients of the input layer
-            if (previous_index == 0)
-            {
-                    continue;
-            }
-            
-            Matrix propagated_error = Matrix::multiply(current.weight.transpose(), current.error);
-            previous.error = Matrix::hadamard(propagated_error, previous.activation_function_.derivative(previous.activation));
-            previous.bias_gradient += previous.error;
+            output.bias_gradient(row,0) += output.error(row,col);
+            total_error += output.error(row,col);
+        }
+    
+    total_error /= batch.size();
+    
+    //propagate backwards
+    
+    for(std::size_t layer_index = m_layers - 1;layer_index > 0;layer_index--)
+    {
+        //step backwards through previous layers
+        
+        const std::size_t previous_index = layer_index - 1;
+        
+        auto& current = m_layer[layer_index];
+        auto& previous = m_layer[previous_index];
+        
+        current.weight_gradient += Matrix::multiply(current.error, previous.activation.transpose());
+        
+        //We need the weights coming from the input layer but we don't need errors or bias gradients of the input layer
+        if (previous_index == 0)
+        {
+                continue;
         }
         
-        total_error += cost_function(d.outputs);
+        Matrix propagated_error = Matrix::multiply(current.weight.transpose(), current.error);
+        previous.error = Matrix::hadamard(propagated_error, previous.activation_function_.derivative(previous.activation));
         
-    } //end of training loop;
-    total_error /= (batch.size() * 2);
-    
+        //accumulate output layer bias gradient across each row
+        
+        for(std::size_t col = 0; col < batch.size(); col++)
+            for(std::size_t row = 0; row < output.size; row++)
+                previous.bias_gradient(row,0) += previous.error(row,col);
+    }
+        
     return total_error;
 }
 
