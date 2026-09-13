@@ -19,6 +19,7 @@
 #include <vector>
 #include <numeric>
 #include "Matrix.hpp"
+#include "Tensor.hpp"
 
 
 namespace {
@@ -44,6 +45,13 @@ AppEngine::AppEngine()
 : net({784,128,10}, ActivationType::Relu, ActivationType::Softmax)
 {
     std::cout << "Constructing Engine" << std::endl;
+    
+    Tensor t({3,28,28});
+    t.fill(99.0f);
+    
+    t.print();
+    
+    std::cout << t(1,2,3) << std::endl;
 }
 
 

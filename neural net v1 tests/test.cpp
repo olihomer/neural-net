@@ -8,6 +8,7 @@
 #include "ActivationFunction.hpp"
 #include "Matrix.hpp"
 #include "Neural.hpp"
+#include "Tensor.hpp"
 
 #include <cmath>
 #include <cstdio>
@@ -39,6 +40,80 @@ void requireNear(Scalar actual, Scalar expected, const std::string& message)
 void requireMatrixValue(const Matrix& matrix, std::size_t row, std::size_t col, Scalar expected, const std::string& message)
 {
     requireNear(matrix(row, col), expected, message);
+}
+
+void testTensorConstruction()
+{
+    Tensor tensor({3, 28, 28});
+
+    require(tensor.rank() == 3, "tensor rank should match shape length");
+    require(tensor.size() == 3 * 28 * 28, "tensor size should be the product of its dimensions");
+    require(tensor.dim(0) == 3, "tensor dim 0 should match shape");
+    require(tensor.dim(1) == 28, "tensor dim 1 should match shape");
+    require(tensor.dim(2) == 28, "tensor dim 2 should match shape");
+    require(tensor.shape() == std::vector<std::size_t>({3, 28, 28}), "tensor shape should match constructor shape");
+}
+
+void testTensorIndexing()
+{
+    Tensor tensor({2, 3, 4});
+
+    tensor(1, 2, 3) = 123.0f;
+    tensor(0, 1, 2) = 7.0f;
+
+    requireNear(tensor(1, 2, 3), 123.0f, "tensor 3D indexing should read back written values");
+    requireNear(tensor(0, 1, 2), 7.0f, "tensor 3D indexing should read back written values");
+    requireNear(tensor.data()[23], 123.0f, "tensor 3D indexing should use row-major strides");
+    requireNear(tensor.data()[6], 7.0f, "tensor 3D indexing should use row-major strides");
+
+    bool wrongRankThrew = false;
+    try
+    {
+        tensor(0, 1);
+    }
+    catch(const std::runtime_error&)
+    {
+        wrongRankThrew = true;
+    }
+
+    require(wrongRankThrew, "tensor indexing should reject the wrong number of indices");
+}
+
+void testTensorFillZeroAndReshape()
+{
+    Tensor tensor({2, 3, 4});
+
+    tensor.fill(5.0f);
+    for(std::size_t i = 0; i < tensor.size(); i++)
+    {
+        requireNear(tensor.data()[i], 5.0f, "tensor fill should set every element");
+    }
+
+    tensor.zero();
+    for(std::size_t i = 0; i < tensor.size(); i++)
+    {
+        requireNear(tensor.data()[i], 0.0f, "tensor zero should clear every element");
+    }
+
+    tensor.reshape({4, 6});
+    require(tensor.rank() == 2, "tensor reshape should update rank");
+    require(tensor.shape() == std::vector<std::size_t>({4, 6}), "tensor reshape should update shape");
+    require(tensor.size() == 24, "tensor reshape should preserve total storage size");
+
+    tensor(3, 5) = 42.0f;
+    requireNear(tensor.data()[23], 42.0f, "tensor reshape should recalculate row-major strides");
+
+    bool wrongSizeThrew = false;
+    try
+    {
+        tensor.reshape({5, 5});
+    }
+    catch(const std::runtime_error&)
+    {
+        wrongSizeThrew = true;
+    }
+
+    require(wrongSizeThrew, "tensor reshape should reject different total size");
 }
 
 void testMatrixConstruction()
@@ -227,12 +302,15 @@ int main()
 {
     try
     {
-    runTest("Matrix construction", testMatrixConstruction);
-    runTest("Matrix arithmetic", testMatrixArithmetic);
-    runTest("Matrix products", testMatrixProducts);
-    runTest("Matrix broadcastAdd", testMatrixBroadcastAdd);
-    runTest("Matrix dimension checks", testMatrixDimensionChecks);
-    runTest("Neural save/load round trip", testNeuralSaveLoadRoundTrip);
+        runTest("Tensor construction", testTensorConstruction);
+        runTest("Tensor indexing", testTensorIndexing);
+        runTest("Tensor fill, zero, and reshape", testTensorFillZeroAndReshape);
+        runTest("Matrix construction", testMatrixConstruction);
+        runTest("Matrix arithmetic", testMatrixArithmetic);
+        runTest("Matrix products", testMatrixProducts);
+        runTest("Matrix broadcastAdd", testMatrixBroadcastAdd);
+        runTest("Matrix dimension checks", testMatrixDimensionChecks);
+        runTest("Neural save/load round trip", testNeuralSaveLoadRoundTrip);
     }
     catch(const std::exception& error)
     {

@@ -9,15 +9,16 @@
 #define Tensor_hpp
 
 #include "NeuralTypes.hpp"
+#include <cstddef>
+#include <initializer_list>
 #include <vector>
-#include <exception>
 
 class Tensor{
 public:
     Tensor() = default;
     explicit Tensor(const std::vector<size_t>& shape);
     
-    [[nodiscard]] std::size_t rank() const{return shape_.size();};
+    [[nodiscard]] std::size_t rank() const{return rank_;};
     [[nodiscard]] std::size_t size() const{return data_.size();};
     [[nodiscard]] std::size_t dim(std::size_t axis) const{return shape_[axis];};
     
@@ -34,11 +35,13 @@ public:
     void fill(Scalar value);
     void zero();
     void reshape(const std::vector<size_t>& shape);
+    void print();
 
 private:
     std::vector<Scalar> data_;
     std::vector<std::size_t> shape_;
     std::vector<std::size_t> strides_;
+    std::size_t rank_ = 0;
     
     void calculateStrides();
     
