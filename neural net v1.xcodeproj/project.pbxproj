@@ -22,6 +22,7 @@
 		DEA6371B305364FB0031E9F3 /* NeuronLayer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEA636F3305040ED0031E9F3 /* NeuronLayer.cpp */; };
 		DEA6371C305365040031E9F3 /* ActivationFunction.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DE41437C302BE11E009B4026 /* ActivationFunction.cpp */; };
 		DEA6371D3053655F0031E9F3 /* data_set.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DE40C6542BB2C27400C67031 /* data_set.cpp */; };
+		DEA6372030561FEF0031E9F3 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEA6371F30561FEF0031E9F3 /* Accelerate.framework */; };
 		DED68A262B824122004ED2CE /* AppEngine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DED68A252B824122004ED2CE /* AppEngine.cpp */; };
 		DED68A342B8E8C35004ED2CE /* Neural.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DED68A322B8E8C35004ED2CE /* Neural.cpp */; };
 /* End PBXBuildFile section */
@@ -70,6 +71,7 @@
 		DEA636FB3052C3500031E9F3 /* Matrix.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Matrix.hpp; sourceTree = "<group>"; };
 		DEA636FC3052C3500031E9F3 /* Matrix.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Matrix.cpp; sourceTree = "<group>"; };
 		DEA63702305363490031E9F3 /* neural net v1 tests */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "neural net v1 tests"; sourceTree = BUILT_PRODUCTS_DIR; };
+		DEA6371F30561FEF0031E9F3 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		DED68A222B824122004ED2CE /* neural net v1 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "neural net v1"; sourceTree = BUILT_PRODUCTS_DIR; };
 		DED68A252B824122004ED2CE /* AppEngine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AppEngine.cpp; sourceTree = "<group>"; };
 		DED68A302B82477A004ED2CE /* data */ = {isa = PBXFileReference; lastKnownFileType = text; path = data; sourceTree = "<group>"; };
@@ -93,12 +95,21 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DEA6372030561FEF0031E9F3 /* Accelerate.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		DEA6371E30561FEF0031E9F3 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				DEA6371F30561FEF0031E9F3 /* Accelerate.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		DED68A192B824122004ED2CE = {
 			isa = PBXGroup;
 			children = (
@@ -107,6 +118,7 @@
 				DE414378302B627E009B4026 /* PROJECT_NOTES.md */,
 				DED68A242B824122004ED2CE /* neural net v1 */,
 				DEA63703305363490031E9F3 /* neural net v1 tests */,
+				DEA6371E30561FEF0031E9F3 /* Frameworks */,
 				DED68A232B824122004ED2CE /* Products */,
 			);
 			sourceTree = "<group>";

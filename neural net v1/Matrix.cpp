@@ -7,6 +7,7 @@
 
 #include "Matrix.hpp"
 #include <iostream>
+#include <Accelerate/Accelerate.h>
 
 Matrix::Matrix(std::size_t rows, std::size_t cols, const std::vector<Scalar> data)
 : rows_(rows), cols_(cols), data_(data)
@@ -74,6 +75,17 @@ Matrix& Matrix::operator*=(Scalar scalar)
 }
 
 Matrix Matrix::multiply(const Matrix& lhs, const Matrix& rhs)
+{
+    if(lhs.cols_ != rhs.rows_)throw std::runtime_error("Matrices cannot be multiplied");
+    
+    Matrix result(lhs.rows_, rhs.cols_);
+    
+    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, lhs.rows_, rhs.cols_, lhs.cols_, 1.0f, lhs.data_.data(), lhs.cols_, rhs.data_.data(), rhs.cols_, 0.0f, result.data_.data(), rhs.cols_);
+    
+    return result;
+}
+
+Matrix Matrix::multiply_old(const Matrix& lhs, const Matrix& rhs)
 {
     if(lhs.cols() != rhs.rows())throw std::runtime_error("Matrices cannot be multiplied");
     

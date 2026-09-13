@@ -42,6 +42,8 @@ public:
     Matrix& operator*=(Scalar scalar);
     
     static Matrix multiply(const Matrix&, const Matrix&);
+    static Matrix multiply_old(const Matrix&, const Matrix&);
+
     static Matrix broadcastAdd(const Matrix&, const Matrix&);
     static Matrix hadamard(const Matrix&, const Matrix&);
     static Matrix outer(const Matrix&, const Matrix&);
