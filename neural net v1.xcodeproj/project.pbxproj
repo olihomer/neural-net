@@ -25,6 +25,7 @@
 		DEA6372030561FEF0031E9F3 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEA6371F30561FEF0031E9F3 /* Accelerate.framework */; };
 		DEA637233056C8EA0031E9F3 /* Tensor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEA637223056C8EA0031E9F3 /* Tensor.cpp */; };
 		DEA6372630582CAF0031E9F3 /* CNN.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEA6372530582CAF0031E9F3 /* CNN.cpp */; };
+		DEA6372930586B210031E9F3 /* ConvLayer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEA6372830586B210031E9F3 /* ConvLayer.cpp */; };
 		DED68A262B824122004ED2CE /* AppEngine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DED68A252B824122004ED2CE /* AppEngine.cpp */; };
 		DED68A342B8E8C35004ED2CE /* Neural.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DED68A322B8E8C35004ED2CE /* Neural.cpp */; };
 /* End PBXBuildFile section */
@@ -78,6 +79,8 @@
 		DEA637223056C8EA0031E9F3 /* Tensor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Tensor.cpp; sourceTree = "<group>"; };
 		DEA6372430582CAF0031E9F3 /* CNN.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CNN.hpp; sourceTree = "<group>"; };
 		DEA6372530582CAF0031E9F3 /* CNN.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CNN.cpp; sourceTree = "<group>"; };
+		DEA6372730586B210031E9F3 /* ConvLayer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ConvLayer.hpp; sourceTree = "<group>"; };
+		DEA6372830586B210031E9F3 /* ConvLayer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ConvLayer.cpp; sourceTree = "<group>"; };
 		DED68A222B824122004ED2CE /* neural net v1 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "neural net v1"; sourceTree = BUILT_PRODUCTS_DIR; };
 		DED68A252B824122004ED2CE /* AppEngine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AppEngine.cpp; sourceTree = "<group>"; };
 		DED68A302B82477A004ED2CE /* data */ = {isa = PBXFileReference; lastKnownFileType = text; path = data; sourceTree = "<group>"; };
@@ -143,6 +146,8 @@
 			children = (
 				DEA6372530582CAF0031E9F3 /* CNN.cpp */,
 				DEA6372430582CAF0031E9F3 /* CNN.hpp */,
+				DEA6372730586B210031E9F3 /* ConvLayer.hpp */,
+				DEA6372830586B210031E9F3 /* ConvLayer.cpp */,
 				DED68A252B824122004ED2CE /* AppEngine.cpp */,
 				DEA636EC3044F2E90031E9F3 /* AppEngine.hpp */,
 				DEA636FB3052C3500031E9F3 /* Matrix.hpp */,
@@ -267,6 +272,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DEA6372930586B210031E9F3 /* ConvLayer.cpp in Sources */,
 				DEA636FD3052C3500031E9F3 /* Matrix.cpp in Sources */,
 				DEA636EB3044EDCB0031E9F3 /* SwiftMain.swift in Sources */,
 				DE40C6562BB2C27400C67031 /* data_set.cpp in Sources */,
