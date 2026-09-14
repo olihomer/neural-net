@@ -34,7 +34,7 @@ void Tensor::calculateStrides()
         strides_[i-1] = strides_[i] * shape_[i];
 }
 
-void Tensor::print()
+void Tensor::print() const
 {
     std::cout << "Shape: ";
     for(auto s: shape_)
@@ -96,6 +96,26 @@ Scalar& Tensor::operator()(std::size_t i, std::size_t j, std::size_t k)
 }
 
 Scalar& Tensor::operator()(std::size_t i, std::size_t j, std::size_t k, std::size_t l)
+{
+    return data_[offset({i,j,k,l})];
+}
+
+const Scalar& Tensor::operator()(std::size_t i) const
+{
+    return data_[offset({i})];
+}
+
+const Scalar& Tensor::operator()(std::size_t i, std::size_t j) const
+{
+    return data_[offset({i,j})];
+}
+
+const Scalar& Tensor::operator()(std::size_t i, std::size_t j, std::size_t k) const
+{
+    return data_[offset({i,j,k})];
+}
+
+const Scalar& Tensor::operator()(std::size_t i, std::size_t j, std::size_t k, std::size_t l) const
 {
     return data_[offset({i,j,k,l})];
 }

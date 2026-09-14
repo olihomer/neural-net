@@ -20,6 +20,7 @@
 #include <numeric>
 #include "Matrix.hpp"
 #include "Tensor.hpp"
+#include "CNN.hpp"
 
 
 namespace {
@@ -46,12 +47,34 @@ AppEngine::AppEngine()
 {
     std::cout << "Constructing Engine" << std::endl;
     
-    Tensor t({3,28,28});
-    t.fill(99.0f);
+    mnist_data mnist("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", 50);
     
-    t.print();
+    auto data = mnist.get_data()[0].inputs;
     
-    std::cout << t(1,2,3) << std::endl;
+    for(std::size_t y = 0; y < 28; y++)
+    {
+        for(std::size_t x = 0; x < 28; x++)
+            std::cout << (data[x+y*28] > 50.0f/255.0f ? "X " : "  ");
+        std::cout << std::endl;
+    }
+    
+    CNN cnn(28,28,1,2);
+    
+    cnn.setKernel(0, {-1,0,1,-1,0,1,-1,0,1});
+    cnn.setKernel(1, {-1,-1,-1,0,0,0,1,1,1});
+    cnn.setInput(data);
+    cnn.convolve();
+    cnn.maxPool();
+    std::cout<<std::fixed;
+    std::cout<<std::setprecision(1);
+    cnn.print();
+    
+    std::vector<Scalar> flat = cnn.flatten();
+    
+    std::cout << std::endl << "Flat data x " << flat.size() << " " << std::endl;
+    for(auto x: flat)std::cout << x << " ";
+    std::cout << std::endl;
+    
 }
 
 

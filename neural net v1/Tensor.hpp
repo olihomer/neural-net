@@ -32,10 +32,15 @@ public:
     Scalar& operator()(std::size_t i, std::size_t j, std::size_t k);
     Scalar& operator()(std::size_t i, std::size_t j, std::size_t k, std::size_t l);
 
+    const Scalar& operator()(std::size_t i) const;
+    const Scalar& operator()(std::size_t i, std::size_t j) const;
+    const Scalar& operator()(std::size_t i, std::size_t j, std::size_t k) const;
+    const Scalar& operator()(std::size_t i, std::size_t j, std::size_t k, std::size_t l) const;
+    
     void fill(Scalar value);
     void zero();
     void reshape(const std::vector<size_t>& shape);
-    void print();
+    void print() const;
 
 private:
     std::vector<Scalar> data_;
