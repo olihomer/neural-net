@@ -14,6 +14,11 @@
 #include <vector>
 
 
+std::vector<Scalar> Neural::get_input_error()
+{
+    return std::vector<Scalar>(m_layer[0].error.data(),m_layer[0].error.data()+m_layer[0].error.size());
+}
+
 
 std::pair<std::size_t, Scalar> Neural::predict(const std::vector<Scalar>& input)
 {
@@ -184,10 +189,10 @@ double Neural::trainBatch(const data_set &training_data, const std::span<const s
         current.weight_gradient = Matrix::multiply(current.error, previous.activation.transpose());
         
         //We need the weights coming from the input layer but we don't need errors or bias gradients of the input layer
-        if (previous_index == 0)
+        /*if (previous_index == 0)
         {
             continue;
-        }
+        }*/
         
         Matrix propagated_error = Matrix::multiply(current.weight.transpose(), current.error);
         previous.error = Matrix::hadamard(propagated_error, previous.activation_function_.derivative(previous.activation));
@@ -525,6 +530,13 @@ Scalar Neural::get_output(std::size_t node)
 {
     return m_layer[m_layers-1].activation(node,0);
 }
+
+
+std::vector<Scalar> Neural::get_output()
+{
+    return std::vector<Scalar>(m_layer[m_layers-1].activation.data(),m_layer[m_layers-1].activation.data()+m_layer[m_layers-1].activation.size());
+}
+
 
 std::size_t Neural::find_highest_output(void)
 {

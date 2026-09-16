@@ -14,8 +14,9 @@
 std::random_device Trainer::rd;
 std::mt19937 Trainer::rng(Trainer::rd());
 
-Trainer::Trainer(Neural& network)
-: network_(network)
+
+Trainer::Trainer(Trainable& network, NetworkType networktype)
+: network_(network), networktype_(networktype)
 {
 }
 

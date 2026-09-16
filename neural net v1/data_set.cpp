@@ -11,6 +11,16 @@
 
 
 
+data_set::data_set(std::vector<Scalar> inputs, std::vector<Scalar> outputs) //constructor for singleton data item
+{
+    m_size = 1;
+    m_data.resize(m_size);
+    m_n_inputs = inputs.size();
+    m_n_outputs = outputs.size();
+    m_data[0].inputs = inputs;
+    m_data[0].outputs = outputs;
+}
+
 data_set::data_set(const std::string& filename)
 {
     std::fstream myfile;

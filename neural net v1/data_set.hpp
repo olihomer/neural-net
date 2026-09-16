@@ -25,6 +25,7 @@ class data_set
 public:
     //Constructors
     data_set(){};
+    data_set(std::vector<Scalar> inputs, std::vector<Scalar> outputs);
     data_set(const std::string& filename);
     //Getter
     const std::vector<data>& get_data() const {return m_data;};

@@ -43,6 +43,7 @@ void Tensor::print() const
     for(auto s: strides_)
         std::cout << s << " ";
     std::cout << std::endl << "Data size: " << size() << std::endl;
+    
 }
 
 void Tensor::fill(Scalar value)

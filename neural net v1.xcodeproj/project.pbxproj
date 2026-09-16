@@ -26,6 +26,7 @@
 		DEA637233056C8EA0031E9F3 /* Tensor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEA637223056C8EA0031E9F3 /* Tensor.cpp */; };
 		DEA6372630582CAF0031E9F3 /* CNN.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEA6372530582CAF0031E9F3 /* CNN.cpp */; };
 		DEA6372930586B210031E9F3 /* ConvLayer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEA6372830586B210031E9F3 /* ConvLayer.cpp */; };
+		DEA6372C305ACDBA0031E9F3 /* Trainable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEA6372B305ACDBA0031E9F3 /* Trainable.cpp */; };
 		DED68A262B824122004ED2CE /* AppEngine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DED68A252B824122004ED2CE /* AppEngine.cpp */; };
 		DED68A342B8E8C35004ED2CE /* Neural.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DED68A322B8E8C35004ED2CE /* Neural.cpp */; };
 /* End PBXBuildFile section */
@@ -81,6 +82,8 @@
 		DEA6372530582CAF0031E9F3 /* CNN.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CNN.cpp; sourceTree = "<group>"; };
 		DEA6372730586B210031E9F3 /* ConvLayer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ConvLayer.hpp; sourceTree = "<group>"; };
 		DEA6372830586B210031E9F3 /* ConvLayer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ConvLayer.cpp; sourceTree = "<group>"; };
+		DEA6372A305ACDBA0031E9F3 /* Trainable.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Trainable.hpp; sourceTree = "<group>"; };
+		DEA6372B305ACDBA0031E9F3 /* Trainable.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Trainable.cpp; sourceTree = "<group>"; };
 		DED68A222B824122004ED2CE /* neural net v1 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "neural net v1"; sourceTree = BUILT_PRODUCTS_DIR; };
 		DED68A252B824122004ED2CE /* AppEngine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AppEngine.cpp; sourceTree = "<group>"; };
 		DED68A302B82477A004ED2CE /* data */ = {isa = PBXFileReference; lastKnownFileType = text; path = data; sourceTree = "<group>"; };
@@ -154,8 +157,10 @@
 				DEA636FC3052C3500031E9F3 /* Matrix.cpp */,
 				DEA637223056C8EA0031E9F3 /* Tensor.cpp */,
 				DEA637213056C8EA0031E9F3 /* Tensor.hpp */,
-				DEA636F73051B5730031E9F3 /* Trainer.hpp */,
+				DEA6372A305ACDBA0031E9F3 /* Trainable.hpp */,
+				DEA6372B305ACDBA0031E9F3 /* Trainable.cpp */,
 				DEA636F83051B5730031E9F3 /* Trainer.cpp */,
+				DEA636F73051B5730031E9F3 /* Trainer.hpp */,
 				DEA636ED3044F4810031E9F3 /* module.modulemap */,
 				DED68A322B8E8C35004ED2CE /* Neural.cpp */,
 				DED68A332B8E8C35004ED2CE /* Neural.hpp */,
@@ -272,6 +277,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DEA6372C305ACDBA0031E9F3 /* Trainable.cpp in Sources */,
 				DEA6372930586B210031E9F3 /* ConvLayer.cpp in Sources */,
 				DEA636FD3052C3500031E9F3 /* Matrix.cpp in Sources */,
 				DEA636EB3044EDCB0031E9F3 /* SwiftMain.swift in Sources */,

@@ -18,13 +18,19 @@ ConvLayer::ConvLayer(std::size_t outputChannels,
                      std::size_t inputChannels,
                      std::size_t inputHeight,
                      std::size_t inputWidth)
+:input_({inputChannels,inputHeight,inputWidth}),
+activation_({outputChannels,inputHeight,inputWidth}),
+pooled_({outputChannels,inputHeight/stride,inputWidth/stride}),
+maxPoolSource_({outputChannels,inputHeight/stride,inputWidth/stride}),
+kernels_({outputChannels,inputChannels,3,3}),
+kernelGradient_({outputChannels,inputChannels,3,3})
 {
-    input_ = Tensor({inputChannels,inputHeight,inputWidth});
-    activation_ = Tensor({outputChannels,inputHeight,inputWidth});
-    pooled_ = Tensor({outputChannels,inputHeight/stride,inputWidth/stride});
-    maxPoolSource_ = Tensor({outputChannels,inputHeight/stride,inputWidth/stride});
-    kernels_ = Tensor({outputChannels,inputChannels,3,3});
     biases_.resize(outputChannels);
+    biasGradient_.resize(outputChannels);
+    
+    for(auto& b: biases_) b = (rand()%100)/100.0f+0.01f;
+    for(std::size_t i = 0; i<kernels_.size(); i++)
+        *(kernels_.data()+i) = (0.1f - (Scalar)(rand()%100) / 500.0f);
 }
 
 const Tensor& ConvLayer::forward (const Tensor& input)
@@ -33,6 +39,79 @@ const Tensor& ConvLayer::forward (const Tensor& input)
     convolve_();
     maxPool_();
     return pooled_;
+}
+
+Tensor ConvLayer::backward(const Tensor& outputGradient)
+{
+    //unpool
+    //Relu derivative
+    //unconvolve
+    // - kernel gradients
+    // - bias gradients
+    // - input gradients
+    // return input gradients
+    
+    
+    // unpool + unRelu
+    
+    Tensor preactivationGradient({activation_.dim(0),activation_.dim(1),activation_.dim(2)});
+    preactivationGradient.fill(0.0f);
+    
+    std::size_t outputChannels = activation_.dim(0);
+    std::size_t outputY = outputGradient.dim(1);
+    std::size_t outputX = outputGradient.dim(2);
+    
+    
+    for(std::size_t chan = 0; chan < outputChannels; chan++)
+    {
+        std::size_t indexX = 0;
+        std::size_t indexY = 0;
+        
+        for(std::size_t j=0;j<outputY;j++)
+        {
+            for(std::size_t i=0;i<outputX;i++)
+            {
+                std::size_t index = (std::size_t)maxPoolSource_(chan,j,i);
+                std::size_t dx = (index == 2 || index == 0) ? 0 : 1;
+                std::size_t dy = index < 2 ? 0 : 1;
+                
+                preactivationGradient(chan, indexY + dy, indexX + dx) = outputGradient(chan,j,i) * (activation_(chan, indexY + dy, indexX + dx) > 0.0 ? 1.0 : 0.0);
+                
+                indexX += stride;
+            }
+            indexY += stride;
+            indexX = 0;
+        }
+    }
+    
+    //unconvolve
+    Tensor inputGradient({input_.dim(0),input_.dim(1),input_.dim(2)});
+    inputGradient.fill(0.0f);
+
+    kernelGradient_.fill(0.0f);
+    std::fill(biasGradient_.begin(),biasGradient_.end(),0.0f);
+    
+    auto inputChannels = input_.dim(0);
+    auto inputY = input_.dim(1);
+    auto inputX = input_.dim(2);
+
+    //same-padding with integer loops to handle edges more easily
+    for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
+        for(int j = 0; j < inputY; j++)
+            for(int i = 0; i < inputX; i++)
+            {
+                for(int n=-1;n<2;n++)
+                    for(int m=-1;m<2;m++)
+                        for(std::size_t inChan=0; inChan < inputChannels; inChan++)
+                        {
+                            kernelGradient_(outChan, inChan,n+1,m+1) += (j+n<0 || j+n>inputY-1 || i+m<0 || i+m>inputX-1) ? 0.0f : input_(inChan,j+n,i+m) * preactivationGradient(outChan, j, i);
+                            if(!(j+n<0 || j+n>inputY-1 || i+m<0 || i+m>inputX-1))inputGradient(inChan,j+n,i+m) += kernels_(outChan, inChan,n+1,m+1) * preactivationGradient(outChan, j, i);
+                        }
+                biasGradient_[outChan] += preactivationGradient(outChan,j,i);
+            }
+    
+    return inputGradient;
+    
 }
 
 
@@ -48,14 +127,14 @@ void ConvLayer::convolve_()
         for(int j = 0; j < inputY; j++)
             for(int i = 0; i < inputX; i++)
             {
-                Scalar sum = 0;
+                Scalar sum = biases_[outChan];
                 for(int n=-1;n<2;n++)
                     for(int m=-1;m<2;m++)
                         for(std::size_t inChan=0; inChan < inputChannels; inChan++)
                         {
-                            sum += (j+n<0 || j+n>inputY-1 || i+m<0 || i+m>inputX-1) ? 0.0f : input_(0,j+n,i+m) * kernels_(outChan,inChan,n+1,m+1);
+                            sum += (j+n<0 || j+n>inputY-1 || i+m<0 || i+m>inputX-1) ? 0.0f : input_(inChan,j+n,i+m) * kernels_(outChan,inChan,n+1,m+1);
                         }
-                activation_(outChan,j,i) = (biases_[outChan]+sum) > 0.0 ? (biases_[outChan]+sum) : 0.0;
+                activation_(outChan,j,i) = sum > 0.0 ? sum : 0.0;
             }
     
 }

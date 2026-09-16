@@ -24,18 +24,21 @@ public:
     
     void setKernel(std::size_t outputChannel, std::size_t inputChannel, const std::vector<Scalar>& data);
     const Tensor& forward(const Tensor& input);
+    Tensor backward(const Tensor& outputGradient);
     void print() const;
 
     static constexpr std::size_t stride = 2;
     
 private:
     Tensor kernels_; //outputs, inputs, kernelY, kernelX
+    Tensor kernelGradient_; //outputs, inputs, kernelY, kernelX
     Tensor input_;
     Tensor activation_;
     Tensor pooled_;
     Tensor maxPoolSource_;
     
     std::vector<Scalar> biases_;
+    std::vector<Scalar> biasGradient_;
     
     void convolve_();
     void maxPool_();

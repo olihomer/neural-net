@@ -47,7 +47,7 @@ AppEngine::AppEngine()
 {
     std::cout << "Constructing Engine" << std::endl;
     
-    mnist_data mnist("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", 50);
+    mnist_data mnist("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", 1);
     
     auto data = mnist.get_data()[0].inputs;
     Tensor input({1,28,28});
@@ -63,19 +63,10 @@ AppEngine::AppEngine()
     }
     
     CNN cnn;
+    std::vector<size_t> singlebatch = {0};
+
     
-    cnn.conv1_.setKernel(0,0,{-1,0,1,-1,0,1,-1,0,1});
-    cnn.conv1_.setKernel(1,0,{-1,0,1,-1,0,1,-1,0,1});
-    cnn.conv2_.setKernel(0,0,{-1,0,1,-1,0,1,-1,0,1});
-    cnn.conv2_.setKernel(1,0,{-1,0,1,-1,0,1,-1,0,1});
- 
-    
-    auto flat = cnn.forward(input);
-    
-    std::cout << std::endl << "Flat data x " << flat.size() << " " << std::endl;
-    for(auto x: flat)std::cout << x << " ";
-    std::cout << std::endl;
-    
+    cnn.trainBatch(mnist, std::span<std::size_t>(singlebatch.begin(),1));
 }
 
 
@@ -94,7 +85,7 @@ int AppEngine::runApp(void(*progress)(int32_t,double), int hiddenLayerSize, int 
     
     //train network
     
-    Trainer trainer(net);
+    Trainer trainer(net, MLP_NETWORK);
    
     mnist_data mnist_training_data("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", trainingExamples);
     
