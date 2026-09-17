@@ -13,6 +13,12 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
+#include <chrono>
+
+namespace
+{
+    constexpr bool profileConvLayerBackward = false;
+}
 
 ConvLayer::ConvLayer(std::size_t outputChannels,
                      std::size_t inputChannels,
@@ -41,7 +47,7 @@ const Tensor& ConvLayer::forward (const Tensor& input)
     return pooled_;
 }
 
-Tensor ConvLayer::backward(const Tensor& outputGradient)
+Tensor ConvLayer::backward(const Tensor& outputGradient, bool returnInputGradient)
 {
     //unpool
     //Relu derivative
@@ -63,8 +69,20 @@ Tensor ConvLayer::backward(const Tensor& outputGradient)
     std::size_t outputY = outputGradient.dim(1);
     std::size_t outputX = outputGradient.dim(2);
     
+    Tensor inputGradient({input_.dim(0),input_.dim(1),input_.dim(2)});
+
+    if(returnInputGradient==true)
+        inputGradient.zero();
+        
+    auto inputY = input_.dim(1);
+    auto inputX = input_.dim(2);
+    auto inputChannels = input_.dim(0);
     
-    for(std::size_t chan = 0; chan < outputChannels; chan++)
+    std::chrono::steady_clock::time_point unpoolStart;
+    if constexpr (profileConvLayerBackward)
+        unpoolStart = std::chrono::steady_clock::now();
+
+    for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
     {
         std::size_t indexX = 0;
         std::size_t indexY = 0;
@@ -73,11 +91,35 @@ Tensor ConvLayer::backward(const Tensor& outputGradient)
         {
             for(std::size_t i=0;i<outputX;i++)
             {
-                std::size_t index = (std::size_t)maxPoolSource_(chan,j,i);
+                //identify winner from activation tensor
+                std::size_t index = (std::size_t)maxPoolSource_(outChan,j,i);
                 std::size_t dx = (index == 2 || index == 0) ? 0 : 1;
                 std::size_t dy = index < 2 ? 0 : 1;
                 
-                preactivationGradient(chan, indexY + dy, indexX + dx) = outputGradient(chan,j,i) * (activation_(chan, indexY + dy, indexX + dx) > 0.0 ? 1.0 : 0.0);
+                std::size_t winX = indexX + dx;
+                std::size_t winY = indexY + dy;
+                
+                if(activation_(outChan, winY, winX) > 0.0) //unRelu => only carry gradient back if positive activation
+                {
+                    //carry back the gradient. store as a local temp for now to avoid multiple lookups
+                    auto g = outputGradient(outChan,j,i);
+                    
+                    // do the unconvolve here!
+                    // (winY, winX) is a coordinate of a live preactivation
+                   
+                    for(std::size_t inChan=0; inChan < inputChannels; inChan++)
+                        for(int n=-1;n<2;n++)
+                            for(int m=-1;m<2;m++)
+                            {
+                                if(!(winY+n<0 || winY+n>inputY-1 || winX+m<0 || winX+m>inputX-1))kernelGradient_(outChan, inChan, n+1, m+1) += input_(inChan,winY+n,winX+m) * g;
+                                if(returnInputGradient==true)
+                                    if(!(winY+n<0 || winY+n>inputY-1 || winX+m<0 || winX+m>inputX-1))inputGradient(inChan,winY+n,winX+m) += kernels_(outChan, inChan,n+1,m+1) * g;
+                            }
+                    biasGradient_[outChan] += g;
+                    
+                    preactivationGradient(outChan, winY, winX) = g;
+                    
+                }
                 
                 indexX += stride;
             }
@@ -85,29 +127,24 @@ Tensor ConvLayer::backward(const Tensor& outputGradient)
             indexX = 0;
         }
     }
+    std::chrono::duration<double> unpoolElapsed{0.0};
+    if constexpr (profileConvLayerBackward)
+        unpoolElapsed = std::chrono::steady_clock::now() - unpoolStart;
     
-    //unconvolve
-    Tensor inputGradient({input_.dim(0),input_.dim(1),input_.dim(2)});
-    inputGradient.fill(0.0f);
-    
-    auto inputChannels = input_.dim(0);
-    auto inputY = input_.dim(1);
-    auto inputX = input_.dim(2);
+    if constexpr (profileConvLayerBackward)
+    {
+        const double loopSeconds = unpoolElapsed.count();
 
-    //same-padding with integer loops to handle edges more easily
-    for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
-        for(int j = 0; j < inputY; j++)
-            for(int i = 0; i < inputX; i++)
-            {
-                for(int n=-1;n<2;n++)
-                    for(int m=-1;m<2;m++)
-                        for(std::size_t inChan=0; inChan < inputChannels; inChan++)
-                        {
-                            kernelGradient_(outChan, inChan,n+1,m+1) += (j+n<0 || j+n>inputY-1 || i+m<0 || i+m>inputX-1) ? 0.0f : input_(inChan,j+n,i+m) * preactivationGradient(outChan, j, i);
-                            if(!(j+n<0 || j+n>inputY-1 || i+m<0 || i+m>inputX-1))inputGradient(inChan,j+n,i+m) += kernels_(outChan, inChan,n+1,m+1) * preactivationGradient(outChan, j, i);
-                        }
-                biasGradient_[outChan] += preactivationGradient(outChan,j,i);
+        if(loopSeconds > 0.0)
+        {
+            std::cout << "ConvLayer::backward loop benchmark ("
+                      << inputChannels << " input channels, "
+                      << outputChannels << " output channels, "
+                      << inputY << "x" << inputX << " input):" << std::endl;
+            std::cout << "  unpool loop: " << unpoolElapsed.count() << " seconds, "
+                      << (unpoolElapsed.count() / loopSeconds) * 100.0 << "%" << std::endl;
             }
+    }
     
     return inputGradient;
     
@@ -251,4 +288,24 @@ void ConvLayer::zeroGradients()
 {
     kernelGradient_.fill(0.0f);
     std::fill(biasGradient_.begin(),biasGradient_.end(),0.0f);
+}
+
+
+void ConvLayer::pushCache()
+{
+    ConvCache cache;
+    cache.input = input_;
+    cache.activation = activation_;
+    cache.maxPoolSource = maxPoolSource_;
+    cache_.push(cache);
+}
+
+
+void ConvLayer::popCache()
+{
+    auto cache = cache_.front();
+    cache_.pop();
+    input_ = cache.input;
+    activation_ = cache.activation;
+    maxPoolSource_ = cache.maxPoolSource;
 }

@@ -23,7 +23,7 @@ public:
     CNN();
     
     std::vector<Scalar> forward(const Tensor& input);
-    Tensor backward(const Tensor& outputGradient);
+    void backward(const Tensor& outputGradient);
 
     void print() const;
     ConvLayer conv1_;

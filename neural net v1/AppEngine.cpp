@@ -47,21 +47,23 @@ AppEngine::AppEngine()
 {
     std::cout << "Constructing Engine" << std::endl;
     
-    mnist_data mnist("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", 100);
+    const int trainingExamples = 1000;
+    const int evaluationExamples = 100;
+    
+    mnist_data mnist("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", trainingExamples);
     
     CNN cnn;
     Trainer trainer(cnn);
     
-    trainer.train(mnist, 50, 50, 0.5, nullptr);
+    trainer.train(mnist, 50, 50, 0.05, nullptr);
     
-    mnist_data mnist_training_data2("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", 100);
+    mnist_data mnist_training_data2("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", trainingExamples + evaluationExamples);
 
     int wrong = 0;
-    const int evaluationExamples = 100;
     
     for(int i=0;i<evaluationExamples;i++)
     {
-        int guess = i;
+        int guess = i+trainingExamples;
         int guess_label = mnist_training_data2.get_label(guess);
         std::cout << "Guess = " << guess_label;
         
@@ -72,7 +74,7 @@ AppEngine::AppEngine()
         Tensor input({1,28,28});
             
         for(std::size_t j=0; j<784; j++)
-            input.data()[j]=mnist_training_data2.get_data()[i].inputs[j];
+            input.data()[j]=mnist_training_data2.get_data()[guess].inputs[j];
             
         //Put through CNN
         auto outputVector = cnn.forward(input);
