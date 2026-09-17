@@ -53,7 +53,8 @@ void CNN::gradient_descent(std::size_t trainingSize, double learningRate)
 
 double CNN::trainBatch(const data_set& training_data, const std::span<const std::size_t> batch)
 {
-
+    double total_error = 0;
+    
     conv1_.zeroGradients();
     conv2_.zeroGradients();
     
@@ -81,7 +82,7 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
 
     //Batch backprop through MLP
     
-    classifier_.trainBatch(MLPinputs, MLPtargets);
+    total_error = classifier_.trainBatch(MLPinputs, MLPtargets);
     Matrix inputError = classifier_.get_input_error();
 
     //inputError matrix now contains error gradients for entire batch. Backprop through CNN one at a time.
@@ -90,11 +91,20 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
  
     for(std::size_t index=0; index<batch.size(); index++)
     {
+        //need to re-run each example forward to get the right activations for backprop to work
+        
+        Tensor input({1,28,28});
+        
+        for(std::size_t i=0; i<training_data.n_inputs(); i++)
+            input.data()[i]=training_data.get_data()[batch[index]].inputs[i];
+        
+        forward(input);
+        
         for(std::size_t i=0;i<outputGradient.size();i++)outputGradient.data()[i] = inputError(i,index);
         backward(outputGradient);
     }
         
-    return 0;
+    return total_error;
 }
 
 void CNN::print_stats(std::ostream& ostream)

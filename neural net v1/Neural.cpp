@@ -151,8 +151,6 @@ double Neural::trainBatch(const Matrix& inputs, const Matrix& targets)
         exit(1);
     }
     
-    Scalar total_error = 0;
-    
     zero_training_error();
     
     auto& input = m_layer[0];
@@ -166,6 +164,24 @@ double Neural::trainBatch(const Matrix& inputs, const Matrix& targets)
     
     propagateBatch();
         
+    const auto& probabilities = output.activation;
+    double total_loss = 0.0;
+    
+    for(std::size_t col = 0; col < targets.cols(); col++)
+    {
+        for(std::size_t row = 0; row < targets.rows(); row++)
+        {
+            if(targets(row,col) == 1.0f)
+            {
+                const Scalar p = probabilities(row,col);
+                
+                total_loss -= std::log(std::max(p,1e-7f));
+                break;
+            }
+        }
+    }
+
+    
     // calculate error in output layer
 
     output.error = output.activation - targets;
@@ -181,10 +197,7 @@ double Neural::trainBatch(const Matrix& inputs, const Matrix& targets)
         {
             const Scalar error = output.error(row,col);
             output.bias_gradient(row,0) += error;
-            total_error += 0.5 * error * error;
         }
-    
-    total_error /= inputs.cols();
     
     //propagate backwards
     
@@ -226,7 +239,7 @@ double Neural::trainBatch(const Matrix& inputs, const Matrix& targets)
         }
     }
         
-    return total_error;
+    return total_loss / targets.cols();
 }
 
 void Neural::gradient_descent(std::size_t trainingSize, double learningRate)

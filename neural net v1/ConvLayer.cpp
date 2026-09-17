@@ -150,10 +150,9 @@ void ConvLayer::gradient_descent(const Scalar scale)
             for(std::size_t inChan = 0; inChan < inputChannels; inChan++)
                 for(int j = 0; j < kY; j++)
                     for(int i = 0; i < kX; i++)
-                        kernels_(outChan,inChan,kY,kX) -= kernelGradient_(outChan,inChan,kY,kX) * scale;
+                        kernels_(outChan,inChan,j,i) -= kernelGradient_(outChan,inChan,j,i) * scale;
             biases_[outChan] -= biasGradient_[outChan] * scale;
         }
-            
 }
 
 
