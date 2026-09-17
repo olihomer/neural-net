@@ -51,6 +51,8 @@ Tensor ConvLayer::backward(const Tensor& outputGradient)
     // - input gradients
     // return input gradients
     
+    if(outputGradient.shape()!=pooled_.shape())
+        throw std::runtime_error("Backwards gradient shape mismatch");
     
     // unpool + unRelu
     
@@ -87,9 +89,6 @@ Tensor ConvLayer::backward(const Tensor& outputGradient)
     //unconvolve
     Tensor inputGradient({input_.dim(0),input_.dim(1),input_.dim(2)});
     inputGradient.fill(0.0f);
-
-    kernelGradient_.fill(0.0f);
-    std::fill(biasGradient_.begin(),biasGradient_.end(),0.0f);
     
     auto inputChannels = input_.dim(0);
     auto inputY = input_.dim(1);
@@ -138,6 +137,25 @@ void ConvLayer::convolve_()
             }
     
 }
+
+void ConvLayer::gradient_descent(const Scalar scale)
+{
+    auto outputChannels = kernels_.dim(0);
+    auto inputChannels = kernels_.dim(1);
+    auto kY = kernels_.dim(2);
+    auto kX = kernels_.dim(3);
+    
+        for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
+        {
+            for(std::size_t inChan = 0; inChan < inputChannels; inChan++)
+                for(int j = 0; j < kY; j++)
+                    for(int i = 0; i < kX; i++)
+                        kernels_(outChan,inChan,kY,kX) -= kernelGradient_(outChan,inChan,kY,kX) * scale;
+            biases_[outChan] -= biasGradient_[outChan] * scale;
+        }
+            
+}
+
 
 
 void ConvLayer::maxPool_()
@@ -227,4 +245,11 @@ void ConvLayer::print() const
         }
     }
     
+}
+
+
+void ConvLayer::zeroGradients()
+{
+    kernelGradient_.fill(0.0f);
+    std::fill(biasGradient_.begin(),biasGradient_.end(),0.0f);
 }

@@ -34,6 +34,12 @@ public:
     double trainBatch(const data_set& training_data, const std::span<const std::size_t> batch) override;
     void print_stats(std::ostream& ostream) override;
     
+    void set_inputMLP(std::vector<Scalar>& input){classifier_.set_input(input);};
+    void propagateMLP(){classifier_.propagate();};
+    Scalar get_output(std::size_t node){return classifier_.get_output(node);};
+    std::size_t find_highest_output(void){return classifier_.find_highest_output();};
+    
+    
 private:
     
     std::vector<Scalar> flatten_(const Tensor& input){return std::vector<Scalar>(input.data(),input.data() + input.size());};

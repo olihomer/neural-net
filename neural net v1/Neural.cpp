@@ -14,11 +14,6 @@
 #include <vector>
 
 
-std::vector<Scalar> Neural::get_input_error()
-{
-    return std::vector<Scalar>(m_layer[0].error.data(),m_layer[0].error.data()+m_layer[0].error.size());
-}
-
 
 std::pair<std::size_t, Scalar> Neural::predict(const std::vector<Scalar>& input)
 {
@@ -130,6 +125,32 @@ double Neural::trainBatch(const data_set &training_data, const std::span<const s
         exit(1);
     }
     
+    Matrix inputs(m_layer[0].size,batch.size());
+    Matrix targets(training_data.n_outputs(),batch.size());
+    
+    for(std::size_t col = 0; col < batch.size(); col++)
+    {
+        for(std::size_t row = 0; row < training_data.n_inputs(); row++)
+            inputs(row,col) = training_data.get_data()[batch[col]].inputs[row];
+        for(std::size_t row = 0; row < training_data.n_outputs(); row++)
+            targets(row,col) = training_data.get_data()[batch[col]].outputs[row];
+    }
+    
+    return trainBatch(inputs, targets);
+}
+
+
+
+double Neural::trainBatch(const Matrix& inputs, const Matrix& targets)
+{
+    if(inputs.rows() != m_layer[0].size ||targets.rows() != m_layer[m_layers-1].size)
+    {
+        std::cout << "Error: training data size does not match net topology" << std::endl;
+        std::cout << "Inputs: " << inputs.rows() << " in matrix versus " << m_layer[0].size << " in net." << std::endl;
+        std::cout << "Outputs: " << targets.rows() << " in matrix versus " << m_layer[m_layers-1].size << " in net." << std::endl;
+        exit(1);
+    }
+    
     Scalar total_error = 0;
     
     zero_training_error();
@@ -139,25 +160,15 @@ double Neural::trainBatch(const data_set &training_data, const std::span<const s
     
     //set input layer activations and target output activations for entire batch
 
-    input.activation = Matrix(input.size, batch.size());
-    
-    Matrix target_output(training_data.n_outputs(),batch.size());
-    
-    for(std::size_t col = 0; col < batch.size(); col++)
-    {
-        for(std::size_t row = 0; row < training_data.n_inputs(); row++)
-            input.activation(row,col) = training_data.get_data()[batch[col]].inputs[row];
-        for(std::size_t row = 0; row < training_data.n_outputs(); row++)
-            target_output(row,col) = training_data.get_data()[batch[col]].outputs[row];
-    }
-    
+    input.activation = inputs;
+
     //propagate through network
     
     propagateBatch();
         
     // calculate error in output layer
 
-    output.error = output.activation - target_output;
+    output.error = output.activation - targets;
     
     // dW = error * a_prev T
     // dB = error
@@ -165,7 +176,7 @@ double Neural::trainBatch(const data_set &training_data, const std::span<const s
 
     //accumulate output layer bias gradient across each row
     
-    for(std::size_t col = 0; col < batch.size(); col++)
+    for(std::size_t col = 0; col < inputs.cols(); col++)
         for(std::size_t row = 0; row < output.size; row++)
         {
             const Scalar error = output.error(row,col);
@@ -173,7 +184,7 @@ double Neural::trainBatch(const data_set &training_data, const std::span<const s
             total_error += 0.5 * error * error;
         }
     
-    total_error /= batch.size();
+    total_error /= inputs.cols();
     
     //propagate backwards
     
@@ -189,24 +200,29 @@ double Neural::trainBatch(const data_set &training_data, const std::span<const s
         current.weight_gradient = Matrix::multiply(current.error, previous.activation.transpose());
         
         //We need the weights coming from the input layer but we don't need errors or bias gradients of the input layer
-        /*if (previous_index == 0)
-        {
-            continue;
-        }*/
         
         Matrix propagated_error = Matrix::multiply(current.weight.transpose(), current.error);
-        previous.error = Matrix::hadamard(propagated_error, previous.activation_function_.derivative(previous.activation));
         
-        //accumulate output layer bias gradient across each row
-        
-        for(std::size_t row = 0; row < previous.size; row++)
+        if(previous_index == 0)
         {
-            Scalar sum = 0;
+            previous.error =std::move(propagated_error);
             
-            for(std::size_t col = 0; col < batch.size(); col++)
-                sum += previous.error(row,col);
+        }
+        else
+        {
+            previous.error = Matrix::hadamard(propagated_error, previous.activation_function_.derivative(previous.activation));
             
-            previous.bias_gradient(row,0) += sum;
+            //accumulate output layer bias gradient across each row
+            
+            for(std::size_t row = 0; row < previous.size; row++)
+            {
+                Scalar sum = 0;
+                
+                for(std::size_t col = 0; col < inputs.cols(); col++)
+                    sum += previous.error(row,col);
+                
+                previous.bias_gradient(row,0) += sum;
+            }
         }
     }
         

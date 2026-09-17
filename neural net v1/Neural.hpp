@@ -39,11 +39,14 @@ public:
     void print_stats(std::ostream& ostream) override;
     
     //Getters + setters
+    std::size_t nInputs_(){return m_layer[0].size;};
+    std::size_t nOutputs_(){return m_layer[m_layers-1].size;};
+    
     void set_input(std::size_t node, Scalar value); //directly change a single input
     void set_input(const std::vector<Scalar>&); // directly change all inputs from a vector
     void set_input(data_set& data,std::size_t index); //directly change all inputs by selecting an entry from a data set
     std::size_t numLayers(){return m_layers;};
-    std::vector<Scalar> get_input_error();
+    Matrix get_input_error(){return m_layer[0].error;};
 
     Scalar get_output(std::size_t node);
     std::vector<Scalar> get_output();
@@ -54,6 +57,8 @@ public:
     void propagateBatch();
     void gradient_descent(std::size_t trainingSize, double learningRate) override;
     double trainBatch(const data_set& training_data, const std::span<const std::size_t> batch) override;
+    double trainBatch(const Matrix& inputs, const Matrix& targets);
+
     void save(const std::string& filename) const;
     void load(const std::string& filename);
     std::pair<std::size_t, Scalar> predict(const std::vector<Scalar>& input);

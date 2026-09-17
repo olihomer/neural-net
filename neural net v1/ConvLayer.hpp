@@ -26,6 +26,8 @@ public:
     const Tensor& forward(const Tensor& input);
     Tensor backward(const Tensor& outputGradient);
     void print() const;
+    void zeroGradients();
+    void gradient_descent(const Scalar scale);
 
     static constexpr std::size_t stride = 2;
     

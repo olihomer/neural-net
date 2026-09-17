@@ -47,26 +47,45 @@ AppEngine::AppEngine()
 {
     std::cout << "Constructing Engine" << std::endl;
     
-    mnist_data mnist("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", 1);
-    
-    auto data = mnist.get_data()[0].inputs;
-    Tensor input({1,28,28});
-    
-    for(std::size_t y = 0; y < 28; y++)
-    {
-        for(std::size_t x = 0; x < 28; x++)
-        {
-            input(0,y,x) = data[x+y*28];
-            std::cout << (data[x+y*28] > 50.0f/255.0f ? "X " : "  ");
-        }
-        std::cout << std::endl;
-    }
+    mnist_data mnist("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", 100);
     
     CNN cnn;
-    std::vector<size_t> singlebatch = {0};
-
+    Trainer trainer(cnn);
     
-    cnn.trainBatch(mnist, std::span<std::size_t>(singlebatch.begin(),1));
+    trainer.train(mnist, 50, 50, 0.5, nullptr);
+    
+    mnist_data mnist_training_data2("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", 100);
+
+    int wrong = 0;
+    const int evaluationExamples = 100;
+    
+    for(int i=0;i<evaluationExamples;i++)
+    {
+        int guess = i;
+        int guess_label = mnist_training_data2.get_label(guess);
+        std::cout << "Guess = " << guess_label;
+        
+        
+        Matrix MLPinputs(784,1);
+        
+        //load example into Tensor
+        Tensor input({1,28,28});
+            
+        for(std::size_t j=0; j<784; j++)
+            input.data()[j]=mnist_training_data2.get_data()[i].inputs[j];
+            
+        //Put through CNN
+        auto outputVector = cnn.forward(input);
+        cnn.set_inputMLP(outputVector);
+        cnn.propagateMLP();
+        
+        std::cout << ". Net guessed " << cnn.find_highest_output() << " with value of " << cnn.get_output(cnn.find_highest_output()) << std::endl;
+        if(cnn.find_highest_output()!=guess_label){std::cout<<"WRONG!"<<std::endl;wrong++;}
+    }
+    
+    std::cout << "Success rate: " << (1 - (float(wrong) / float(evaluationExamples)) ) << std::endl;
+    
+    
 }
 
 
@@ -85,7 +104,7 @@ int AppEngine::runApp(void(*progress)(int32_t,double), int hiddenLayerSize, int 
     
     //train network
     
-    Trainer trainer(net, MLP_NETWORK);
+    Trainer trainer(net);
    
     mnist_data mnist_training_data("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", trainingExamples);
     

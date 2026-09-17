@@ -30,20 +30,12 @@ std::vector<Scalar> CNN::forward(const Tensor& input)
     
     auto flat = flatten_(x2);
     
-    /*classifier_.set_input(flat);
-    classifier_.propagate();
- 
-    return classifier_.get_output();*/
-    
     return flat;
 }
 
 Tensor CNN::backward(const Tensor& outputGradient)
 {
-    // run classifier backwards
-    // unflatten
-    
-    auto x2 = conv1_.backward(outputGradient);
+    auto x2 = conv2_.backward(outputGradient);
     auto x1 = conv1_.backward(x2);
     
     return x1;
@@ -52,44 +44,56 @@ Tensor CNN::backward(const Tensor& outputGradient)
 
 void CNN::gradient_descent(std::size_t trainingSize, double learningRate)
 {
-    ;
+    const Scalar scale = static_cast<Scalar>(learningRate) / static_cast<Scalar>(trainingSize);
+    
+    conv1_.gradient_descent(scale);
+    conv2_.gradient_descent(scale);
+    classifier_.gradient_descent(trainingSize, learningRate);
 }
 
 double CNN::trainBatch(const data_set& training_data, const std::span<const std::size_t> batch)
 {
-    std::cout << "Start of trainBatch" << std::endl;
 
-    auto data = training_data.get_data()[0].inputs;
-    Tensor input({1,28,28});
+    conv1_.zeroGradients();
+    conv2_.zeroGradients();
     
-    for(std::size_t y = 0; y < 28; y++)
+    Matrix MLPinputs(classifier_.nInputs_(),batch.size());
+    Matrix MLPtargets(classifier_.nOutputs_(),batch.size());
+    
+    //CNN forward pass and populate matrix of CNN outputs for entire batch
+    for(std::size_t index=0; index<batch.size(); index++)
     {
-        for(std::size_t x = 0; x < 28; x++)
-        {
-            input(0,y,x) = data[x+y*28];
-            std::cout << (data[x+y*28] > 50.0f/255.0f ? "X " : "  ");
-        }
-        std::cout << std::endl;
+        //load example into Tensor
+        Tensor input({1,28,28});
+        
+        for(std::size_t i=0; i<training_data.n_inputs(); i++)
+            input.data()[i]=training_data.get_data()[batch[index]].inputs[i];
+        
+        for(std::size_t i=0; i<training_data.n_outputs(); i++)
+            MLPtargets(i,index)=training_data.get_data()[batch[index]].outputs[i];
+        
+        //Put through CNN
+        auto outputVector = forward(input);
+        
+        for(std::size_t j=0; j<outputVector.size(); j++)
+            MLPinputs(j,index)=outputVector[j];
     }
-    
-    //Put through CNN
-    
-    auto x = forward(input);
-    
-    data_set CNNresult{x,training_data.get_data()[0].outputs};
-    
-    std::vector<size_t> singlebatch = {0};
-    
-    //Put through MLP
-    classifier_.trainBatch(CNNresult, std::span<std::size_t>(singlebatch.begin(),1));
 
+    //Batch backprop through MLP
+    
+    classifier_.trainBatch(MLPinputs, MLPtargets);
+    Matrix inputError = classifier_.get_input_error();
+
+    //inputError matrix now contains error gradients for entire batch. Backprop through CNN one at a time.
+    
     Tensor outputGradient({16,7,7});
-    auto inputError = classifier_.get_input_error();
-    
-    for(std::size_t i=0;i<outputGradient.size();i++)outputGradient.data()[i] = inputError[i];
-    
-    backward(outputGradient);
-    
+ 
+    for(std::size_t index=0; index<batch.size(); index++)
+    {
+        for(std::size_t i=0;i<outputGradient.size();i++)outputGradient.data()[i] = inputError(i,index);
+        backward(outputGradient);
+    }
+        
     return 0;
 }
 

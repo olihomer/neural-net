@@ -15,8 +15,8 @@ std::random_device Trainer::rd;
 std::mt19937 Trainer::rng(Trainer::rd());
 
 
-Trainer::Trainer(Trainable& network, NetworkType networktype)
-: network_(network), networktype_(networktype)
+Trainer::Trainer(Trainable& network)
+: network_(network)
 {
 }
 
@@ -51,12 +51,12 @@ void Trainer::train(const data_set& data, std::size_t epochs, std::size_t batchS
 
         total_error = epoch_error / trainingExampleCount;
 
-        if((i+1) % 50 == 0 || i == epochs - 1)
+        if((i+1) % 5 == 0 || i == epochs - 1)
         {
             std::cout << i << " ";
             std::cout << "Total error: " << total_error << std::endl;
             network_.print_stats(std::cout);
-            progressCallback(int(i),total_error);
+            if(progressCallback!=nullptr)progressCallback(int(i),total_error);
         }
         
     }

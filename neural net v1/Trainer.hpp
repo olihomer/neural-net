@@ -13,16 +13,11 @@
 #include "mnist_data.hpp"
 #include "Trainable.hpp"
 
-enum NetworkType
-{
-    MLP_NETWORK,
-    CNN_CLASSIFIER_NETWORK
-};
 
 class Trainer
 {
 public:
-    Trainer (Trainable &network, NetworkType networktype);
+    Trainer (Trainable &network);
     
     void train(
                const data_set& data,
@@ -32,7 +27,6 @@ public:
                void(*progressCallback)(int32_t,double));
 private:
     Trainable& network_;
-    NetworkType networktype_;
     static std::random_device rd;
     static std::mt19937 rng;
     std::vector<std::size_t> order_;
