@@ -39,6 +39,11 @@ const ActivationType activationTypeFor(int choice)
             return ActivationType::Sigmoid;
     }
 }
+
+const ConvLayer& cnnLayerFor(const CNN& cnn, int layer)
+{
+    return layer == 2 ? cnn.conv2_ : cnn.conv1_;
+}
 }
 
 
@@ -47,14 +52,63 @@ AppEngine::AppEngine()
 {
     std::cout << "Constructing Engine" << std::endl;
     
-    const int trainingExamples = 1000;
+}
+
+
+void AppEngine::selectModel(ModelKind kind)
+{
+    activeModel_ = kind;
+}
+
+
+int AppEngine::runApp(void(*progress)(int32_t,double),
+                      int modelKind,
+                      int hiddenLayerSize,
+                      int epochs,
+                      int trainingExamples,
+                      int batchSize,
+                      double learningRate,
+                      int hiddenActivation,
+                      int outputActivation,
+                      int cnnConv1Channels,
+                      int cnnConv2Channels,
+                      int cnnClassifierHiddenLayerSize)
+{
+    std::cout << "Entered RunApp" << std::endl;
+    modelKind = std::clamp(modelKind, 0, 1);
+    hiddenLayerSize = std::max(hiddenLayerSize, 1);
+    epochs = std::max(epochs, 1);
+    trainingExamples = std::max(trainingExamples, 1);
+    batchSize = std::max(batchSize, 1);
+    learningRate = std::max(learningRate, 0.0);
+    cnnConv1Channels = std::max(cnnConv1Channels, 1);
+    cnnConv2Channels = std::max(cnnConv2Channels, 1);
+    cnnClassifierHiddenLayerSize = std::max(cnnClassifierHiddenLayerSize, 1);
+
+    const ActivationType hiddenActivationType = activationTypeFor(hiddenActivation);
+    const ActivationType outputActivationType = activationTypeFor(outputActivation);
+    const ModelKind selectedModel = modelKind == static_cast<int>(ModelKind::CNN) ? ModelKind::CNN : ModelKind::MLP;
+    
     const int evaluationExamples = 100;
     
     mnist_data mnist("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", trainingExamples);
     
+    selectModel(selectedModel);
+
+    if(activeModel_ == ModelKind::CNN)
+    {
+        cnn_.configure(
+            static_cast<std::size_t>(cnnConv1Channels),
+            static_cast<std::size_t>(cnnConv2Channels),
+            static_cast<std::size_t>(cnnClassifierHiddenLayerSize));
+    }
+    else
+    {
+        mlp_.configure({784, hiddenLayerSize, 10}, hiddenActivationType, outputActivationType);
+    }
+
     Trainer trainer(activeTrainable());
-    
-    trainer.train(mnist, 50, 50, 0.05, nullptr);
+    trainer.train(mnist, epochs, batchSize, learningRate, progress);
     
     mnist_data mnist_training_data2("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", trainingExamples + evaluationExamples);
 
@@ -66,71 +120,13 @@ AppEngine::AppEngine()
         int guess_label = mnist_training_data2.get_label(guess);
         std::cout << "Guess = " << guess_label;
         
+        std::pair<std::size_t, Scalar> prediction =
+            activeModel_ == ModelKind::CNN
+            ? cnn_.predict(mnist_training_data2.get_data()[guess].inputs)
+            : mlp_.predict(mnist_training_data2.get_data()[guess].inputs);
         
-        Matrix MLPinputs(784,1);
-        
-        //load example into Tensor
-        Tensor input({1,28,28});
-            
-        for(std::size_t j=0; j<784; j++)
-            input.data()[j]=mnist_training_data2.get_data()[guess].inputs[j];
-            
-        //Put through CNN
-        auto outputVector = cnn_.forward(input);
-        cnn_.set_inputMLP(outputVector);
-        cnn_.propagateMLP();
-        
-        std::cout << ". Net guessed " << cnn_.find_highest_output() << " with value of " << cnn_.get_output(cnn_.find_highest_output()) << std::endl;
-        if(cnn_.find_highest_output()!=guess_label){std::cout<<"WRONG!"<<std::endl;wrong++;}
-    }
-    
-    std::cout << "Success rate: " << (1 - (float(wrong) / float(evaluationExamples)) ) << std::endl;
-    
-    
-}
-
-
-int AppEngine::runApp(void(*progress)(int32_t,double), int hiddenLayerSize, int epochs, int trainingExamples, int batchSize, double learningRate, int hiddenActivation, int outputActivation)
-{
-    hiddenLayerSize = std::max(hiddenLayerSize, 1);
-    epochs = std::max(epochs, 1);
-    trainingExamples = std::max(trainingExamples, 1);
-    batchSize = std::max(batchSize, 1);
-    learningRate = std::max(learningRate, 0.0);
-
-    const ActivationType hiddenActivationType = activationTypeFor(hiddenActivation);
-    const ActivationType outputActivationType = activationTypeFor(outputActivation);
-    
-    selectModel(ModelKind::MLP);
-    
-    mlp_.configure({784, hiddenLayerSize, 10}, hiddenActivationType, outputActivationType);
-    
-    //train network
-    
-    Trainer trainer(activeTrainable());
-   
-    mnist_data mnist_training_data("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", trainingExamples);
-    
-    trainer.train(mnist_training_data, epochs, batchSize, learningRate, progress);
-    
-    //quick check
-    
-    mnist_data mnist_training_data2("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", trainingExamples);
-
-    int wrong = 0;
-    const int evaluationExamples = std::min(trainingExamples, 100);
-    
-    for(int i=0;i<evaluationExamples;i++)
-    {
-        int guess = i;
-        int guess_label = mnist_training_data2.get_label(guess);
-        std::cout << "Guess = " << guess_label;
-        
-        mlp_.set_input(mnist_training_data2, guess);
-        mlp_.propagate();
-        
-        std::cout << ". Net guessed " << mlp_.find_highest_output() << " with value of " << mlp_.get_output(mlp_.find_highest_output()) << std::endl;
-        if(mlp_.find_highest_output()!=guess_label){std::cout<<"WRONG!"<<std::endl;wrong++;}
+        std::cout << ". Net guessed " << prediction.first << " with value of " << prediction.second << std::endl;
+        if(prediction.first!=guess_label){std::cout<<"WRONG!"<<std::endl;wrong++;}
     }
     
     std::cout << "Success rate: " << (1 - (float(wrong) / float(evaluationExamples)) ) << std::endl;
@@ -145,7 +141,7 @@ bool AppEngine::saveNetwork(const char *path)
 
     try
     {
-        net.save(path);
+        mlp_.save(path);
         return true;
     }
     catch(const std::exception& error)
@@ -162,7 +158,7 @@ bool AppEngine::loadNetwork(const char *path)
 
     try
     {
-        net.load(path);
+        mlp_.load(path);
         return true;
     }
     catch(const std::exception& error)
@@ -170,6 +166,137 @@ bool AppEngine::loadNetwork(const char *path)
         std::cout << "Load failed: " << error.what() << std::endl;
         return false;
     }
+}
+
+
+int AppEngine::activeModelKind() const
+{
+    return static_cast<int>(activeModel_);
+}
+
+
+int AppEngine::cnnKernelOutputChannels(int layer) const
+{
+    return static_cast<int>(cnnLayerFor(cnn_, layer).kernelOutputChannels());
+}
+
+
+int AppEngine::cnnKernelInputChannels(int layer) const
+{
+    return static_cast<int>(cnnLayerFor(cnn_, layer).kernelInputChannels());
+}
+
+
+int AppEngine::cnnKernelHeight(int layer) const
+{
+    return static_cast<int>(cnnLayerFor(cnn_, layer).kernelHeight());
+}
+
+
+int AppEngine::cnnKernelWidth(int layer) const
+{
+    return static_cast<int>(cnnLayerFor(cnn_, layer).kernelWidth());
+}
+
+
+float AppEngine::cnnKernelValue(int layer, int outputChannel, int inputChannel, int y, int x) const
+{
+    if(outputChannel < 0 || inputChannel < 0 || y < 0 || x < 0)
+        return 0.0f;
+
+    const ConvLayer& convLayer = cnnLayerFor(cnn_, layer);
+    const auto out = static_cast<std::size_t>(outputChannel);
+    const auto in = static_cast<std::size_t>(inputChannel);
+    const auto row = static_cast<std::size_t>(y);
+    const auto col = static_cast<std::size_t>(x);
+
+    if(out >= convLayer.kernelOutputChannels() ||
+       in >= convLayer.kernelInputChannels() ||
+       row >= convLayer.kernelHeight() ||
+       col >= convLayer.kernelWidth())
+    {
+        return 0.0f;
+    }
+
+    return convLayer.kernelValue(out, in, row, col);
+}
+
+
+int AppEngine::cnnInputChannels(int layer) const
+{
+    return static_cast<int>(cnnLayerFor(cnn_, layer).inputChannels());
+}
+
+
+int AppEngine::cnnInputHeight(int layer) const
+{
+    return static_cast<int>(cnnLayerFor(cnn_, layer).inputHeight());
+}
+
+
+int AppEngine::cnnInputWidth(int layer) const
+{
+    return static_cast<int>(cnnLayerFor(cnn_, layer).inputWidth());
+}
+
+
+float AppEngine::cnnInputValue(int layer, int channel, int y, int x) const
+{
+    if(channel < 0 || y < 0 || x < 0)
+        return 0.0f;
+
+    const ConvLayer& convLayer = cnnLayerFor(cnn_, layer);
+    const auto inputChannel = static_cast<std::size_t>(channel);
+    const auto row = static_cast<std::size_t>(y);
+    const auto col = static_cast<std::size_t>(x);
+
+    if(inputChannel >= convLayer.inputChannels() ||
+       row >= convLayer.inputHeight() ||
+       col >= convLayer.inputWidth())
+    {
+        return 0.0f;
+    }
+
+    return convLayer.inputValue(inputChannel, row, col);
+}
+
+
+int AppEngine::cnnActivationChannels(int layer) const
+{
+    return static_cast<int>(cnnLayerFor(cnn_, layer).activationChannels());
+}
+
+
+int AppEngine::cnnActivationHeight(int layer) const
+{
+    return static_cast<int>(cnnLayerFor(cnn_, layer).activationHeight());
+}
+
+
+int AppEngine::cnnActivationWidth(int layer) const
+{
+    return static_cast<int>(cnnLayerFor(cnn_, layer).activationWidth());
+}
+
+
+float AppEngine::cnnActivationValue(int layer, int channel, int y, int x) const
+{
+    if(channel < 0 || y < 0 || x < 0)
+        return 0.0f;
+
+    const ConvLayer& convLayer = cnnLayerFor(cnn_, layer);
+    const auto activationChannel = static_cast<std::size_t>(channel);
+    const auto row = static_cast<std::size_t>(y);
+    const auto col = static_cast<std::size_t>(x);
+
+    if(activationChannel >= convLayer.activationChannels() ||
+       row >= convLayer.activationHeight() ||
+       col >= convLayer.activationWidth())
+    {
+        return 0.0f;
+    }
+
+    return convLayer.activationValue(activationChannel, row, col);
 }
 
 
@@ -197,8 +324,18 @@ std::pair<int,float> AppEngine::sendRasterData(const float *data, std::size_t si
         std::cout << std::endl;
     }
 
-    return net.predict(vectorData);;
+    const auto prediction = activeModel_ == ModelKind::CNN ? cnn_.predict(vectorData) : mlp_.predict(vectorData);
+    return std::pair<int,float>(static_cast<int>(prediction.first), prediction.second);
      
 }
 
 
+Trainable& AppEngine::activeTrainable()
+{
+    if(activeModel_ == ModelKind::CNN)
+    {
+        return cnn_;
+    }
+
+    return mlp_;
+};

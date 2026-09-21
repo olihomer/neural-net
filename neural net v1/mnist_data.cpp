@@ -20,11 +20,11 @@ mnist_data::mnist_data(const std::string &filename, int size)
 {
     data_set(); //call base ctor
         
-    m_n_inputs = IN_DIM;;
-    m_n_outputs = OUT_DIM;
-    m_size = size;
+    n_inputs_ = IN_DIM;;
+    n_outputs_ = OUT_DIM;
+    size_ = size;
     
-    m_data.reserve(size);
+    data_.reserve(size);
     
     std::fstream myfile; // open data file
     myfile.open(filename);
@@ -48,14 +48,14 @@ mnist_data::mnist_data(const std::string &filename, int size)
     for(std::size_t i=0;i<size;i++)
     {
         data temp_data;
-        temp_data.inputs.reserve(m_n_inputs);
-        temp_data.outputs.resize(m_n_outputs);
+        temp_data.inputs.reserve(n_inputs_);
+        temp_data.outputs.resize(n_outputs_);
         
         std::getline(myfile,line); //read a single line
         std::stringstream ss(line);
         
         ss >> val; //get label
-        m_label.push_back(val); //store label for convenience
+        label_.push_back(val); //store label for convenience
         
         for(int j=0;j<10;j++) // set outputs based on label
         {
@@ -71,7 +71,7 @@ mnist_data::mnist_data(const std::string &filename, int size)
             temp_data.inputs.push_back(((double)val)/255); //store pixel data in inputs
         }
                 
-        m_data.push_back(temp_data);
+        data_.push_back(temp_data);
         
 
     }
@@ -82,22 +82,22 @@ mnist_data::mnist_data(const std::string &filename, int size)
 
 void mnist_data::print_data(std::ostream& stream)
 {
-    stream << "Mnist Data. Size: " << m_size << std::endl;
+    stream << "Mnist Data. Size: " << size_ << std::endl;
     
-    for(std::size_t i=0;i<m_size;i++)
+    for(std::size_t i=0;i<size_;i++)
     {
-        stream << "Label: " << m_label[i] << std::endl;
+        stream << "Label: " << label_[i] << std::endl;
         
         for(std::size_t j=0;j<OUT_DIM;j++)
         {
-            stream << m_data[i].outputs[j];
+            stream << data_[i].outputs[j];
         }
         
         
         for(std::size_t y=0;y<Y_DIM;y++)
         {
             for(std::size_t x=0;x<X_DIM;x++)
-                if(m_data[i].inputs[y*Y_DIM+x]>PRINT_THRESHOLD)
+                if(data_[i].inputs[y*Y_DIM+x]>PRINT_THRESHOLD)
                 {
                     stream << "X ";
                 }
@@ -116,7 +116,7 @@ void mnist_data::print_data(std::ostream& stream)
 
 const int mnist_data::get_label(int index)
 {
-    return m_label[index];
+    return label_[index];
 }
 
 std::vector<float> mnist_data::preProcess(std::vector<float> rasterInput)

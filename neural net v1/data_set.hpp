@@ -28,18 +28,18 @@ public:
     data_set(std::vector<Scalar> inputs, std::vector<Scalar> outputs);
     data_set(const std::string& filename);
     //Getter
-    const std::vector<data>& get_data() const {return m_data;};
-    const std::size_t n_inputs() const {return m_n_inputs;};
-    const std::size_t n_outputs() const {return m_n_outputs;};
-    const std::size_t size() const {return m_size;};
+    const std::vector<data>& get_data() const {return data_;};
+    const std::size_t n_inputs() const {return n_inputs_;};
+    const std::size_t n_outputs() const {return n_outputs_;};
+    const std::size_t size() const {return size_;};
     //Debug
     void print_data(std::ostream& stream);
     
 protected:
-    std::vector<data> m_data;
-    std::size_t m_n_inputs;
-    std::size_t m_n_outputs;
-    std::size_t m_size;
+    std::vector<data> data_;
+    std::size_t n_inputs_;
+    std::size_t n_outputs_;
+    std::size_t size_;
 };
 
 

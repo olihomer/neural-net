@@ -9,6 +9,7 @@
 #include <span>
 #include <iostream>
 #include <chrono>
+#include <algorithm>
 
 namespace
 {
@@ -19,6 +20,24 @@ CNN::CNN()
 :conv1_(8,1,28,28), conv2_(16,8,14,14),classifier_({784,128,10}, ActivationType::Relu, ActivationType::Softmax)
 {
     ;
+}
+
+void CNN::configure(std::size_t conv1OutputChannels,
+                    std::size_t conv2OutputChannels,
+                    std::size_t classifierHiddenLayerSize)
+{
+    conv1OutputChannels = std::max<std::size_t>(conv1OutputChannels, 1);
+    conv2OutputChannels = std::max<std::size_t>(conv2OutputChannels, 1);
+    classifierHiddenLayerSize = std::max<std::size_t>(classifierHiddenLayerSize, 1);
+
+    conv1_ = ConvLayer(conv1OutputChannels, 1, 28, 28);
+    conv2_ = ConvLayer(conv2OutputChannels, conv1OutputChannels, 14, 14);
+
+    const std::size_t classifierInputs = conv2OutputChannels * 7 * 7;
+    classifier_.configure(
+        {static_cast<int>(classifierInputs), static_cast<int>(classifierHiddenLayerSize), 10},
+        ActivationType::Relu,
+        ActivationType::Softmax);
 }
 
 void CNN::print() const
@@ -189,7 +208,7 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
 
     //inputError matrix now contains error gradients for entire batch. Backprop through CNN one at a time.
     
-    Tensor outputGradient({16,7,7});
+    Tensor outputGradient({conv2_.getOutputChannels(), conv2_.getOutputHeight(), conv2_.getOutputWidth()});
  
     for(std::size_t index=0; index<batch.size(); index++)
     {
@@ -242,4 +261,23 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
 void CNN::print_stats(std::ostream& ostream)
 {
     ;
+}
+
+
+std::pair<std::size_t, Scalar> CNN::predict(const std::vector<Scalar>& input)
+{
+    if((conv1_.getInputWidth()*conv1_.getInputHeight())!=input.size())throw std::runtime_error("Input doesn't match CNN shape");
+
+    //load example into Tensor
+    Tensor inputTensor({1,conv1_.getInputHeight(),conv1_.getInputWidth()});
+        
+    for(std::size_t j=0; j<input.size(); j++)
+        inputTensor.data()[j] = input[j];
+
+    //Put through CNN
+    auto outputVector = forward(inputTensor);
+    set_inputMLP(outputVector);
+    propagateMLP();
+    
+    return std::pair<std::size_t, Scalar>(find_highest_output(),get_output(find_highest_output()));
 }

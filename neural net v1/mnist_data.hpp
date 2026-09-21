@@ -33,7 +33,7 @@ public:
     static std::vector<float> preProcess(std::vector<float> rasterInput);
     
 private:
-    std::vector<int> m_label;
+    std::vector<int> label_;
 };
 
 

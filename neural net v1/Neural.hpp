@@ -39,14 +39,14 @@ public:
     void print_stats(std::ostream& ostream) override;
     
     //Getters + setters
-    std::size_t nInputs_(){return m_layer[0].size;};
-    std::size_t nOutputs_(){return m_layer[m_layers-1].size;};
+    std::size_t nInputs_(){return layer_[0].size;};
+    std::size_t nOutputs_(){return layer_[layers_-1].size;};
     
     void set_input(std::size_t node, Scalar value); //directly change a single input
     void set_input(const std::vector<Scalar>&); // directly change all inputs from a vector
     void set_input(data_set& data,std::size_t index); //directly change all inputs by selecting an entry from a data set
-    std::size_t numLayers(){return m_layers;};
-    Matrix get_input_error(){return m_layer[0].error;};
+    std::size_t numLayers(){return layers_;};
+    Matrix get_input_error(){return layer_[0].error;};
 
     Scalar get_output(std::size_t node);
     std::vector<Scalar> get_output();
@@ -65,9 +65,9 @@ public:
     
 private:
     // Internal data structure
-    std::size_t m_layers = 0;
-    std::size_t m_max_layers = 0;
-    std::vector<layer> m_layer;
+    std::size_t layers_ = 0;
+    std::size_t max_layers_ = 0;
+    std::vector<layer> layer_;
 
     //Internal methods
     Scalar cost_function(const std::vector<Scalar>& target);
