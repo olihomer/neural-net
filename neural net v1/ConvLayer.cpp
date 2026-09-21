@@ -15,6 +15,11 @@
 #include <iostream>
 #include <chrono>
 #include <array>
+#include <random>
+
+
+std::random_device ConvLayer::rd_;
+std::mt19937 ConvLayer::rng_(ConvLayer::rd_());
 
 namespace
 {
@@ -35,9 +40,7 @@ kernelGradient_({outputChannels,inputChannels,3,3})
     biases_.resize(outputChannels);
     biasGradient_.resize(outputChannels);
     
-    for(auto& b: biases_) b = (rand()%100)/100.0f+0.01f;
-    for(std::size_t i = 0; i<kernels_.size(); i++)
-        *(kernels_.data()+i) = (0.1f - (Scalar)(rand()%100) / 500.0f);
+    initialiseWeights();
 }
 
 const Tensor& ConvLayer::forward (const Tensor& input)
@@ -82,6 +85,21 @@ const Tensor& ConvLayer::forward (const Tensor& input)
     }
 
     return pooled_;
+}
+
+Scalar ConvLayer::kernelValue(std::size_t outputChannel, std::size_t inputChannel, std::size_t y, std::size_t x) const
+{
+    return kernels_(outputChannel, inputChannel, y, x);
+}
+
+Scalar ConvLayer::inputValue(std::size_t channel, std::size_t y, std::size_t x) const
+{
+    return input_(channel, y, x);
+}
+
+Scalar ConvLayer::activationValue(std::size_t channel, std::size_t y, std::size_t x) const
+{
+    return activation_(channel, y, x);
 }
 
 Tensor ConvLayer::backward(const Tensor& outputGradient, bool returnInputGradient)
@@ -339,4 +357,21 @@ void ConvLayer::popCache()
     input_ = std::move(cache.input);
     activation_ = std::move(cache.activation);
     maxPoolSource_ = std::move(cache.maxPoolSource);
+}
+
+
+void ConvLayer::initialiseWeights()
+{
+    const float fanIn = static_cast<float>(inputChannels() * kernelWidth() * kernelHeight());
+    
+    const float stddev = std::sqrt(2.0f / fanIn);
+    
+    std::normal_distribution<float> distribution(0.0f, stddev);
+    
+    for(std::size_t i = 0; i<kernels_.size(); i++)
+    {
+        kernels_.data()[i] = distribution(rng_);
+    }
+    
+    for(Scalar &bias: biases_) bias = 0.0f;
 }

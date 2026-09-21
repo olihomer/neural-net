@@ -18,22 +18,33 @@ public struct SwiftUIView: View {
         case trainingExamples
         case batchSize
         case learningRate
+        case cnnConv1Channels
+        case cnnConv2Channels
+        case cnnClassifierHiddenLayerSize
     }
 
     @StateObject private var progress = TrainingProgressModel()
     @ObservedObject private var engineBox: EngineBox
+    @ObservedObject private var kernelStore: KernelVisualizationStore
+    @ObservedObject private var activationStore: ActivationVisualizationStore
+    @Environment(\.openWindow) private var openWindow
     @State private var settings = TrainingSettings()
     @State private var hiddenLayerSizeText = "128"
-    @State private var epochsText = "500"
-    @State private var trainingExamplesText = "100"
+    @State private var epochsText = "50"
+    @State private var trainingExamplesText = "1000"
     @State private var batchSizeText = "50"
-    @State private var learningRateText = "0.5"
+    @State private var learningRateText = "0.05"
+    @State private var cnnConv1ChannelsText = "8"
+    @State private var cnnConv2ChannelsText = "16"
+    @State private var cnnClassifierHiddenLayerSizeText = "128"
     @State private var isTraining = false
     @State private var fileStatus = ""
     @FocusState private var focusedField: FocusedField?
 
-    init(engineBox: EngineBox) {
+    init(engineBox: EngineBox, kernelStore: KernelVisualizationStore, activationStore: ActivationVisualizationStore) {
         self.engineBox = engineBox
+        self.kernelStore = kernelStore
+        self.activationStore = activationStore
     }
 
     public var body: some View {
@@ -41,9 +52,13 @@ public struct SwiftUIView: View {
             Text("Training Settings")
                 .font(.headline)
 
-            integerField("Hidden layer", text: $hiddenLayerSizeText, field: .hiddenLayerSize) {
-                commitInteger($hiddenLayerSizeText, to: $settings.hiddenLayerSize, range: 1...512)
+            Picker("Model", selection: $settings.model) {
+                ForEach(ModelChoice.allCases) { choice in
+                    Text(choice.title).tag(choice)
+                }
             }
+            .pickerStyle(.segmented)
+
             integerField("Epochs", text: $epochsText, field: .epochs) {
                 commitInteger($epochsText, to: $settings.epochs, range: 1...5000)
             }
@@ -57,15 +72,41 @@ public struct SwiftUIView: View {
                 commitDouble($learningRateText, to: $settings.learningRate, range: 0.0...2.0)
             }
 
-            Picker("Hidden activation", selection: $settings.hiddenActivation) {
-                ForEach(ActivationChoice.allCases) { choice in
-                    Text(choice.title).tag(choice)
+            if settings.model == .mlp {
+                Text("MLP Shape")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                integerField("Hidden layer", text: $hiddenLayerSizeText, field: .hiddenLayerSize) {
+                    commitInteger($hiddenLayerSizeText, to: $settings.hiddenLayerSize, range: 1...512)
+                }
+
+                Picker("Hidden activation", selection: $settings.hiddenActivation) {
+                    ForEach(ActivationChoice.allCases) { choice in
+                        Text(choice.title).tag(choice)
+                    }
+                }
+
+                Picker("Output activation", selection: $settings.outputActivation) {
+                    ForEach(ActivationChoice.allCases) { choice in
+                        Text(choice.title).tag(choice)
+                    }
                 }
             }
 
-            Picker("Output activation", selection: $settings.outputActivation) {
-                ForEach(ActivationChoice.allCases) { choice in
-                    Text(choice.title).tag(choice)
+            if settings.model == .cnn {
+                Text("CNN Shape")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                integerField("Conv1 channels", text: $cnnConv1ChannelsText, field: .cnnConv1Channels) {
+                    commitInteger($cnnConv1ChannelsText, to: $settings.cnnConv1Channels, range: 1...128)
+                }
+                integerField("Conv2 channels", text: $cnnConv2ChannelsText, field: .cnnConv2Channels) {
+                    commitInteger($cnnConv2ChannelsText, to: $settings.cnnConv2Channels, range: 1...256)
+                }
+                integerField("Classifier hidden", text: $cnnClassifierHiddenLayerSizeText, field: .cnnClassifierHiddenLayerSize) {
+                    commitInteger($cnnClassifierHiddenLayerSizeText, to: $settings.cnnClassifierHiddenLayerSize, range: 1...512)
                 }
             }
 
@@ -81,9 +122,22 @@ public struct SwiftUIView: View {
                 // Run the heavy C++ work off the main actor so the UI can update.
                 Task.detached {
                     let result = engineBox.runApp(settings: settings)
+                    let kernelSnapshot = settings.model == .cnn ? engineBox.cnnKernelSnapshot() : nil
+                    let activationSnapshot = settings.model == .cnn ? engineBox.cnnActivationSnapshot() : nil
+
                     await MainActor.run {
                         progress.runResult = result
                         isTraining = false
+
+                        if let kernelSnapshot {
+                            kernelStore.snapshot = kernelSnapshot
+                            openWindow(id: "cnn-kernels")
+                        }
+
+                        if let activationSnapshot {
+                            activationStore.snapshot = activationSnapshot
+                            openWindow(id: "cnn-activations")
+                        }
                     }
                 }
             }
@@ -99,6 +153,18 @@ public struct SwiftUIView: View {
                     loadNetwork()
                 }
                 .disabled(isTraining)
+            }
+
+            HStack {
+                Button("Show Kernels") {
+                    openWindow(id: "cnn-kernels")
+                }
+                .disabled(kernelStore.snapshot == nil)
+
+                Button("Show Activations") {
+                    openWindow(id: "cnn-activations")
+                }
+                .disabled(activationStore.snapshot == nil)
             }
 
             if !fileStatus.isEmpty {
@@ -159,6 +225,9 @@ public struct SwiftUIView: View {
         commitInteger($trainingExamplesText, to: $settings.trainingExamples, range: 1...60000)
         commitInteger($batchSizeText, to: $settings.batchSize, range: 1...60000)
         commitDouble($learningRateText, to: $settings.learningRate, range: 0.0...2.0)
+        commitInteger($cnnConv1ChannelsText, to: $settings.cnnConv1Channels, range: 1...128)
+        commitInteger($cnnConv2ChannelsText, to: $settings.cnnConv2Channels, range: 1...256)
+        commitInteger($cnnClassifierHiddenLayerSizeText, to: $settings.cnnClassifierHiddenLayerSize, range: 1...512)
     }
 
     private func saveNetwork() {

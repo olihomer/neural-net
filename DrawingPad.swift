@@ -43,9 +43,12 @@ struct DrawingPad: View {
     @State private var guess: (Int, Float) = (0, 0.0)
     private let padSize = CGSize(width: 400, height: 400)
     @ObservedObject private var engineBox: EngineBox
+    @ObservedObject private var activationStore: ActivationVisualizationStore
+    @Environment(\.openWindow) private var openWindow
 
-    init(engineBox: EngineBox) {
+    init(engineBox: EngineBox, activationStore: ActivationVisualizationStore) {
         self.engineBox = engineBox
+        self.activationStore = activationStore
     }
     
     var body: some View {
@@ -74,6 +77,11 @@ struct DrawingPad: View {
                         if let base = buffer.baseAddress {
                             guess = engineBox.sendRasterData(base, pixels.count)
                         }
+                    }
+
+                    if engineBox.activeModel() == .cnn {
+                        activationStore.snapshot = engineBox.cnnActivationSnapshot()
+                        openWindow(id: "cnn-activations")
                     }
                 }
                 Button("Clear") {
@@ -140,4 +148,3 @@ func draw(_ stroke: Stroke, in context: inout GraphicsContext) {
         style: StrokeStyle(lineWidth: 20, lineCap: .round, lineJoin: .round)
     )
 }
-
