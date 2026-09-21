@@ -14,10 +14,11 @@
 #include <algorithm>
 #include <iostream>
 #include <chrono>
+#include <array>
 
 namespace
 {
-    constexpr bool profileConvLayerBackward = false;
+constexpr bool profileConvLayer = false;
 }
 
 ConvLayer::ConvLayer(std::size_t outputChannels,
@@ -42,8 +43,44 @@ kernelGradient_({outputChannels,inputChannels,3,3})
 const Tensor& ConvLayer::forward (const Tensor& input)
 {
     input_ = input;
+
+    std::chrono::steady_clock::time_point convolveStart;
+    if constexpr (profileConvLayer)
+        convolveStart = std::chrono::steady_clock::now();
+
     convolve_();
+
+    std::chrono::duration<double> convolveElapsed{0.0};
+    if constexpr (profileConvLayer)
+        convolveElapsed = std::chrono::steady_clock::now() - convolveStart;
+
+    std::chrono::steady_clock::time_point maxPoolStart;
+    if constexpr (profileConvLayer)
+        maxPoolStart = std::chrono::steady_clock::now();
+
     maxPool_();
+
+    std::chrono::duration<double> maxPoolElapsed{0.0};
+    if constexpr (profileConvLayer)
+        maxPoolElapsed = std::chrono::steady_clock::now() - maxPoolStart;
+
+    if constexpr (profileConvLayer)
+    {
+        const double forwardSeconds = convolveElapsed.count() + maxPoolElapsed.count();
+
+        if(forwardSeconds > 0.0)
+        {
+            std::cout << "ConvLayer::forward benchmark ("
+                      << input_.dim(0) << " input channels, "
+                      << activation_.dim(0) << " output channels, "
+                      << input_.dim(1) << "x" << input_.dim(2) << " input):" << std::endl;
+            std::cout << "  convolve_: " << convolveElapsed.count() << " seconds, "
+                      << (convolveElapsed.count() / forwardSeconds) * 100.0 << "%" << std::endl;
+            std::cout << "  maxPool_: " << maxPoolElapsed.count() << " seconds, "
+                      << (maxPoolElapsed.count() / forwardSeconds) * 100.0 << "%" << std::endl;
+        }
+    }
+
     return pooled_;
 }
 
@@ -62,24 +99,21 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, bool returnInputGradien
     
     // unpool + unRelu
     
-    Tensor preactivationGradient({activation_.dim(0),activation_.dim(1),activation_.dim(2)});
-    preactivationGradient.fill(0.0f);
-    
     std::size_t outputChannels = activation_.dim(0);
     std::size_t outputY = outputGradient.dim(1);
     std::size_t outputX = outputGradient.dim(2);
     
-    Tensor inputGradient({input_.dim(0),input_.dim(1),input_.dim(2)});
-
+    Tensor inputGradient;
+    
     if(returnInputGradient==true)
-        inputGradient.zero();
-        
+        inputGradient = Tensor({input_.dim(0),input_.dim(1),input_.dim(2)});
+
     auto inputY = input_.dim(1);
     auto inputX = input_.dim(2);
     auto inputChannels = input_.dim(0);
     
     std::chrono::steady_clock::time_point unpoolStart;
-    if constexpr (profileConvLayerBackward)
+    if constexpr (profileConvLayer)
         unpoolStart = std::chrono::steady_clock::now();
 
     for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
@@ -117,8 +151,6 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, bool returnInputGradien
                             }
                     biasGradient_[outChan] += g;
                     
-                    preactivationGradient(outChan, winY, winX) = g;
-                    
                 }
                 
                 indexX += stride;
@@ -128,10 +160,10 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, bool returnInputGradien
         }
     }
     std::chrono::duration<double> unpoolElapsed{0.0};
-    if constexpr (profileConvLayerBackward)
+    if constexpr (profileConvLayer)
         unpoolElapsed = std::chrono::steady_clock::now() - unpoolStart;
     
-    if constexpr (profileConvLayerBackward)
+    if constexpr (profileConvLayer)
     {
         const double loopSeconds = unpoolElapsed.count();
 
@@ -164,9 +196,9 @@ void ConvLayer::convolve_()
             for(int i = 0; i < inputX; i++)
             {
                 Scalar sum = biases_[outChan];
-                for(int n=-1;n<2;n++)
-                    for(int m=-1;m<2;m++)
-                        for(std::size_t inChan=0; inChan < inputChannels; inChan++)
+                for(std::size_t inChan=0; inChan < inputChannels; inChan++)
+                    for(int n=-1;n<2;n++)
+                        for(int m=-1;m<2;m++)
                         {
                             sum += (j+n<0 || j+n>inputY-1 || i+m<0 || i+m>inputX-1) ? 0.0f : input_(inChan,j+n,i+m) * kernels_(outChan,inChan,n+1,m+1);
                         }
@@ -201,8 +233,7 @@ void ConvLayer::maxPool_()
     std::size_t outputY = pooled_.dim(1);
     std::size_t outputX = pooled_.dim(2);
     
-    std::vector<Scalar> candidates;
-    candidates.resize(stride*stride);
+    std::array<Scalar, stride*stride> candidates;
     
     for(std::size_t chan = 0; chan < channels; chan++)
     {
@@ -305,7 +336,7 @@ void ConvLayer::popCache()
 {
     auto cache = cache_.front();
     cache_.pop();
-    input_ = cache.input;
-    activation_ = cache.activation;
-    maxPoolSource_ = cache.maxPoolSource;
+    input_ = std::move(cache.input);
+    activation_ = std::move(cache.activation);
+    maxPoolSource_ = std::move(cache.maxPoolSource);
 }

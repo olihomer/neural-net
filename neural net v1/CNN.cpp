@@ -29,10 +29,51 @@ void CNN::print() const
 
 std::vector<Scalar> CNN::forward(const Tensor& input)
 {
+    std::chrono::steady_clock::time_point conv1ForwardStart;
+    if constexpr (profileCNN)
+        conv1ForwardStart = std::chrono::steady_clock::now();
+
     auto& x1 = conv1_.forward(input);
+
+    std::chrono::duration<double> conv1ForwardElapsed{0.0};
+    if constexpr (profileCNN)
+        conv1ForwardElapsed = std::chrono::steady_clock::now() - conv1ForwardStart;
+
+    std::chrono::steady_clock::time_point conv2ForwardStart;
+    if constexpr (profileCNN)
+        conv2ForwardStart = std::chrono::steady_clock::now();
+
     auto& x2 = conv2_.forward(x1);
+
+    std::chrono::duration<double> conv2ForwardElapsed{0.0};
+    if constexpr (profileCNN)
+        conv2ForwardElapsed = std::chrono::steady_clock::now() - conv2ForwardStart;
     
+    std::chrono::steady_clock::time_point flattenStart;
+    if constexpr (profileCNN)
+        flattenStart = std::chrono::steady_clock::now();
+
     auto flat = flatten_(x2);
+
+    std::chrono::duration<double> flattenElapsed{0.0};
+    if constexpr (profileCNN)
+        flattenElapsed = std::chrono::steady_clock::now() - flattenStart;
+
+    if constexpr (profileCNN)
+    {
+        const double forwardSeconds = conv1ForwardElapsed.count() + conv2ForwardElapsed.count() + flattenElapsed.count();
+
+        if(forwardSeconds > 0.0)
+        {
+            std::cout << "CNN::forward benchmark:" << std::endl;
+            std::cout << "  conv1_.forward: " << conv1ForwardElapsed.count() << " seconds, "
+                      << (conv1ForwardElapsed.count() / forwardSeconds) * 100.0 << "%" << std::endl;
+            std::cout << "  conv2_.forward: " << conv2ForwardElapsed.count() << " seconds, "
+                      << (conv2ForwardElapsed.count() / forwardSeconds) * 100.0 << "%" << std::endl;
+            std::cout << "  flatten_: " << flattenElapsed.count() << " seconds, "
+                      << (flattenElapsed.count() / forwardSeconds) * 100.0 << "%" << std::endl;
+        }
+    }
     
     return flat;
 }

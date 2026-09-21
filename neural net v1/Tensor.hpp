@@ -14,6 +14,8 @@
 #include <vector>
 
 class Tensor{
+private:
+    std::vector<std::size_t> strides_;
 public:
     Tensor() = default;
     explicit Tensor(const std::vector<size_t>& shape);
@@ -29,13 +31,13 @@ public:
     
     Scalar& operator()(std::size_t i);
     Scalar& operator()(std::size_t i, std::size_t j);
-    Scalar& operator()(std::size_t i, std::size_t j, std::size_t k);
-    Scalar& operator()(std::size_t i, std::size_t j, std::size_t k, std::size_t l);
+    Scalar& operator()(std::size_t i, std::size_t j, std::size_t k){return data_[strides_[0]*i+strides_[1]*j+strides_[2]*k];};
+    Scalar& operator()(std::size_t i, std::size_t j, std::size_t k, std::size_t l){return data_[strides_[0]*i+strides_[1]*j+strides_[2]*k+strides_[3]*l];};
 
     const Scalar& operator()(std::size_t i) const;
     const Scalar& operator()(std::size_t i, std::size_t j) const;
-    const Scalar& operator()(std::size_t i, std::size_t j, std::size_t k) const;
-    const Scalar& operator()(std::size_t i, std::size_t j, std::size_t k, std::size_t l) const;
+    const Scalar& operator()(std::size_t i, std::size_t j, std::size_t k) const{return data_[strides_[0]*i+strides_[1]*j+strides_[2]*k];};
+    const Scalar& operator()(std::size_t i, std::size_t j, std::size_t k, std::size_t l) const{return data_[strides_[0]*i+strides_[1]*j+strides_[2]*k+strides_[3]*l];};
     
     void fill(Scalar value);
     void zero();
@@ -45,7 +47,6 @@ public:
 private:
     std::vector<Scalar> data_;
     std::vector<std::size_t> shape_;
-    std::vector<std::size_t> strides_;
     std::size_t rank_ = 0;
     
     void calculateStrides();

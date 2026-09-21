@@ -43,7 +43,7 @@ const ActivationType activationTypeFor(int choice)
 
 
 AppEngine::AppEngine()
-: net({784,128,10}, ActivationType::Relu, ActivationType::Softmax)
+: mlp_({784,128,10}, ActivationType::Relu, ActivationType::Softmax)
 {
     std::cout << "Constructing Engine" << std::endl;
     
@@ -52,8 +52,7 @@ AppEngine::AppEngine()
     
     mnist_data mnist("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", trainingExamples);
     
-    CNN cnn;
-    Trainer trainer(cnn);
+    Trainer trainer(activeTrainable());
     
     trainer.train(mnist, 50, 50, 0.05, nullptr);
     
@@ -77,12 +76,12 @@ AppEngine::AppEngine()
             input.data()[j]=mnist_training_data2.get_data()[guess].inputs[j];
             
         //Put through CNN
-        auto outputVector = cnn.forward(input);
-        cnn.set_inputMLP(outputVector);
-        cnn.propagateMLP();
+        auto outputVector = cnn_.forward(input);
+        cnn_.set_inputMLP(outputVector);
+        cnn_.propagateMLP();
         
-        std::cout << ". Net guessed " << cnn.find_highest_output() << " with value of " << cnn.get_output(cnn.find_highest_output()) << std::endl;
-        if(cnn.find_highest_output()!=guess_label){std::cout<<"WRONG!"<<std::endl;wrong++;}
+        std::cout << ". Net guessed " << cnn_.find_highest_output() << " with value of " << cnn_.get_output(cnn_.find_highest_output()) << std::endl;
+        if(cnn_.find_highest_output()!=guess_label){std::cout<<"WRONG!"<<std::endl;wrong++;}
     }
     
     std::cout << "Success rate: " << (1 - (float(wrong) / float(evaluationExamples)) ) << std::endl;
@@ -102,11 +101,13 @@ int AppEngine::runApp(void(*progress)(int32_t,double), int hiddenLayerSize, int 
     const ActivationType hiddenActivationType = activationTypeFor(hiddenActivation);
     const ActivationType outputActivationType = activationTypeFor(outputActivation);
     
-    net.configure({784, hiddenLayerSize, 10}, hiddenActivationType, outputActivationType);
+    selectModel(ModelKind::MLP);
+    
+    mlp_.configure({784, hiddenLayerSize, 10}, hiddenActivationType, outputActivationType);
     
     //train network
     
-    Trainer trainer(net);
+    Trainer trainer(activeTrainable());
    
     mnist_data mnist_training_data("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", trainingExamples);
     
@@ -125,11 +126,11 @@ int AppEngine::runApp(void(*progress)(int32_t,double), int hiddenLayerSize, int 
         int guess_label = mnist_training_data2.get_label(guess);
         std::cout << "Guess = " << guess_label;
         
-        net.set_input(mnist_training_data2, guess);
-        net.propagate();
+        mlp_.set_input(mnist_training_data2, guess);
+        mlp_.propagate();
         
-        std::cout << ". Net guessed " << net.find_highest_output() << " with value of " << net.get_output(net.find_highest_output()) << std::endl;
-        if(net.find_highest_output()!=guess_label){std::cout<<"WRONG!"<<std::endl;wrong++;}
+        std::cout << ". Net guessed " << mlp_.find_highest_output() << " with value of " << mlp_.get_output(mlp_.find_highest_output()) << std::endl;
+        if(mlp_.find_highest_output()!=guess_label){std::cout<<"WRONG!"<<std::endl;wrong++;}
     }
     
     std::cout << "Success rate: " << (1 - (float(wrong) / float(evaluationExamples)) ) << std::endl;

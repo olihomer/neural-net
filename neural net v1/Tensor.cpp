@@ -91,7 +91,7 @@ Scalar& Tensor::operator()(std::size_t i, std::size_t j)
     return data_[offset({i,j})];
 }
 
-Scalar& Tensor::operator()(std::size_t i, std::size_t j, std::size_t k)
+/*Scalar& Tensor::operator()(std::size_t i, std::size_t j, std::size_t k)
 {
     return data_[offset({i,j,k})];
 }
@@ -99,7 +99,7 @@ Scalar& Tensor::operator()(std::size_t i, std::size_t j, std::size_t k)
 Scalar& Tensor::operator()(std::size_t i, std::size_t j, std::size_t k, std::size_t l)
 {
     return data_[offset({i,j,k,l})];
-}
+}*/
 
 const Scalar& Tensor::operator()(std::size_t i) const
 {
@@ -111,7 +111,7 @@ const Scalar& Tensor::operator()(std::size_t i, std::size_t j) const
     return data_[offset({i,j})];
 }
 
-const Scalar& Tensor::operator()(std::size_t i, std::size_t j, std::size_t k) const
+/*const Scalar& Tensor::operator()(std::size_t i, std::size_t j, std::size_t k) const
 {
     return data_[offset({i,j,k})];
 }
@@ -119,4 +119,4 @@ const Scalar& Tensor::operator()(std::size_t i, std::size_t j, std::size_t k) co
 const Scalar& Tensor::operator()(std::size_t i, std::size_t j, std::size_t k, std::size_t l) const
 {
     return data_[offset({i,j,k,l})];
-}
+}*/
