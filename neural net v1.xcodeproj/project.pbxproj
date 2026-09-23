@@ -230,7 +230,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastUpgradeCheck = 1530;
+				LastUpgradeCheck = 2660;
 				TargetAttributes = {
 					DEA63701305363490031E9F3 = {
 						CreatedOnToolsVersion = 26.6;
@@ -376,6 +376,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_OBJC_INTEROP_MODE = objcxx;
 			};
 			name = Debug;
@@ -432,6 +433,8 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OBJC_INTEROP_MODE = objcxx;
 			};
 			name = Release;
@@ -456,6 +459,11 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
 				GCC_OPTIMIZATION_LEVEL = 3;
+				"OTHER_CPLUSPLUSFLAGS[arch=*]" = (
+					"-Rpass=loop-vectorize",
+					"-Rpass-analysis=loop-vectorize",
+					"-Rpass-missed=loop-vectorize",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/** \"$(SRCROOT)/neural net v1\"/**";
 				SWIFT_VERSION = 6.0;

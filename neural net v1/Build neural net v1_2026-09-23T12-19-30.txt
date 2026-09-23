@@ -1,0 +1,403 @@
+chat
+Showing Recent Issues, Filtering for "convlayer".
+
+Build target neural net v1 of project neural net v1 with configuration Release
+
+CompileC /Users/oliverhomer/Library/Developer/Xcode/DerivedData/neural_net_v1-eweyydvmlpbzrpgmofwiwrnincna/Build/Intermediates.noindex/neural\ net\ v1.build/Release/neural\ net\ v1.build/Objects-normal/arm64/ConvLayer.o /Users/oliverhomer/Xcode/neural\ net\ v1/neural\ net\ v1/ConvLayer.cpp normal arm64 c++ com.apple.compilers.llvm.clang.1_0.compiler (in target 'neural net v1' from project 'neural net v1')
+    cd /Users/oliverhomer/Xcode/neural\ net\ v1
+    
+    Using response file: /Users/oliverhomer/Library/Developer/Xcode/DerivedData/neural_net_v1-eweyydvmlpbzrpgmofwiwrnincna/Build/Intermediates.noindex/neural net v1.build/Release/neural net v1.build/Objects-normal/arm64/82b82416624d2658e5098eb0a28c15c5-common-args.resp
+    
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -x c++ -ivfsstatcache /Users/oliverhomer/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/macosx26.5-25F70-e082c4a02f00227109f4ed75e425c832.sdkstatcache -target arm64-apple-macos14.1 -fmessage-length\=0 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit\=0 -fno-color-diagnostics -fmodules-prune-interval\=86400 -fmodules-prune-after\=345600 -fbuild-session-file\=/Users/oliverhomer/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -fmodules-validate-once-per-build-session -Wnon-modular-include-in-framework-module -Werror\=non-modular-include-in-framework-module -Wno-trigraphs -Wno-missing-field-initializers -Wno-missing-prototypes -Werror\=return-type -Wdocumentation -Wunreachable-code -Wquoted-include-in-framework-header -Werror\=deprecated-objc-isa-usage -Werror\=objc-root-class -Wno-non-virtual-dtor -Wno-overloaded-virtual -Wno-exit-time-destructors -Wno-missing-braces -Wparentheses -Wswitch -Wunused-function -Wno-unused-label -Wno-unused-parameter -Wunused-variable -Wunused-value -Wempty-body -Wuninitialized -Wconditional-uninitialized -Wno-unknown-pragmas -Wno-shadow -Wno-four-char-constants -Wno-conversion -Wconstant-conversion -Wint-conversion -Wbool-conversion -Wenum-conversion -Wno-float-conversion -Wnon-literal-null-conversion -Wobjc-literal-conversion -Wshorten-64-to-32 -Wno-newline-eof -Wno-c++11-extensions -Wno-implicit-fallthrough -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk -fstrict-aliasing -Wdeprecated-declarations -Winvalid-offsetof -Wno-sign-conversion -Winfinite-recursion -Wmove -Wcomma -Wblock-capture-autoreleasing -Wstrict-prototypes -Wrange-loop-analysis -Wno-semicolon-before-method-body -Wunguarded-availability @/Users/oliverhomer/Library/Developer/Xcode/DerivedData/neural_net_v1-eweyydvmlpbzrpgmofwiwrnincna/Build/Intermediates.noindex/neural\ net\ v1.build/Release/neural\ net\ v1.build/Objects-normal/arm64/82b82416624d2658e5098eb0a28c15c5-common-args.resp -MMD -MT dependencies -MF /Users/oliverhomer/Library/Developer/Xcode/DerivedData/neural_net_v1-eweyydvmlpbzrpgmofwiwrnincna/Build/Intermediates.noindex/neural\ net\ v1.build/Release/neural\ net\ v1.build/Objects-normal/arm64/ConvLayer.d --serialize-diagnostics /Users/oliverhomer/Library/Developer/Xcode/DerivedData/neural_net_v1-eweyydvmlpbzrpgmofwiwrnincna/Build/Intermediates.noindex/neural\ net\ v1.build/Release/neural\ net\ v1.build/Objects-normal/arm64/ConvLayer.dia -c /Users/oliverhomer/Xcode/neural\ net\ v1/neural\ net\ v1/ConvLayer.cpp -o /Users/oliverhomer/Library/Developer/Xcode/DerivedData/neural_net_v1-eweyydvmlpbzrpgmofwiwrnincna/Build/Intermediates.noindex/neural\ net\ v1.build/Release/neural\ net\ v1.build/Objects-normal/arm64/ConvLayer.o
+
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:100:17: warning: unused variable 'inputGradientData' [-Wunused-variable]
+  100 |         Scalar* inputGradientData = inputGradient.data();
+      |                 ^~~~~~~~~~~~~~~~~
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:180:44: warning: variable 'inputGradientRow' may be uninitialized when used here [-Wconditional-uninitialized]
+  180 |                                         (*(inputGradientRow + (winX + m))) += (*(kernelRow + (m + 1))) * g;
+      |                                            ^~~~~~~~~~~~~~~~
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:95:29: note: initialize the variable 'inputGradientRow' to silence this warning
+   95 |     Scalar* inputGradientRow;
+      |                             ^
+      |                              = nullptr
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:172:52: warning: variable 'inputGradientInChannel' may be uninitialized when used here [-Wconditional-uninitialized]
+  172 |                                 inputGradientRow = inputGradientInChannel + ((winY + n) * inputX);
+      |                                                    ^~~~~~~~~~~~~~~~~~~~~~
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:94:35: note: initialize the variable 'inputGradientInChannel' to silence this warning
+   94 |     Scalar* inputGradientInChannel;
+      |                                   ^
+      |                                    = nullptr
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:164:54: warning: variable 'inputGradientData' is uninitialized when used here [-Wuninitialized]
+  164 |                             inputGradientInChannel = inputGradientData + (inChan * inputY * inputX);
+      |                                                      ^~~~~~~~~~~~~~~~~
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:93:30: note: initialize the variable 'inputGradientData' to silence this warning
+   93 |     Scalar* inputGradientData;
+      |                              ^
+      |                               = nullptr
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:26:16: warning: unused variable 'profileConvLayer' [-Wunused-const-variable]
+   26 | constexpr bool profileConvLayer = false;
+      |                ^~~~~~~~~~~~~~~~
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:8:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.hpp:17:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/random:1696:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/geometric_distribution.h:14:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/negative_binomial_distribution.h:17:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/poisson_distribution.h:16:
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/normal_distribution.h:77:12: remark: loop not vectorized: Loop contains an unsupported terminator [-Rpass-analysis=loop-vectorize]
+   77 |     return (*this)(__g, __p_);
+      |            ^
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:441:5: remark: loop not vectorized: Cannot vectorize early exit loop with more than one early exit [-Rpass-analysis=loop-vectorize]
+  441 |     for(std::size_t i = 0; i<kernels_.size(); i++)
+      |     ^
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:441:5: remark: loop not vectorized: instruction cannot be vectorized [-Rpass-analysis=loop-vectorize]
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:441:5: remark: loop not vectorized [-Rpass-missed=loop-vectorize]
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:8:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.hpp:17:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/random:1696:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/geometric_distribution.h:14:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/negative_binomial_distribution.h:17:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/poisson_distribution.h:16:
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/normal_distribution.h:77:12: remark: loop not vectorized: call instruction cannot be vectorized [-Rpass-analysis=loop-vectorize]
+   77 |     return (*this)(__g, __p_);
+      |            ^
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:441:5: remark: loop not vectorized: Cannot vectorize uncountable loop [-Rpass-analysis=loop-vectorize]
+  441 |     for(std::size_t i = 0; i<kernels_.size(); i++)
+      |     ^
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:441:5: remark: loop not vectorized: instruction cannot be vectorized [-Rpass-analysis=loop-vectorize]
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:441:5: remark: loop not vectorized [-Rpass-missed=loop-vectorize]
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:239:17: remark: the cost-model indicates that vectorization is not beneficial [-Rpass-missed=loop-vectorize]
+  239 |                 for(std::size_t inChan=0; inChan < inputChannels; inChan++)
+      |                 ^
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:239:17: remark: the cost-model indicates that interleaving is not beneficial [-Rpass-missed=loop-vectorize]
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:239:17: remark: loop not vectorized: value that could not be identified as reduction is used outside the loop [-Rpass-analysis=loop-vectorize]
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:239:17: remark: loop not vectorized [-Rpass-missed=loop-vectorize]
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:234:13: remark: vectorized loop (vectorization width: 4, interleaved count: 4) [-Rpass=loop-vectorize]
+  234 |             for(int i = 0; i < inputX; i++)
+      |             ^
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:8:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.hpp:13:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/Tensor.hpp:14:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/vector:314:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__vector/vector.h:15:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__algorithm/max.h:14:
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__algorithm/max_element.h:32:11: remark: loop not vectorized: cannot identify array bounds [-Rpass-analysis=loop-vectorize]
+   32 |       if (__comp(*__first, *__i))
+      |           ^
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:333:13: remark: loop not vectorized [-Rpass-missed=loop-vectorize]
+  333 |             for(std::size_t i=0;i<outputX;i++)
+      |             ^
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:158:21: remark: loop not vectorized [-Rpass-missed=loop-vectorize]
+  158 |                     for(std::size_t inChan=0; inChan < inputChannels; inChan++)
+      |                     ^
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:158:21: remark: loop not vectorized [-Rpass-missed=loop-vectorize]
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:307:21: remark: vectorized loop (vectorization width: 4, interleaved count: 4) [-Rpass=loop-vectorize]
+  307 |                     for(int i = 0; i < kX; i++)
+      |                     ^
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:297:13: remark: vectorized loop (vectorization width: 4, interleaved count: 4) [-Rpass=loop-vectorize]
+  297 |             for(std::size_t inChan = 0; inChan < inputChannels; inChan++)
+      |             ^
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:297:13: remark: vectorized loop (vectorization width: 4, interleaved count: 4) [-Rpass=loop-vectorize]
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:355:13: remark: vectorized loop (vectorization width: 4, interleaved count: 4) [-Rpass=loop-vectorize]
+  355 |             for(std::size_t i=0; i<kernels_.dim(3); i++)
+      |             ^
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:372:27: remark: loop not vectorized: call instruction cannot be vectorized [-Rpass-analysis=loop-vectorize]
+  372 |                 std::cout << kernels_(l,0,j,i) << " ";
+      |                           ^
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:371:13: remark: loop not vectorized: Cannot vectorize uncountable loop [-Rpass-analysis=loop-vectorize]
+  371 |             for(std::size_t i=0; i<kernels_.dim(2); i++)
+      |             ^
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:371:13: remark: loop not vectorized: instruction cannot be vectorized [-Rpass-analysis=loop-vectorize]
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:371:13: remark: loop not vectorized [-Rpass-missed=loop-vectorize]
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:385:27: remark: loop not vectorized: call instruction cannot be vectorized [-Rpass-analysis=loop-vectorize]
+  385 |                 std::cout << activation_(l,j,i) << " ";
+      |                           ^
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:384:13: remark: loop not vectorized: Cannot vectorize uncountable loop [-Rpass-analysis=loop-vectorize]
+  384 |             for(std::size_t i=0; i<activation_.dim(2); i++)
+      |             ^
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:384:13: remark: loop not vectorized: instruction cannot be vectorized [-Rpass-analysis=loop-vectorize]
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:384:13: remark: loop not vectorized [-Rpass-missed=loop-vectorize]
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:398:27: remark: loop not vectorized: call instruction cannot be vectorized [-Rpass-analysis=loop-vectorize]
+  398 |                 std::cout << pooled_(l,j,i) << " ";
+      |                           ^
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:397:13: remark: loop not vectorized: Cannot vectorize uncountable loop [-Rpass-analysis=loop-vectorize]
+  397 |             for(std::size_t i=0; i<pooled_.dim(2); i++)
+      |             ^
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:397:13: remark: loop not vectorized: instruction cannot be vectorized [-Rpass-analysis=loop-vectorize]
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:397:13: remark: loop not vectorized [-Rpass-missed=loop-vectorize]
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:8:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.hpp:16:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/queue:276:
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: remark: loop not vectorized: value that could not be identified as reduction is used outside the loop [-Rpass-analysis=loop-vectorize]
+ 2532 |   for (iterator __i = begin(), __e = end(); __i != __e; ++__i)
+      |   ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: remark: loop not vectorized: Cannot vectorize uncountable loop [-Rpass-analysis=loop-vectorize]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: remark: loop not vectorized: could not determine number of loop iterations [-Rpass-analysis=loop-vectorize]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: remark: loop not vectorized [-Rpass-missed=loop-vectorize]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: remark: loop not vectorized: value that could not be identified as reduction is used outside the loop [-Rpass-analysis=loop-vectorize]
+ 2535 |   while (__map_.size() > 2) {
+      |   ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: remark: loop not vectorized: Cannot vectorize uncountable loop [-Rpass-analysis=loop-vectorize]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: remark: loop not vectorized: could not determine number of loop iterations [-Rpass-analysis=loop-vectorize]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: remark: loop not vectorized [-Rpass-missed=loop-vectorize]
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:8:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.hpp:13:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/Tensor.hpp:14:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/vector:314:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__vector/vector.h:37:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__memory/allocator.h:19:
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__new/allocate.h:81:10: remark: loop not vectorized: call instruction cannot be vectorized [-Rpass-analysis=loop-vectorize]
+   81 |   return __builtin_operator_delete(__ptr _LIBCPP_ONLY_IF_SIZED_DEALLOCATION(, __size));
+      |          ^
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:8:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.hpp:16:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/queue:276:
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:623:5: remark: loop not vectorized: instruction cannot be vectorized [-Rpass-analysis=loop-vectorize]
+  623 |     for (; __i != __e; ++__i)
+      |     ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:623:5: remark: loop not vectorized [-Rpass-missed=loop-vectorize]
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:8:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.hpp:13:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/Tensor.hpp:14:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/vector:314:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__vector/vector.h:49:
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__split_buffer:292:3: remark: vectorized loop (vectorization width: 2, interleaved count: 4) [-Rpass=loop-vectorize]
+  292 |   for (; __tx.__pos_ != __tx.__end_; ++__tx.__pos_, (void)++__first) {
+      |   ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__split_buffer:292:3: remark: vectorized loop (vectorization width: 2, interleaved count: 4) [-Rpass=loop-vectorize]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__split_buffer:292:3: remark: vectorized loop (vectorization width: 2, interleaved count: 4) [-Rpass=loop-vectorize]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__split_buffer:292:3: remark: vectorized loop (vectorization width: 2, interleaved count: 4) [-Rpass=loop-vectorize]
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:8:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.hpp:17:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/random:1702:
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/mersenne_twister_engine.h:417:31: remark: loop not vectorized: value that could not be identified as reduction is used outside the loop [-Rpass-analysis=loop-vectorize]
+  417 |   const result_type __yp   = (__x_[__i_] & ~__mask) | (__x_[__j] & __mask);
+      |                               ^
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:8:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.hpp:17:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/random:1696:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/geometric_distribution.h:14:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/negative_binomial_distribution.h:17:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/poisson_distribution.h:16:
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/normal_distribution.h:121:5: remark: loop not vectorized: Cannot vectorize uncountable loop [-Rpass-analysis=loop-vectorize]
+  121 |     do {
+      |     ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/normal_distribution.h:121:5: remark: loop not vectorized: could not determine number of loop iterations [-Rpass-analysis=loop-vectorize]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/normal_distribution.h:121:5: remark: loop not vectorized [-Rpass-missed=loop-vectorize]
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:8:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.hpp:17:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/random:1702:
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/mersenne_twister_engine.h:331:25: remark: loop not vectorized: value that could not be identified as reduction is used outside the loop [-Rpass-analysis=loop-vectorize]
+  331 |     __x_[__i] = (__f * (__x_[__i - 1] ^ __rshift<__w - 2>(__x_[__i - 1])) + __i) & _Max;
+      |                         ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/mersenne_twister_engine.h:330:3: remark: loop not vectorized [-Rpass-missed=loop-vectorize]
+  330 |   for (size_t __i = 1; __i < __n; ++__i)
+      |   ^
+5 warnings generated.
+
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.cpp:26:16: Unused variable 'profileConvLayer'
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/normal_distribution.h:77:12: Loop not vectorized: Loop contains an unsupported terminator
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/normal_distribution.h:77:12: Loop not vectorized: call instruction cannot be vectorized
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__algorithm/max_element.h:32:11: Loop not vectorized: cannot identify array bounds
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: Loop not vectorized: value that could not be identified as reduction is used outside the loop
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: Loop not vectorized: Cannot vectorize uncountable loop
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: Loop not vectorized: could not determine number of loop iterations
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: Loop not vectorized
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: Loop not vectorized: value that could not be identified as reduction is used outside the loop
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: Loop not vectorized: Cannot vectorize uncountable loop
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: Loop not vectorized: could not determine number of loop iterations
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: Loop not vectorized
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__new/allocate.h:81:10: Loop not vectorized: call instruction cannot be vectorized
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:623:5: Loop not vectorized: instruction cannot be vectorized
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:623:5: Loop not vectorized
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__split_buffer:292:3: Vectorized loop (vectorization width: 2, interleaved count: 4)
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__split_buffer:292:3: Vectorized loop (vectorization width: 2, interleaved count: 4)
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__split_buffer:292:3: Vectorized loop (vectorization width: 2, interleaved count: 4)
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__split_buffer:292:3: Vectorized loop (vectorization width: 2, interleaved count: 4)
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/mersenne_twister_engine.h:417:31: Loop not vectorized: value that could not be identified as reduction is used outside the loop
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/normal_distribution.h:121:5: Loop not vectorized: Cannot vectorize uncountable loop
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/normal_distribution.h:121:5: Loop not vectorized: could not determine number of loop iterations
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/normal_distribution.h:121:5: Loop not vectorized
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/mersenne_twister_engine.h:331:25: Loop not vectorized: value that could not be identified as reduction is used outside the loop
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__random/mersenne_twister_engine.h:330:3: Loop not vectorized
+
+CompileC /Users/oliverhomer/Library/Developer/Xcode/DerivedData/neural_net_v1-eweyydvmlpbzrpgmofwiwrnincna/Build/Intermediates.noindex/neural\ net\ v1.build/Release/neural\ net\ v1.build/Objects-normal/arm64/CNN.o /Users/oliverhomer/Xcode/neural\ net\ v1/neural\ net\ v1/CNN.cpp normal arm64 c++ com.apple.compilers.llvm.clang.1_0.compiler (in target 'neural net v1' from project 'neural net v1')
+    cd /Users/oliverhomer/Xcode/neural\ net\ v1
+    
+    Using response file: /Users/oliverhomer/Library/Developer/Xcode/DerivedData/neural_net_v1-eweyydvmlpbzrpgmofwiwrnincna/Build/Intermediates.noindex/neural net v1.build/Release/neural net v1.build/Objects-normal/arm64/82b82416624d2658e5098eb0a28c15c5-common-args.resp
+    
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -x c++ -ivfsstatcache /Users/oliverhomer/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/macosx26.5-25F70-e082c4a02f00227109f4ed75e425c832.sdkstatcache -target arm64-apple-macos14.1 -fmessage-length\=0 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit\=0 -fno-color-diagnostics -fmodules-prune-interval\=86400 -fmodules-prune-after\=345600 -fbuild-session-file\=/Users/oliverhomer/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -fmodules-validate-once-per-build-session -Wnon-modular-include-in-framework-module -Werror\=non-modular-include-in-framework-module -Wno-trigraphs -Wno-missing-field-initializers -Wno-missing-prototypes -Werror\=return-type -Wdocumentation -Wunreachable-code -Wquoted-include-in-framework-header -Werror\=deprecated-objc-isa-usage -Werror\=objc-root-class -Wno-non-virtual-dtor -Wno-overloaded-virtual -Wno-exit-time-destructors -Wno-missing-braces -Wparentheses -Wswitch -Wunused-function -Wno-unused-label -Wno-unused-parameter -Wunused-variable -Wunused-value -Wempty-body -Wuninitialized -Wconditional-uninitialized -Wno-unknown-pragmas -Wno-shadow -Wno-four-char-constants -Wno-conversion -Wconstant-conversion -Wint-conversion -Wbool-conversion -Wenum-conversion -Wno-float-conversion -Wnon-literal-null-conversion -Wobjc-literal-conversion -Wshorten-64-to-32 -Wno-newline-eof -Wno-c++11-extensions -Wno-implicit-fallthrough -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk -fstrict-aliasing -Wdeprecated-declarations -Winvalid-offsetof -Wno-sign-conversion -Winfinite-recursion -Wmove -Wcomma -Wblock-capture-autoreleasing -Wstrict-prototypes -Wrange-loop-analysis -Wno-semicolon-before-method-body -Wunguarded-availability @/Users/oliverhomer/Library/Developer/Xcode/DerivedData/neural_net_v1-eweyydvmlpbzrpgmofwiwrnincna/Build/Intermediates.noindex/neural\ net\ v1.build/Release/neural\ net\ v1.build/Objects-normal/arm64/82b82416624d2658e5098eb0a28c15c5-common-args.resp -MMD -MT dependencies -MF /Users/oliverhomer/Library/Developer/Xcode/DerivedData/neural_net_v1-eweyydvmlpbzrpgmofwiwrnincna/Build/Intermediates.noindex/neural\ net\ v1.build/Release/neural\ net\ v1.build/Objects-normal/arm64/CNN.d --serialize-diagnostics /Users/oliverhomer/Library/Developer/Xcode/DerivedData/neural_net_v1-eweyydvmlpbzrpgmofwiwrnincna/Build/Intermediates.noindex/neural\ net\ v1.build/Release/neural\ net\ v1.build/Objects-normal/arm64/CNN.dia -c /Users/oliverhomer/Xcode/neural\ net\ v1/neural\ net\ v1/CNN.cpp -o /Users/oliverhomer/Library/Developer/Xcode/DerivedData/neural_net_v1-eweyydvmlpbzrpgmofwiwrnincna/Build/Intermediates.noindex/neural\ net\ v1.build/Release/neural\ net\ v1.build/Objects-normal/arm64/CNN.o
+
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/CNN.cpp:192:9: remark: vectorized loop (vectorization width: 4, interleaved count: 4) [-Rpass=loop-vectorize]
+  192 |         for(std::size_t j=0; j<outputVector.size(); j++)
+      |         ^
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/CNN.cpp:175:9: remark: vectorized loop (vectorization width: 4, interleaved count: 4) [-Rpass=loop-vectorize]
+  175 |         for(std::size_t i=0; i<training_data.n_outputs(); i++)
+      |         ^
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/CNN.cpp:172:9: remark: vectorized loop (vectorization width: 4, interleaved count: 4) [-Rpass=loop-vectorize]
+  172 |         for(std::size_t i=0; i<training_data.n_inputs(); i++)
+      |         ^
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/CNN.cpp:227:9: remark: vectorized loop (vectorization width: 4, interleaved count: 4) [-Rpass=loop-vectorize]
+  227 |         for(std::size_t i=0;i<outputGradient.size();i++)outputGradient.data()[i] = inputError(i,index);
+      |         ^
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/CNN.cpp:274:5: remark: vectorized loop (vectorization width: 4, interleaved count: 4) [-Rpass=loop-vectorize]
+  274 |     for(std::size_t j=0; j<input.size(); j++)
+      |     ^
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/CNN.cpp:8:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/CNN.hpp:17:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/Neural.hpp:16:
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/NeuronLayer.hpp:15:7: remark: loop not vectorized: call instruction cannot be vectorized [-Rpass-analysis=loop-vectorize]
+   15 | class NeuronLayer {
+      |       ^
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/CNN.cpp:8:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/CNN.hpp:13:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/Tensor.hpp:14:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/vector:314:
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__vector/vector.h:762:5: remark: loop not vectorized: instruction cannot be vectorized [-Rpass-analysis=loop-vectorize]
+  762 |     while (__new_last != __soon_to_be_end)
+      |     ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__vector/vector.h:762:5: remark: loop not vectorized [-Rpass-missed=loop-vectorize]
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/CNN.cpp:8:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/CNN.hpp:17:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/Neural.hpp:16:
+/Users/oliverhomer/Xcode/neural net v1/neural net v1/NeuronLayer.hpp:15:7: remark: loop not vectorized: call instruction cannot be vectorized [-Rpass-analysis=loop-vectorize]
+   15 | class NeuronLayer {
+      |       ^
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/CNN.cpp:8:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/CNN.hpp:13:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/Tensor.hpp:14:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/vector:314:
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__vector/vector.h:762:5: remark: loop not vectorized: instruction cannot be vectorized [-Rpass-analysis=loop-vectorize]
+  762 |     while (__new_last != __soon_to_be_end)
+      |     ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__vector/vector.h:762:5: remark: loop not vectorized [-Rpass-missed=loop-vectorize]
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/CNN.cpp:8:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/CNN.hpp:16:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.hpp:16:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/queue:276:
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: remark: loop not vectorized: value that could not be identified as reduction is used outside the loop [-Rpass-analysis=loop-vectorize]
+ 2532 |   for (iterator __i = begin(), __e = end(); __i != __e; ++__i)
+      |   ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: remark: loop not vectorized: Cannot vectorize uncountable loop [-Rpass-analysis=loop-vectorize]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: remark: loop not vectorized: could not determine number of loop iterations [-Rpass-analysis=loop-vectorize]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: remark: loop not vectorized [-Rpass-missed=loop-vectorize]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: remark: loop not vectorized: value that could not be identified as reduction is used outside the loop [-Rpass-analysis=loop-vectorize]
+ 2535 |   while (__map_.size() > 2) {
+      |   ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: remark: loop not vectorized: Cannot vectorize uncountable loop [-Rpass-analysis=loop-vectorize]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: remark: loop not vectorized: could not determine number of loop iterations [-Rpass-analysis=loop-vectorize]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: remark: loop not vectorized [-Rpass-missed=loop-vectorize]
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/CNN.cpp:8:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/CNN.hpp:13:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/Tensor.hpp:14:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/vector:314:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__vector/vector.h:37:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__memory/allocator.h:19:
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__new/allocate.h:81:10: remark: loop not vectorized: call instruction cannot be vectorized [-Rpass-analysis=loop-vectorize]
+   81 |   return __builtin_operator_delete(__ptr _LIBCPP_ONLY_IF_SIZED_DEALLOCATION(, __size));
+      |          ^
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/CNN.cpp:8:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/CNN.hpp:16:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/ConvLayer.hpp:16:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/queue:276:
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:623:5: remark: loop not vectorized: instruction cannot be vectorized [-Rpass-analysis=loop-vectorize]
+  623 |     for (; __i != __e; ++__i)
+      |     ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:623:5: remark: loop not vectorized [-Rpass-missed=loop-vectorize]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: remark: loop not vectorized: value that could not be identified as reduction is used outside the loop [-Rpass-analysis=loop-vectorize]
+ 2532 |   for (iterator __i = begin(), __e = end(); __i != __e; ++__i)
+      |   ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: remark: loop not vectorized: Cannot vectorize uncountable loop [-Rpass-analysis=loop-vectorize]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: remark: loop not vectorized: could not determine number of loop iterations [-Rpass-analysis=loop-vectorize]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: remark: loop not vectorized [-Rpass-missed=loop-vectorize]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: remark: loop not vectorized: value that could not be identified as reduction is used outside the loop [-Rpass-analysis=loop-vectorize]
+ 2535 |   while (__map_.size() > 2) {
+      |   ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: remark: loop not vectorized: Cannot vectorize uncountable loop [-Rpass-analysis=loop-vectorize]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: remark: loop not vectorized: could not determine number of loop iterations [-Rpass-analysis=loop-vectorize]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: remark: loop not vectorized [-Rpass-missed=loop-vectorize]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:1508:5: remark: loop not vectorized: value that could not be identified as reduction is used outside the loop [-Rpass-analysis=loop-vectorize]
+ 1508 |     while (__map_.size() > 0) {
+      |     ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:1508:5: remark: loop not vectorized: Cannot vectorize uncountable loop [-Rpass-analysis=loop-vectorize]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:1508:5: remark: loop not vectorized: could not determine number of loop iterations [-Rpass-analysis=loop-vectorize]
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:1508:5: remark: loop not vectorized [-Rpass-missed=loop-vectorize]
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/CNN.cpp:8:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/CNN.hpp:13:
+In file included from /Users/oliverhomer/Xcode/neural net v1/neural net v1/Tensor.hpp:14:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/vector:314:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__vector/vector.h:49:
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/__split_buffer:292:3: remark: vectorized loop (vectorization width: 2, interleaved count: 4) [-Rpass=loop-vectorize]
+  292 |   for (; __tx.__pos_ != __tx.__end_; ++__tx.__pos_, (void)++__first) {
+      |   ^
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: Loop not vectorized: value that could not be identified as reduction is used outside the loop
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: Loop not vectorized: Cannot vectorize uncountable loop
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: Loop not vectorized: could not determine number of loop iterations
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: Loop not vectorized
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: Loop not vectorized: value that could not be identified as reduction is used outside the loop
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: Loop not vectorized: Cannot vectorize uncountable loop
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: Loop not vectorized: could not determine number of loop iterations
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: Loop not vectorized
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:623:5: Loop not vectorized: instruction cannot be vectorized
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:623:5: Loop not vectorized
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: Loop not vectorized: value that could not be identified as reduction is used outside the loop
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: Loop not vectorized: Cannot vectorize uncountable loop
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: Loop not vectorized: could not determine number of loop iterations
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2532:3: Loop not vectorized
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: Loop not vectorized: value that could not be identified as reduction is used outside the loop
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: Loop not vectorized: Cannot vectorize uncountable loop
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: Loop not vectorized: could not determine number of loop iterations
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:2535:3: Loop not vectorized
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:1508:5: Loop not vectorized: value that could not be identified as reduction is used outside the loop
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:1508:5: Loop not vectorized: Cannot vectorize uncountable loop
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:1508:5: Loop not vectorized: could not determine number of loop iterations
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk/usr/include/c++/v1/deque:1508:5: Loop not vectorized
+
+
+
+Build succeeded    23/09/2026, 12:19    5.5 seconds
