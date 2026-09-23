@@ -126,26 +126,26 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, const bool returnInputG
                 std::size_t indexX = 0;
                 const Scalar* maxPoolSourceRow = maxPoolSourceChannel + (j * outputX);
                 const Scalar* outputGradientRow = outputGradientChannel + (j * outputX);
-
+                
                 for(std::size_t i=0;i<outputX;i++)
                 {
                     //identify winner from activation tensor
                     const std::size_t index = static_cast<std::size_t>(*(maxPoolSourceRow + i));
                     const std::size_t dx = (index == 2 || index == 0) ? 0 : 1;
                     const std::size_t dy = index < 2 ? 0 : 1;
-
+                    
                     const std::size_t winX = indexX + dx;
                     const std::size_t winY = indexY + dy;
                     const int winXi = static_cast<int>(winX);
                     const int winYi = static_cast<int>(winY);
-
+                    
                     //split out faster loop if not near edges
                     const bool nodanger =
-                        winXi > 0 &&
-                        winXi < static_cast<int>(inputX) - 1 &&
-                        winYi > 0 &&
-                        winYi < static_cast<int>(inputY) - 1;
-
+                    winXi > 0 &&
+                    winXi < static_cast<int>(inputX) - 1 &&
+                    winYi > 0 &&
+                    winYi < static_cast<int>(inputY) - 1;
+                    
                     if(nodanger)
                     {
                         
@@ -241,10 +241,10 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, const bool returnInputG
                             biasGradient_[outChan] += g;
                         }
                     }
+                    indexX += stride;
                 }
-                indexX += stride;
+                indexY += stride;
             }
-            indexY += stride;
         }
         return inputGradient;
     }
@@ -395,20 +395,20 @@ void ConvLayer::convolve_()
     {
         const Scalar* kernelOutChannel = kernelData + outChan * kernelStride * inputChannels;
         Scalar* activationChannel = activationData + outChan * channelStride;
-        for(int j = 0; j < inputY; j++)
+       
+        //Interior Section
+        
+        for(int j = 1; j < inputY-1; j++)
         {
             Scalar* activationRow = activationChannel + (j * inputX);
-            for(int i = 0; i < inputX; i++)
+            for(int i = 1; i < inputX-1; i++)
             {
-                const bool nodanger = (j > 0 && i > 0 && j < inputY-2 && i < inputX-2);
                 Scalar sum = biases_[outChan];
                 for(std::size_t inChan=0; inChan < inputChannels; inChan++)
                 {
                     const Scalar* channel = inputData + inChan * channelStride;
                     const Scalar* kernelInputChannel = kernelOutChannel + inChan * kernelStride;
 
-                    if(nodanger)
-                    {
                         const Scalar* r0 = channel + (j - 1) * inputX + i - 1;
                         const Scalar* r1 = channel + j * inputX + i - 1;
                         const Scalar* r2 = channel + (j + 1) * inputX + i - 1;
@@ -422,24 +422,109 @@ void ConvLayer::convolve_()
                             + r2[0] * kernelInputChannel[6]
                             + r2[1] * kernelInputChannel[7]
                             + r2[2] * kernelInputChannel[8];
-                    }
-                    else
-                    {
-                        for(int n=-1;n<2;n++)
-                        {
-                            const Scalar* row = channel + (j+n) * inputX + i;
-                            const Scalar* kernelRow = kernelInputChannel + (n+1) * kernelY;
+                }
+                *(activationRow + i) = sum > 0.0f ? sum : 0.0f;
+            }
+        }
+        
+        //edges section
+        
+        //top and bottom edges
+        for(std::size_t j = 0; j < inputY ; j += (inputY - 1))
+        {
+            Scalar* activationRow = activationChannel + (j * inputX);
+            for(int i = 1; i < inputX - 1; i++)
+            {
+                Scalar sum = biases_[outChan];
+                for(std::size_t inChan=0; inChan < inputChannels; inChan++)
+                {
+                    const Scalar* channel = inputData + inChan * channelStride;
+                    const Scalar* kernelInputChannel = kernelOutChannel + inChan * kernelStride;
 
-                            for(int m=-1;m<2;m++)
-                            {
-                                sum += (j+n<0 || j+n>inputY-1 || i+m<0 || i+m>inputX-1) ? 0.0f : (*(row + m)) * (*(kernelRow + m + 1));
-                            }
+                    const Scalar* r0 = channel + (j - 1) * inputX + i - 1; // all invalid if j = 0
+                    const Scalar* r1 = channel + j * inputX + i - 1; //all valid
+                    const Scalar* r2 = channel + (j + 1) * inputX + i - 1; //all invalid if j = inputY - 1
+
+                    if(j==0) // top edge
+                    {
+                        sum += r1[0] * kernelInputChannel[3]
+                            + r1[1] * kernelInputChannel[4]
+                            + r1[2] * kernelInputChannel[5]
+                            + r2[0] * kernelInputChannel[6]
+                            + r2[1] * kernelInputChannel[7]
+                            + r2[2] * kernelInputChannel[8];
+                    }
+                    else //bottom edge
+                    {
+                        sum += r0[0] * kernelInputChannel[0]
+                        + r0[1] * kernelInputChannel[1]
+                        + r0[2] * kernelInputChannel[2]
+                        + r1[0] * kernelInputChannel[3]
+                        + r1[1] * kernelInputChannel[4]
+                        + r1[2] * kernelInputChannel[5];
+                    }
+                }
+                *(activationRow + i) = sum > 0.0f ? sum : 0.0f;
+            }
+        }
+        
+        
+        //left and right edges
+        for(std::size_t j = 0; j < inputY; j++)
+        {
+            Scalar* activationRow = activationChannel + (j * inputX);
+            for(int i = 0; i < inputX; i+=(inputX - 1))
+            {
+                Scalar sum = biases_[outChan];
+                for(std::size_t inChan=0; inChan < inputChannels; inChan++)
+                {
+                    const Scalar* channel = inputData + inChan * channelStride;
+                    const Scalar* kernelInputChannel = kernelOutChannel + inChan * kernelStride;
+
+                    const Scalar* r0 = channel + (j - 1) * inputX + i - 1; // all invalid if j = 0
+                    const Scalar* r1 = channel + j * inputX + i - 1; //valid for all j
+                    const Scalar* r2 = channel + (j + 1) * inputX + i - 1; // all invalid if j = inputY - 1
+
+                    if(j == 0) // top edge
+                    {
+                        if(i == 0) // left edge so all the [0] are invalid
+                        {
+                            sum += r1[1] * kernelInputChannel[4]
+                            + r1[2] * kernelInputChannel[5]
+                            + r2[1] * kernelInputChannel[7]
+                            + r2[2] * kernelInputChannel[8];
+                        }
+                        else //right edge so all the [2] are invalid
+                        {
+                            sum += r1[0] * kernelInputChannel[3]
+                                + r1[1] * kernelInputChannel[4]
+                                + r2[0] * kernelInputChannel[6]
+                                + r2[1] * kernelInputChannel[7];
+                        }
+                    }
+                    else if(j == (inputY-1)) //bottom edge
+                    {
+                        if(i == 0) // left edge so all the [0] are invalid
+                        {
+                            sum += r0[1] * kernelInputChannel[1]
+                            + r0[2] * kernelInputChannel[2]
+                            + r1[1] * kernelInputChannel[4]
+                            + r1[2] * kernelInputChannel[5];
+                        }
+                        else //right edge so all the [2] are invalid
+                        {
+                            sum += r0[0] * kernelInputChannel[0]
+                            + r0[1] * kernelInputChannel[1]
+                            + r1[0] * kernelInputChannel[3]
+                            + r1[1] * kernelInputChannel[4];
                         }
                     }
                 }
                 *(activationRow + i) = sum > 0.0f ? sum : 0.0f;
             }
         }
+        
+        
     }
 }
 
@@ -473,8 +558,8 @@ void ConvLayer::gradient_descent(const Scalar scale)
                     for(int i = 0; i < kX; i++)
                         *(kernelRow + i) -= *(kernelGradientRow + i) * scale;
                 }
-                biases_[outChan] -= biasGradient_[outChan] * scale;
             }
+            biases_[outChan] -= biasGradient_[outChan] * scale;
         }
 }
 

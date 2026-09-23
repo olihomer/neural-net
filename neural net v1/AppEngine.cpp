@@ -89,7 +89,7 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
     const ActivationType outputActivationType = activationTypeFor(outputActivation);
     const ModelKind selectedModel = modelKind == static_cast<int>(ModelKind::CNN) ? ModelKind::CNN : ModelKind::MLP;
     
-    const int evaluationExamples = 100;
+    const int evaluationExamples = 1000;
     
     mnist_data mnist("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", trainingExamples);
     
