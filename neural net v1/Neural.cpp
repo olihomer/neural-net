@@ -31,13 +31,8 @@ std::pair<std::size_t, Scalar> Neural::predict(const std::vector<Scalar>& input)
     return {index,get_output(index)};
 }
 
-void Neural::load(const std::string& filename)
+void Neural::load(std::ifstream& file)
 {
-    std::ifstream file(filename, std::ios::binary);
-    
-    if(!file)
-        throw std::runtime_error("Load file could not be opened");
-    
     //Magic number
     char MAGIC[] = {'X','X','X','X'};
     file.read(reinterpret_cast<char*>(&MAGIC), sizeof(MAGIC));
@@ -80,13 +75,20 @@ void Neural::load(const std::string& filename)
         throw std::runtime_error("Failed while loading");
 }
 
-void Neural::save(const std::string& filename) const
+
+void Neural::load(const std::string& filename)
 {
-    std::ofstream file(filename, std::ios::binary);
+    std::ifstream file(filename, std::ios::binary);
     
     if(!file)
-        throw std::runtime_error("Save file could not be opened");
+        throw std::runtime_error("Load file could not be opened");
     
+    load(file);
+    }
+
+
+void Neural::save(std::ofstream& file) const
+{
     //Magic number
     constexpr char MAGIC[] = {'N','N','E','T'};
     file.write(MAGIC, sizeof(MAGIC));
@@ -113,6 +115,16 @@ void Neural::save(const std::string& filename) const
     
     if(!file)
         throw std::runtime_error("Failed while saving");
+}
+        
+void Neural::save(const std::string& filename) const
+{
+    std::ofstream file(filename, std::ios::binary);
+    
+    if(!file)
+        throw std::runtime_error("Save file could not be opened");
+    
+    save(file);
 }
 
 double Neural::trainBatch(const data_set &training_data, const std::span<const std::size_t> batch)

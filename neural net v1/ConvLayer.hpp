@@ -58,6 +58,8 @@ public:
     std::size_t kernelWidth() const {return kernels_.dim(3);};
     Scalar kernelValue(std::size_t outputChannel, std::size_t inputChannel, std::size_t y, std::size_t x) const;
     
+    void save(std::ofstream& file) const;
+    void load(std::ifstream& file);
     
     static constexpr std::size_t stride = 2;
     

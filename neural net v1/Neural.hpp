@@ -61,6 +61,9 @@ public:
 
     void save(const std::string& filename) const;
     void load(const std::string& filename);
+    void save(std::ofstream& stream) const;
+    void load(std::ifstream& stream);
+
     std::pair<std::size_t, Scalar> predict(const std::vector<Scalar>& input);
     
 private:

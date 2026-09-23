@@ -34,9 +34,7 @@ public:
     }
 
     void save(std::ofstream& file) const;
-    
     void load(std::ifstream& file);
-    
 
     void zero_gradients(std::size_t prev_size)
     {

@@ -141,7 +141,9 @@ bool AppEngine::saveNetwork(const char *path)
 
     try
     {
-        mlp_.save(path);
+        activeModel_ == ModelKind::CNN
+        ? cnn_.save(path)
+        : mlp_.save(path);
         return true;
     }
     catch(const std::exception& error)
@@ -158,7 +160,9 @@ bool AppEngine::loadNetwork(const char *path)
 
     try
     {
-        mlp_.load(path);
+        activeModel_ == ModelKind::CNN
+        ? cnn_.load(path)
+        : mlp_.load(path);
         return true;
     }
     catch(const std::exception& error)

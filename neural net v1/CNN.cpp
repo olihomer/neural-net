@@ -10,6 +10,7 @@
 #include <iostream>
 #include <chrono>
 #include <algorithm>
+#include <fstream>
 
 namespace
 {
@@ -67,7 +68,7 @@ const Tensor& CNN::forward(const Tensor& input)
     std::chrono::duration<double> conv2ForwardElapsed{0.0};
     if constexpr (profileCNN)
         conv2ForwardElapsed = std::chrono::steady_clock::now() - conv2ForwardStart;
-    
+
     std::chrono::steady_clock::time_point flattenStart;
     if constexpr (profileCNN)
         flattenStart = std::chrono::steady_clock::now();
@@ -91,7 +92,7 @@ const Tensor& CNN::forward(const Tensor& input)
                       << (flattenElapsed.count() / forwardSeconds) * 100.0 << "%" << std::endl;
         }
     }
-    
+
     return x2;
 }
 
@@ -130,14 +131,14 @@ void CNN::backward(const Tensor& outputGradient)
                       << (conv1BackwardElapsed.count() / totalBackwardSeconds) * 100.0 << "%" << std::endl;
         }
     }
-    
+
 }
 
 
 void CNN::gradient_descent(std::size_t trainingSize, double learningRate)
 {
     const Scalar scale = static_cast<Scalar>(learningRate) / static_cast<Scalar>(trainingSize);
-    
+
     conv1_.gradient_descent(scale);
     conv2_.gradient_descent(scale);
     classifier_.gradient_descent(trainingSize, learningRate);
@@ -152,47 +153,47 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
     std::chrono::duration<double> forwardElapsed{0.0};
     std::chrono::duration<double> classifierTrainElapsed{0.0};
     std::chrono::duration<double> backwardElapsed{0.0};
-    
+
     double total_error = 0;
-    
+
     conv1_.zeroGradients();
     conv2_.zeroGradients();
-    
+
     Matrix MLPinputs(classifier_.nInputs_(),batch.size());
     Matrix MLPtargets(classifier_.nOutputs_(),batch.size());
-    
+
     //CNN forward pass and populate matrix of CNN outputs for entire batch
     for(std::size_t index=0; index<batch.size(); index++)
     {
         //load example into Tensor
         Tensor input({1,28,28});
-        
+
         for(std::size_t i=0; i<training_data.n_inputs(); i++)
             input.data()[i]=training_data.get_data()[batch[index]].inputs[i];
-        
+
         for(std::size_t i=0; i<training_data.n_outputs(); i++)
             MLPtargets(i,index)=training_data.get_data()[batch[index]].outputs[i];
-        
+
         //Put through CNN
         std::chrono::steady_clock::time_point forwardStart;
         if constexpr (profileCNN)
             forwardStart = std::chrono::steady_clock::now();
 
         const auto& outputTensor = forward(input);
-        
+
         //cache network values for backwards pass
         conv1_.pushCache();
         conv2_.pushCache();
 
         if constexpr (profileCNN)
             forwardElapsed += std::chrono::steady_clock::now() - forwardStart;
-        
+
         for(std::size_t j=0; j<outputTensor.size(); j++)
             MLPinputs(j,index) = outputTensor.data()[j];
     }
 
     //Batch backprop through MLP
-    
+
     std::chrono::steady_clock::time_point classifierTrainStart;
     if constexpr (profileCNN)
         classifierTrainStart = std::chrono::steady_clock::now();
@@ -205,13 +206,13 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
     Matrix inputError = classifier_.get_input_error();
 
     //inputError matrix now contains error gradients for entire batch. Backprop through CNN one at a time.
-    
+
     Tensor outputGradient({conv2_.getOutputChannels(), conv2_.getOutputHeight(), conv2_.getOutputWidth()});
- 
+
     for(std::size_t index=0; index<batch.size(); index++)
     {
         //retrieve cache values from forward run in order for backprop to work
-        
+
         std::chrono::steady_clock::time_point forwardStart;
         if constexpr (profileCNN)
             forwardStart = std::chrono::steady_clock::now();
@@ -221,7 +222,7 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
 
         if constexpr (profileCNN)
             forwardElapsed += std::chrono::steady_clock::now() - forwardStart;
-        
+
         for(std::size_t i=0;i<outputGradient.size();i++)outputGradient.data()[i] = inputError(i,index);
 
         std::chrono::steady_clock::time_point backwardStart;
@@ -239,7 +240,7 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
         const auto batchEnd = std::chrono::steady_clock::now();
         const std::chrono::duration<double> batchElapsed = batchEnd - batchStart;
         const double batchSeconds = batchElapsed.count();
-        
+
         if(batchSeconds > 0.0)
         {
             std::cout << "CNN trainBatch benchmark: " << batch.size() << " samples in "
@@ -252,7 +253,7 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
                       << (backwardElapsed.count() / batchSeconds) * 100.0 << "%" << std::endl;
         }
     }
-    
+
     return total_error;
 }
 
@@ -268,16 +269,73 @@ std::pair<std::size_t, Scalar> CNN::predict(const std::vector<Scalar>& input)
 
     //load example into Tensor
     Tensor inputTensor({1,conv1_.getInputHeight(),conv1_.getInputWidth()});
-        
+
     for(std::size_t j=0; j<input.size(); j++)
         inputTensor.data()[j] = input[j];
 
     //Put through CNN
     auto outputTensor = forward(inputTensor);
-    
+
     auto vec = std::vector<Scalar>(outputTensor.data(),outputTensor.data()+outputTensor.size());
     set_inputMLP(vec);
     propagateMLP();
-    
+
     return std::pair<std::size_t, Scalar>(find_highest_output(),get_output(find_highest_output()));
+}
+
+
+void CNN::save(const std::string& filename) const
+{
+    std::ofstream file(filename, std::ios::binary);
+
+    if(!file)
+        throw std::runtime_error("Save file could not be opened");
+
+    //Magic number
+    constexpr char MAGIC[] = {'N','C','N','N'};
+    file.write(MAGIC, sizeof(MAGIC));
+
+    //Version
+    const uint8_t version = 3;
+    file.write(reinterpret_cast<const char*>(&version),sizeof(version));
+
+    conv1_.save(file);
+    conv2_.save(file);
+    classifier_.save(file);
+
+    if(!file)
+        throw std::runtime_error("Failed while saving");
+}
+
+
+void CNN::load(const std::string& filename)
+{
+    std::ifstream file(filename, std::ios::binary);
+
+    if(!file)
+        throw std::runtime_error("Load file could not be opened");
+
+    char MAGIC[] = {'X','X','X','X'};
+    file.read(reinterpret_cast<char*>(&MAGIC), sizeof(MAGIC));
+
+    if(std::string(MAGIC,sizeof(MAGIC))!="NCNN")
+        throw std::runtime_error("Not a valid CNN file");
+
+    //Version
+    std::uint8_t version;
+    file.read(reinterpret_cast<char*>(&version),sizeof(version));
+
+    if(version!=3)
+        throw std::runtime_error("Unsupported file version");
+
+    conv1_.load(file);
+    conv2_.load(file);
+    classifier_.load(file);
+
+    const std::size_t classifierInputs = conv2_.getOutputChannels() * conv2_.getOutputHeight() * conv2_.getOutputWidth();
+    if(classifier_.nInputs_() != classifierInputs)
+        throw std::runtime_error("Loaded CNN classifier input size does not match convolution output size");
+
+    if(!file)
+        throw std::runtime_error("Failed while loading CNN");
 }

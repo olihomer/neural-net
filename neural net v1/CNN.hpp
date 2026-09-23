@@ -43,6 +43,8 @@ public:
     std::size_t find_highest_output(void){return classifier_.find_highest_output();};
     std::pair<std::size_t, Scalar> predict(const std::vector<Scalar>& input);
     
+    void save(const std::string& filename) const;
+    void load(const std::string& filename);
 };
 
 
