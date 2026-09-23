@@ -441,9 +441,9 @@ void ConvLayer::convolve_()
                     const Scalar* channel = inputData + inChan * channelStride;
                     const Scalar* kernelInputChannel = kernelOutChannel + inChan * kernelStride;
 
-                    const Scalar* r0 = channel + (j - 1) * inputX + i - 1; // all invalid if j = 0
+                    const Scalar* r0 = (j != 0) ? channel + (j - 1) * inputX + i - 1: channel; // all invalid if j = 0
                     const Scalar* r1 = channel + j * inputX + i - 1; //all valid
-                    const Scalar* r2 = channel + (j + 1) * inputX + i - 1; //all invalid if j = inputY - 1
+                    const Scalar* r2 = (j != inputY - 1) ? channel + (j + 1) * inputX + i - 1: channel; //all invalid if j = inputY - 1
 
                     if(j==0) // top edge
                     {
@@ -481,9 +481,9 @@ void ConvLayer::convolve_()
                     const Scalar* channel = inputData + inChan * channelStride;
                     const Scalar* kernelInputChannel = kernelOutChannel + inChan * kernelStride;
 
-                    const Scalar* r0 = channel + (j - 1) * inputX + i - 1; // all invalid if j = 0
-                    const Scalar* r1 = channel + j * inputX + i - 1; //valid for all j
-                    const Scalar* r2 = channel + (j + 1) * inputX + i - 1; // all invalid if j = inputY - 1
+                    const Scalar* r0 = (j != 0) ? channel + (j - 1) * inputX + i - 1: channel; // all invalid if j = 0
+                    const Scalar* r1 = channel + j * inputX + i - 1; //all valid
+                    const Scalar* r2 = (j != inputY - 1) ? channel + (j + 1) * inputX + i - 1: channel; //all invalid if j = inputY - 1
 
                     if(j == 0) // top edge
                     {
@@ -518,6 +518,28 @@ void ConvLayer::convolve_()
                             + r1[0] * kernelInputChannel[3]
                             + r1[1] * kernelInputChannel[4];
                         }
+                    }
+                    else // middle of the left/right rows
+                    {
+                        if(i==0) //left so [0] are invalid
+                        {
+                            sum += r0[1] * kernelInputChannel[1]
+                                + r0[2] * kernelInputChannel[2]
+                                + r1[1] * kernelInputChannel[4]
+                                + r1[2] * kernelInputChannel[5]
+                                + r2[1] * kernelInputChannel[7]
+                                + r2[2] * kernelInputChannel[8];
+                        }
+                        else //right so [2] are invalid
+                        {
+                            sum += r0[0] * kernelInputChannel[0]
+                                + r0[1] * kernelInputChannel[1]
+                                + r1[0] * kernelInputChannel[3]
+                                + r1[1] * kernelInputChannel[4]
+                                + r2[0] * kernelInputChannel[6]
+                            + r2[1] * kernelInputChannel[7];
+                        }
+                        
                     }
                 }
                 *(activationRow + i) = sum > 0.0f ? sum : 0.0f;
