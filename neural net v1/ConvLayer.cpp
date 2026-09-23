@@ -39,7 +39,7 @@ kernelGradient_({outputChannels,inputChannels,3,3})
 {
     biases_.resize(outputChannels);
     biasGradient_.resize(outputChannels);
-    
+
     initialiseWeights();
 }
 
@@ -78,131 +78,299 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, const bool returnInputG
     // - bias gradients
     // - input gradients
     // return input gradients
-    
+
     if(outputGradient.shape()!=pooled_.shape())
         throw std::runtime_error("Backwards gradient shape mismatch");
-    
+
     // unpool + unRelu
-    
+
     const std::size_t outputChannels = activation_.dim(0);
     const std::size_t outputY = outputGradient.dim(1);
     const std::size_t outputX = outputGradient.dim(2);
-    
-    //declaration of variables/pointers that might not get used
-    Tensor inputGradient;
-    Scalar* inputGradientData;
-    Scalar* inputGradientInChannel;
-    Scalar* inputGradientRow;
-    
-    if(returnInputGradient==true)
-    {
-        inputGradient = Tensor({input_.dim(0),input_.dim(1),input_.dim(2)});
-        Scalar* inputGradientData = inputGradient.data();
-    }
-        
+
     const auto inputY = input_.dim(1);
     const auto inputX = input_.dim(2);
     const auto inputChannels = input_.dim(0);
 
     //faster access code
-    
+
     const Scalar* kernelData = kernels_.data();
     Scalar* kernelGradientData = kernelGradient_.data();
     const Scalar* inputData = input_.data();
     const Scalar* activationData = activation_.data();
     const Scalar* maxPoolSourceData = maxPoolSource_.data();
     const Scalar* outputGradientData = outputGradient.data();
-    
+
     const std::size_t kernelStride = kernels_.dim(2) * kernels_.dim(3);
     const std::size_t kernelX = kernels_.dim(3);
-    
-    for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
-    {
-        std::size_t indexX = 0;
-        std::size_t indexY = 0;
-        
-        const Scalar* kernelOutChannel = kernelData + (outChan * inputChannels * kernelStride);
-        Scalar* kernelGradientOutChannel = kernelGradientData + (outChan * inputChannels * kernelStride);
-        const Scalar* activationChannel = activationData + (outChan * inputY * inputX);
-        const Scalar* maxPoolSourceChannel = maxPoolSourceData + (outChan * outputY * outputX);
-        const Scalar* outputGradientChannel = outputGradientData + (outChan * outputY * outputX);
-        
-        bool nodanger = false;
-        
-        for(std::size_t j=0;j<outputY;j++)
-        {
-            const Scalar* maxPoolSourceRow = maxPoolSourceChannel + (j * outputX);
-            const Scalar* outputGradientRow = outputGradientChannel + (j * outputX);
 
-            for(std::size_t i=0;i<outputX;i++)
+    //split function into two depending whether we want an input gradient or not
+
+    if(returnInputGradient)
+    {
+        Tensor inputGradient({input_.dim(0), input_.dim(1), input_.dim(2)});
+        Scalar* inputGradientData = inputGradient.data();
+
+        for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
+        {
+            std::size_t indexY = 0;
+
+            const Scalar* kernelOutChannel = kernelData + (outChan * inputChannels * kernelStride);
+            Scalar* kernelGradientOutChannel = kernelGradientData + (outChan * inputChannels * kernelStride);
+            const Scalar* activationChannel = activationData + (outChan * inputY * inputX);
+            const Scalar* maxPoolSourceChannel = maxPoolSourceData + (outChan * outputY * outputX);
+            const Scalar* outputGradientChannel = outputGradientData + (outChan * outputY * outputX);
+
+            for(std::size_t j=0;j<outputY;j++)
             {
-                //identify winner from activation tensor
-                std::size_t index = (std::size_t)(*(maxPoolSourceRow + i));
-                std::size_t dx = (index == 2 || index == 0) ? 0 : 1;
-                std::size_t dy = index < 2 ? 0 : 1;
-                
-                std::size_t winX = indexX + dx;
-                std::size_t winY = indexY + dy;
-                
-                nodanger = false;
-                if(winX > 0 && winX < inputX-2 && winY > 0 && winY < inputY-2)nodanger=true;
-                
-                if((*(activationChannel + (winY * inputX) + winX) > 0.0)) //unRelu => only carry gradient back if positive activation
+                std::size_t indexX = 0;
+                const Scalar* maxPoolSourceRow = maxPoolSourceChannel + (j * outputX);
+                const Scalar* outputGradientRow = outputGradientChannel + (j * outputX);
+
+                for(std::size_t i=0;i<outputX;i++)
                 {
-                    //carry back the gradient. store as a local temp for now to avoid multiple lookups
-                    const auto g = *(outputGradientRow + i);
-                    
-                    // do the unconvolve here!
-                    // (winY, winX) is a coordinate of a live preactivation
-                   
-                    for(std::size_t inChan=0; inChan < inputChannels; inChan++)
+                    //identify winner from activation tensor
+                    const std::size_t index = static_cast<std::size_t>(*(maxPoolSourceRow + i));
+                    const std::size_t dx = (index == 2 || index == 0) ? 0 : 1;
+                    const std::size_t dy = index < 2 ? 0 : 1;
+
+                    const std::size_t winX = indexX + dx;
+                    const std::size_t winY = indexY + dy;
+                    const int winXi = static_cast<int>(winX);
+                    const int winYi = static_cast<int>(winY);
+
+                    //split out faster loop if not near edges
+                    const bool nodanger =
+                        winXi > 0 &&
+                        winXi < static_cast<int>(inputX) - 1 &&
+                        winYi > 0 &&
+                        winYi < static_cast<int>(inputY) - 1;
+
+                    if(nodanger)
                     {
-                        Scalar* kernelGradientInChannel = kernelGradientOutChannel + (inChan * kernelStride);
-                        const Scalar* kernelInChannel = kernelOutChannel + (inChan * kernelStride);
-                        const Scalar* inputInChannel = inputData + (inChan * inputY * inputX);
-                        if(returnInputGradient==true)
-                            inputGradientInChannel = inputGradientData + (inChan * inputY * inputX);
                         
-                        for(int n=-1;n<2;n++)
+                        if(*(activationChannel + (winY * inputX) + winX) > 0.0f)
                         {
-                            Scalar* kernelGradientRow = kernelGradientInChannel + ((n + 1) * kernelX);
-                            const Scalar* kernelRow = kernelInChannel + + ((n + 1) * kernelX);
-                            const Scalar* inputRow = inputInChannel + ((winY + n) * inputX);
-                            if(returnInputGradient==true)
-                                inputGradientRow = inputGradientInChannel + ((winY + n) * inputX);
+                            //carry back the gradient. store as a local temp for now to avoid multiple lookups
+                            const auto g = *(outputGradientRow + i);
                             
-                            for(int m=-1;m<2;m++)
+                            // do the unconvolve here!
+                            // (winY, winX) is a coordinate of a live preactivation
+                            for(std::size_t inChan=0; inChan < inputChannels; inChan++)
                             {
-                                if(nodanger)
+                                Scalar* kernelGradientInChannel = kernelGradientOutChannel + (inChan * kernelStride);
+                                const Scalar* kernelInChannel = kernelOutChannel + (inChan * kernelStride);
+                                const Scalar* inputInChannel = inputData + (inChan * inputY * inputX);
+                                Scalar* inputGradientInChannel = inputGradientData + (inChan * inputY * inputX);
+                                
+                                
+                                //unrolled kernel gradient loop
+                                
+                                Scalar* kg0 = kernelGradientInChannel;
+                                Scalar* kg1 = kg0 + 3;
+                                Scalar* kg2 = kg1 + 3;
+                                
+                                const Scalar* in0 = inputInChannel + (winY - 1) * inputX + winX - 1;
+                                const Scalar* in1 = in0 + inputX;
+                                const Scalar* in2 = in1 + inputX;
+                                
+                                kg0[0] += in0[0] * g;
+                                kg0[1] += in0[1] * g;
+                                kg0[2] += in0[2] * g;
+                                
+                                kg1[0] += in1[0] * g;
+                                kg1[1] += in1[1] * g;
+                                kg1[2] += in1[2] * g;
+                                
+                                kg2[0] += in2[0] * g;
+                                kg2[1] += in2[1] * g;
+                                kg2[2] += in2[2] * g;
+                                
+                                for(int n=-1;n<2;n++)
                                 {
-                                    (*(kernelGradientRow + (m + 1))) += (*(inputRow + (winX + m))) * g;
-                                    if(returnInputGradient==true)
-                                        (*(inputGradientRow + (winX + m))) += (*(kernelRow + (m + 1))) * g;
-                                }
-                                else
-                                {
-                                    if(!(winY+n<0 || winY+n>inputY-1 || winX+m<0 || winX+m>inputX-1))
-                                    {
-                                        (*(kernelGradientRow + (m + 1))) += (*(inputRow + (winX + m))) * g;
-                                        if(returnInputGradient==true)
-                                            (*(inputGradientRow + (winX + m))) += (*(kernelRow + (m + 1))) * g;
-                                    }
+                                    const Scalar* kernelRow = kernelInChannel + ((n + 1) * kernelX);
+                                    Scalar* inputGradientRow = inputGradientInChannel + ((winYi + n) * inputX);
+                                    
+                                    for(int m=-1;m<2;m++)
+                                        (*(inputGradientRow + (winXi + m))) += (*(kernelRow + (m + 1))) * g;
                                 }
                             }
+                            biasGradient_[outChan] += g;
                         }
-                        biasGradient_[outChan] += g;
+                    }
+                    else
+                    {
+                        if(*(activationChannel + (winY * inputX) + winX) > 0.0f)
+                        {
+                            //carry back the gradient. store as a local temp for now to avoid multiple lookups
+                            const auto g = *(outputGradientRow + i);
+                            
+                            // do the unconvolve here!
+                            // (winY, winX) is a coordinate of a live preactivation
+                            for(std::size_t inChan=0; inChan < inputChannels; inChan++)
+                            {
+                                Scalar* kernelGradientInChannel = kernelGradientOutChannel + (inChan * kernelStride);
+                                const Scalar* kernelInChannel = kernelOutChannel + (inChan * kernelStride);
+                                const Scalar* inputInChannel = inputData + (inChan * inputY * inputX);
+                                Scalar* inputGradientInChannel = inputGradientData + (inChan * inputY * inputX);
+                                
+                                for(int n=-1;n<2;n++)
+                                {
+                                    Scalar* kernelGradientRow = kernelGradientInChannel + ((n + 1) * kernelX);
+                                    const Scalar* kernelRow = kernelInChannel + ((n + 1) * kernelX);
+                                    
+                                    const int inputRowIndex = winYi + n;
+                                    if(inputRowIndex < 0 || inputRowIndex >= static_cast<int>(inputY))
+                                        continue;
+                                    
+                                    const Scalar* inputRow = inputInChannel + (inputRowIndex * inputX);
+                                    Scalar* inputGradientRow = inputGradientInChannel + (inputRowIndex * inputX);
+                                    
+                                    for(int m=-1;m<2;m++)
+                                    {
+                                        const int inputColIndex = winXi + m;
+                                        if(inputColIndex < 0 || inputColIndex >= static_cast<int>(inputX))
+                                            continue;
+                                        
+                                        (*(kernelGradientRow + (m + 1))) += (*(inputRow + inputColIndex)) * g;
+                                        (*(inputGradientRow + inputColIndex)) += (*(kernelRow + (m + 1))) * g;
+                                    }
+                                    
+                                }
+                            }
+                            biasGradient_[outChan] += g;
+                        }
                     }
                 }
-                
                 indexX += stride;
             }
             indexY += stride;
-            indexX = 0;
         }
+        return inputGradient;
     }
-    
-    return inputGradient;
-    
+    else //don't need the input gradient
+    {
+        for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
+        {
+            std::size_t indexY = 0;
+
+            Scalar* kernelGradientOutChannel = kernelGradientData + (outChan * inputChannels * kernelStride);
+            const Scalar* activationChannel = activationData + (outChan * inputY * inputX);
+            const Scalar* maxPoolSourceChannel = maxPoolSourceData + (outChan * outputY * outputX);
+            const Scalar* outputGradientChannel = outputGradientData + (outChan * outputY * outputX);
+
+            for(std::size_t j=0;j<outputY;j++)
+            {
+                std::size_t indexX = 0;
+                const Scalar* maxPoolSourceRow = maxPoolSourceChannel + (j * outputX);
+                const Scalar* outputGradientRow = outputGradientChannel + (j * outputX);
+
+                for(std::size_t i=0;i<outputX;i++)
+                {
+                    //identify winner from activation tensor
+                    const std::size_t index = static_cast<std::size_t>(*(maxPoolSourceRow + i));
+                    const std::size_t dx = (index == 2 || index == 0) ? 0 : 1;
+                    const std::size_t dy = index < 2 ? 0 : 1;
+
+                    const std::size_t winX = indexX + dx;
+                    const std::size_t winY = indexY + dy;
+                    const int winXi = static_cast<int>(winX);
+                    const int winYi = static_cast<int>(winY);
+
+                    //split out faster loop if not near edges
+                    const bool nodanger =
+                        winXi > 0 &&
+                        winXi < static_cast<int>(inputX) - 1 &&
+                        winYi > 0 &&
+                        winYi < static_cast<int>(inputY) - 1;
+
+                    if(nodanger)
+                    {
+                        if(*(activationChannel + (winY * inputX) + winX) > 0.0f)
+                        {
+                            //carry back the gradient. store as a local temp for now to avoid multiple lookups
+                            const auto g = *(outputGradientRow + i);
+                            
+                            // do the unconvolve here!
+                            // (winY, winX) is a coordinate of a live preactivation
+                            for(std::size_t inChan=0; inChan < inputChannels; inChan++)
+                            {
+                                Scalar* kernelGradientInChannel = kernelGradientOutChannel + (inChan * kernelStride);
+                                const Scalar* inputInChannel = inputData + (inChan * inputY * inputX);
+                                
+                                //unrolled kernel gradient loop
+                                
+                                Scalar* kg0 = kernelGradientInChannel;
+                                Scalar* kg1 = kg0 + 3;
+                                Scalar* kg2 = kg1 + 3;
+                                
+                                const Scalar* in0 = inputInChannel + (winY - 1) * inputX + winX - 1;
+                                const Scalar* in1 = in0 + inputX;
+                                const Scalar* in2 = in1 + inputX;
+                                
+                                kg0[0] += in0[0] * g;
+                                kg0[1] += in0[1] * g;
+                                kg0[2] += in0[2] * g;
+                                
+                                kg1[0] += in1[0] * g;
+                                kg1[1] += in1[1] * g;
+                                kg1[2] += in1[2] * g;
+                                
+                                kg2[0] += in2[0] * g;
+                                kg2[1] += in2[1] * g;
+                                kg2[2] += in2[2] * g;
+                                
+                            }
+                            biasGradient_[outChan] += g;
+                        }
+                    }
+                    else
+                    {
+                        if(*(activationChannel + (winY * inputX) + winX) > 0.0f)
+                        {
+                            //carry back the gradient. store as a local temp for now to avoid multiple lookups
+                            const auto g = *(outputGradientRow + i);
+                            
+                            // do the unconvolve here!
+                            // (winY, winX) is a coordinate of a live preactivation
+                            for(std::size_t inChan=0; inChan < inputChannels; inChan++)
+                            {
+                                Scalar* kernelGradientInChannel = kernelGradientOutChannel + (inChan * kernelStride);
+                                const Scalar* inputInChannel = inputData + (inChan * inputY * inputX);
+                                
+                                for(int n=-1;n<2;n++)
+                                {
+                                    Scalar* kernelGradientRow = kernelGradientInChannel + ((n + 1) * kernelX);
+                                    
+                                    const int inputRowIndex = winYi + n;
+                                    if(inputRowIndex < 0 || inputRowIndex >= static_cast<int>(inputY))
+                                        continue;
+                                        
+                                    const Scalar* inputRow = inputInChannel + (inputRowIndex * inputX);
+                                        
+                                    for(int m=-1;m<2;m++)
+                                    {
+                                        const int inputColIndex = winXi + m;
+                                        if(inputColIndex < 0 || inputColIndex >= static_cast<int>(inputX))
+                                            continue;
+                                            
+                                        (*(kernelGradientRow + (m + 1))) += (*(inputRow + inputColIndex)) * g;
+                                    }
+                                    
+                                }
+                            }
+                            biasGradient_[outChan] += g;
+                        }
+                    }
+
+                    indexX += stride;
+                }
+                indexY += stride;
+            }
+        }
+
+        return outputGradient;
+    }
 }
 
 
@@ -212,17 +380,16 @@ void ConvLayer::convolve_()
     const auto inputY = input_.dim(1);
     const auto inputX = input_.dim(2);
     const auto outputChannels = kernels_.dim(0);
-    
+
     //faster access code
-    
+
     const Scalar* inputData = input_.data();
     const Scalar* kernelData = kernels_.data();
     Scalar* activationData = activation_.data();
     const std::size_t channelStride = inputY * inputX;
     const std::size_t kernelStride = kernels_.dim(2) * kernels_.dim(3);
     const std::size_t kernelY = kernels_.dim(2);
-    bool nodanger = false;
-    
+
     //same-padding with integer loops to handle edges more easily
     for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
     {
@@ -233,20 +400,19 @@ void ConvLayer::convolve_()
             Scalar* activationRow = activationChannel + (j * inputX);
             for(int i = 0; i < inputX; i++)
             {
-                nodanger = false;
-                if(j > 0 && i > 0 && j < inputY-2 && i < inputX-2)nodanger = true;
+                const bool nodanger = (j > 0 && i > 0 && j < inputY-2 && i < inputX-2);
                 Scalar sum = biases_[outChan];
                 for(std::size_t inChan=0; inChan < inputChannels; inChan++)
                 {
                     const Scalar* channel = inputData + inChan * channelStride;
                     const Scalar* kernelInputChannel = kernelOutChannel + inChan * kernelStride;
-                    
+
                     if(nodanger)
                     {
                         const Scalar* r0 = channel + (j - 1) * inputX + i - 1;
                         const Scalar* r1 = channel + j * inputX + i - 1;
                         const Scalar* r2 = channel + (j + 1) * inputX + i - 1;
-                        
+
                         sum += r0[0] * kernelInputChannel[0]
                             + r0[1] * kernelInputChannel[1]
                             + r0[2] * kernelInputChannel[2]
@@ -263,7 +429,7 @@ void ConvLayer::convolve_()
                         {
                             const Scalar* row = channel + (j+n) * inputX + i;
                             const Scalar* kernelRow = kernelInputChannel + (n+1) * kernelY;
-                            
+
                             for(int m=-1;m<2;m++)
                             {
                                 sum += (j+n<0 || j+n>inputY-1 || i+m<0 || i+m>inputX-1) ? 0.0f : (*(row + m)) * (*(kernelRow + m + 1));
@@ -284,26 +450,26 @@ void ConvLayer::gradient_descent(const Scalar scale)
     const auto kY = kernels_.dim(2);
     const auto kX = kernels_.dim(3);
     const auto kernelStride = kY * kX;
-   
+
     //faster access code
     Scalar* kernelData = kernels_.data();
     const Scalar* kernelGradientData = kernelGradient_.data();
-    
+
         for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
         {
             Scalar* kernelOutChannel = kernelData + (outChan * inputChannels * kernelStride);
             const Scalar* kernelGradientOutChannel = kernelGradientData + (outChan * inputChannels * kernelStride);
-            
+
             for(std::size_t inChan = 0; inChan < inputChannels; inChan++)
             {
                 Scalar* kernelInChannel = kernelOutChannel + (inChan * kernelStride);
                 const Scalar* kernelGradientInChannel = kernelGradientOutChannel + (inChan * kernelStride);
-                
+
                 for(int j = 0; j < kY; j++)
                 {
                     Scalar* kernelRow = kernelInChannel + (j * kX);
                     const Scalar* kernelGradientRow = kernelGradientInChannel + (j * kX);
-                    
+
                     for(int i = 0; i < kX; i++)
                         *(kernelRow + i) -= *(kernelGradientRow + i) * scale;
                 }
@@ -317,17 +483,17 @@ void ConvLayer::gradient_descent(const Scalar scale)
 void ConvLayer::maxPool_()
 {
     std::size_t channels = activation_.dim(0);
-    
+
     std::size_t outputY = pooled_.dim(1);
     std::size_t outputX = pooled_.dim(2);
-    
+
     std::array<Scalar, stride*stride> candidates;
-    
+
     for(std::size_t chan = 0; chan < channels; chan++)
     {
         std::size_t indexX = 0;
         std::size_t indexY = 0;
-        
+
         for(std::size_t j=0;j<outputY;j++)
         {
             for(std::size_t i=0;i<outputX;i++)
@@ -360,9 +526,9 @@ void ConvLayer::setKernel(std::size_t outputChannel, std::size_t inputChannel, c
 void ConvLayer::print() const
 {
     kernels_.print();
-    
+
     std::cout << "Kernel data:" << std::endl;
-    
+
     for(std::size_t l=0; l<kernels_.dim(0); l++)
     {
         std::cout << "Output Channel " << l << std::endl;
@@ -373,9 +539,9 @@ void ConvLayer::print() const
             std::cout << std::endl;
         }
     }
-    
+
     std::cout << "Activation data:" << std::endl;
-    
+
     for(std::size_t l=0; l<activation_.dim(0); l++)
     {
         std::cout << "Channel " << l << std::endl;
@@ -386,9 +552,9 @@ void ConvLayer::print() const
             std::cout << std::endl;
         }
     }
-    
+
     std::cout << "MaxPool data:" << std::endl;
-    
+
     for(std::size_t l=0; l<pooled_.dim(0); l++)
     {
         std::cout << "Channel " << l << std::endl;
@@ -399,7 +565,7 @@ void ConvLayer::print() const
             std::cout << std::endl;
         }
     }
-    
+
 }
 
 
@@ -433,15 +599,15 @@ void ConvLayer::popCache()
 void ConvLayer::initialiseWeights()
 {
     const float fanIn = static_cast<float>(inputChannels() * kernelWidth() * kernelHeight());
-    
+
     const float stddev = std::sqrt(2.0f / fanIn);
-    
+
     std::normal_distribution<float> distribution(0.0f, stddev);
-    
+
     for(std::size_t i = 0; i<kernels_.size(); i++)
     {
         kernels_.data()[i] = distribution(rng_);
     }
-    
+
     for(Scalar &bias: biases_) bias = 0.0f;
 }
