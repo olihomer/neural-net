@@ -16,6 +16,7 @@
 #include <chrono>
 #include <array>
 #include <random>
+#include <arm_neon.h>
 
 
 std::random_device ConvLayer::rd_;
@@ -170,7 +171,7 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, const bool returnInputG
                                 Scalar* kg1 = kg0 + 3;
                                 Scalar* kg2 = kg1 + 3;
                                 
-                                const Scalar* in0 = inputInChannel + (winY - 1) * inputX + winX - 1;
+                                const Scalar* in0 = inputInChannel + (winY - 1) * inputX + (winX - 1);
                                 const Scalar* in1 = in0 + inputX;
                                 const Scalar* in2 = in1 + inputX;
                                 
@@ -186,14 +187,27 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, const bool returnInputG
                                 kg2[1] += in2[1] * g;
                                 kg2[2] += in2[2] * g;
                                 
-                                for(int n=-1;n<2;n++)
-                                {
-                                    const Scalar* kernelRow = kernelInChannel + ((n + 1) * kernelX);
-                                    Scalar* inputGradientRow = inputGradientInChannel + ((winYi + n) * inputX);
-                                    
-                                    for(int m=-1;m<2;m++)
-                                        (*(inputGradientRow + (winXi + m))) += (*(kernelRow + (m + 1))) * g;
-                                }
+                                //unrolled kernel gradient loop
+                                
+                                const Scalar* ki0 = kernelInChannel;
+                                const Scalar* ki1 = ki0 + 3;
+                                const Scalar* ki2 = ki1 + 3;
+                                
+                                Scalar* ig0 = inputGradientInChannel + (winY - 1) * inputX + (winX - 1);
+                                Scalar* ig1 = ig0 + inputX;
+                                Scalar* ig2 = ig1 + inputX;
+                                
+                                ig0[0] += ki0[0] * g;
+                                ig0[1] += ki0[1] * g;
+                                ig0[2] += ki0[2] * g;
+                                
+                                ig1[0] += ki1[0] * g;
+                                ig1[1] += ki1[1] * g;
+                                ig1[2] += ki1[2] * g;
+                                
+                                ig2[0] += ki2[0] * g;
+                                ig2[1] += ki2[1] * g;
+                                ig2[2] += ki2[2] * g;
                             }
                             biasGradient_[outChan] += g;
                         }
@@ -388,7 +402,6 @@ void ConvLayer::convolve_()
     Scalar* activationData = activation_.data();
     const std::size_t channelStride = inputY * inputX;
     const std::size_t kernelStride = kernels_.dim(2) * kernels_.dim(3);
-    const std::size_t kernelY = kernels_.dim(2);
 
     //same-padding with integer loops to handle edges more easily
     for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
@@ -397,7 +410,7 @@ void ConvLayer::convolve_()
         Scalar* activationChannel = activationData + outChan * channelStride;
        
         //Interior Section
-        
+        /*
         for(int j = 1; j < inputY-1; j++)
         {
             Scalar* activationRow = activationChannel + (j * inputX);
@@ -424,6 +437,135 @@ void ConvLayer::convolve_()
                             + r2[2] * kernelInputChannel[8];
                 }
                 *(activationRow + i) = sum > 0.0f ? sum : 0.0f;
+            }
+        }*/
+        
+        //interior section using NEON
+        
+        for (int j = 1; j < static_cast<int>(inputY) - 1; ++j)
+        {
+            Scalar* activationRow = activationChannel + j * inputX;
+
+            int i = 1;
+
+            // Process four neighbouring output pixels at once.
+            for (; i + 3 < static_cast<int>(inputX) - 1; i += 4)
+            {
+                // [bias, bias, bias, bias]
+                float32x4_t sums = vdupq_n_f32(biases_[outChan]); //broadcast
+
+                for (std::size_t inChan = 0; inChan < inputChannels; ++inChan)
+                {
+                    const Scalar* channel =
+                        inputData + inChan * channelStride;
+
+                    const Scalar* k =
+                        kernelOutChannel + inChan * kernelStride;
+
+                    const Scalar* row0 =
+                        channel + (j - 1) * inputX;
+
+                    const Scalar* row1 =
+                        channel + j * inputX;
+
+                    const Scalar* row2 =
+                        channel + (j + 1) * inputX;
+
+                    // Top kernel row
+                    //vfmaq_n_f32(a,b,x) => a = a + b * x
+                    
+                    sums = vfmaq_n_f32(
+                        sums,
+                        vld1q_f32(row0 + i - 1),
+                        k[0]);
+
+                    sums = vfmaq_n_f32(
+                        sums,
+                        vld1q_f32(row0 + i),
+                        k[1]);
+
+                    sums = vfmaq_n_f32(
+                        sums,
+                        vld1q_f32(row0 + i + 1),
+                        k[2]);
+
+                    // Middle kernel row
+                    sums = vfmaq_n_f32(
+                        sums,
+                        vld1q_f32(row1 + i - 1),
+                        k[3]);
+
+                    sums = vfmaq_n_f32(
+                        sums,
+                        vld1q_f32(row1 + i),
+                        k[4]);
+
+                    sums = vfmaq_n_f32(
+                        sums,
+                        vld1q_f32(row1 + i + 1),
+                        k[5]);
+
+                    // Bottom kernel row
+                    sums = vfmaq_n_f32(
+                        sums,
+                        vld1q_f32(row2 + i - 1),
+                        k[6]);
+
+                    sums = vfmaq_n_f32(
+                        sums,
+                        vld1q_f32(row2 + i),
+                        k[7]);
+
+                    sums = vfmaq_n_f32(
+                        sums,
+                        vld1q_f32(row2 + i + 1),
+                        k[8]);
+                }
+
+                // ReLU four outputs simultaneously.
+                sums = vmaxq_f32(sums, vdupq_n_f32(0.0f));
+
+                // Store four output pixels.
+                vst1q_f32(activationRow + i, sums);
+            }
+
+            // Scalar tail for the 0–3 interior pixels left over.
+            for (; i < static_cast<int>(inputX) - 1; ++i)
+            {
+                Scalar sum = biases_[outChan];
+
+                for (std::size_t inChan = 0;
+                     inChan < inputChannels;
+                     ++inChan)
+                {
+                    const Scalar* channel =
+                        inputData + inChan * channelStride;
+
+                    const Scalar* k =
+                        kernelOutChannel + inChan * kernelStride;
+
+                    const Scalar* r0 =
+                        channel + (j - 1) * inputX + i - 1;
+
+                    const Scalar* r1 =
+                        channel + j * inputX + i - 1;
+
+                    const Scalar* r2 =
+                        channel + (j + 1) * inputX + i - 1;
+
+                    sum += r0[0] * k[0]
+                         + r0[1] * k[1]
+                         + r0[2] * k[2]
+                         + r1[0] * k[3]
+                         + r1[1] * k[4]
+                         + r1[2] * k[5]
+                         + r2[0] * k[6]
+                         + r2[1] * k[7]
+                         + r2[2] * k[8];
+                }
+
+                activationRow[i] =
+                    sum > 0.0f ? sum : 0.0f;
             }
         }
         

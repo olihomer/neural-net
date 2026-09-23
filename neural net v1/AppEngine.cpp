@@ -118,15 +118,15 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
     {
         int guess = i+trainingExamples;
         int guess_label = mnist_training_data2.get_label(guess);
-        std::cout << "Guess = " << guess_label;
+        //std::cout << "Guess = " << guess_label;
         
         std::pair<std::size_t, Scalar> prediction =
             activeModel_ == ModelKind::CNN
             ? cnn_.predict(mnist_training_data2.get_data()[guess].inputs)
             : mlp_.predict(mnist_training_data2.get_data()[guess].inputs);
         
-        std::cout << ". Net guessed " << prediction.first << " with value of " << prediction.second << std::endl;
-        if(prediction.first!=guess_label){std::cout<<"WRONG!"<<std::endl;wrong++;}
+        //std::cout << ". Net guessed " << prediction.first << " with value of " << prediction.second << std::endl;
+        if(prediction.first!=guess_label){/*std::cout<<"WRONG!"<<std::endl;*/wrong++;}
     }
     
     std::cout << "Success rate: " << (1 - (float(wrong) / float(evaluationExamples)) ) << std::endl;

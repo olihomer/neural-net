@@ -46,7 +46,7 @@ void CNN::print() const
 }
 
 
-std::vector<Scalar> CNN::forward(const Tensor& input)
+const Tensor& CNN::forward(const Tensor& input)
 {
     std::chrono::steady_clock::time_point conv1ForwardStart;
     if constexpr (profileCNN)
@@ -72,8 +72,6 @@ std::vector<Scalar> CNN::forward(const Tensor& input)
     if constexpr (profileCNN)
         flattenStart = std::chrono::steady_clock::now();
 
-    auto flat = flatten_(x2);
-
     std::chrono::duration<double> flattenElapsed{0.0};
     if constexpr (profileCNN)
         flattenElapsed = std::chrono::steady_clock::now() - flattenStart;
@@ -94,7 +92,7 @@ std::vector<Scalar> CNN::forward(const Tensor& input)
         }
     }
     
-    return flat;
+    return x2;
 }
 
 void CNN::backward(const Tensor& outputGradient)
@@ -180,7 +178,7 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
         if constexpr (profileCNN)
             forwardStart = std::chrono::steady_clock::now();
 
-        auto outputVector = forward(input);
+        const auto& outputTensor = forward(input);
         
         //cache network values for backwards pass
         conv1_.pushCache();
@@ -189,8 +187,8 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
         if constexpr (profileCNN)
             forwardElapsed += std::chrono::steady_clock::now() - forwardStart;
         
-        for(std::size_t j=0; j<outputVector.size(); j++)
-            MLPinputs(j,index)=outputVector[j];
+        for(std::size_t j=0; j<outputTensor.size(); j++)
+            MLPinputs(j,index) = outputTensor.data()[j];
     }
 
     //Batch backprop through MLP
@@ -275,8 +273,10 @@ std::pair<std::size_t, Scalar> CNN::predict(const std::vector<Scalar>& input)
         inputTensor.data()[j] = input[j];
 
     //Put through CNN
-    auto outputVector = forward(inputTensor);
-    set_inputMLP(outputVector);
+    auto outputTensor = forward(inputTensor);
+    
+    auto vec = std::vector<Scalar>(outputTensor.data(),outputTensor.data()+outputTensor.size());
+    set_inputMLP(vec);
     propagateMLP();
     
     return std::pair<std::size_t, Scalar>(find_highest_output(),get_output(find_highest_output()));

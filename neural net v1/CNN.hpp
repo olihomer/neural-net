@@ -25,7 +25,7 @@ public:
                    std::size_t conv2OutputChannels,
                    std::size_t classifierHiddenLayerSize);
     
-    std::vector<Scalar> forward(const Tensor& input);
+    const Tensor& forward(const Tensor& input);
     void backward(const Tensor& outputGradient);
 
     void print() const;
@@ -43,9 +43,6 @@ public:
     std::size_t find_highest_output(void){return classifier_.find_highest_output();};
     std::pair<std::size_t, Scalar> predict(const std::vector<Scalar>& input);
     
-private:
-    
-    std::vector<Scalar> flatten_(const Tensor& input){return std::vector<Scalar>(input.data(),input.data() + input.size());};
 };
 
 
