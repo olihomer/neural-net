@@ -409,7 +409,7 @@ void ConvLayer::convolve_()
         const Scalar* kernelOutChannel = kernelData + outChan * kernelStride * inputChannels;
         Scalar* activationChannel = activationData + outChan * channelStride;
        
-        //Interior Section
+        //Interior Section using scalar code
         /*
         for(int j = 1; j < inputY-1; j++)
         {
@@ -623,18 +623,20 @@ void ConvLayer::convolve_()
                     const Scalar* channel = inputData + inChan * channelStride;
                     const Scalar* kernelInputChannel = kernelOutChannel + inChan * kernelStride;
 
-                    const Scalar* r0 = (j != 0) ? channel + (j - 1) * inputX + i - 1: channel; // all invalid if j = 0
-                    const Scalar* r1 = channel + j * inputX + i - 1; //all valid
-                    const Scalar* r2 = (j != inputY - 1) ? channel + (j + 1) * inputX + i - 1: channel; //all invalid if j = inputY - 1
+                    const std::size_t xBase = (i == 0) ? 0 : static_cast<std::size_t>(i - 1); //increase pointer for left hand side
+                    
+                    const Scalar* r0 = (j != 0) ? channel + (j - 1) * inputX + xBase: channel; // all invalid if j = 0
+                    const Scalar* r1 = channel + j * inputX + xBase; //all valid
+                    const Scalar* r2 = (j != inputY - 1) ? channel + (j + 1) * inputX + xBase: channel; //all invalid if j = inputY - 1
 
                     if(j == 0) // top edge
                     {
                         if(i == 0) // left edge so all the [0] are invalid
                         {
-                            sum += r1[1] * kernelInputChannel[4]
-                            + r1[2] * kernelInputChannel[5]
-                            + r2[1] * kernelInputChannel[7]
-                            + r2[2] * kernelInputChannel[8];
+                            sum += r1[0] * kernelInputChannel[4]
+                            + r1[1] * kernelInputChannel[5]
+                            + r2[0] * kernelInputChannel[7]
+                            + r2[1] * kernelInputChannel[8];
                         }
                         else //right edge so all the [2] are invalid
                         {
@@ -648,10 +650,10 @@ void ConvLayer::convolve_()
                     {
                         if(i == 0) // left edge so all the [0] are invalid
                         {
-                            sum += r0[1] * kernelInputChannel[1]
-                            + r0[2] * kernelInputChannel[2]
-                            + r1[1] * kernelInputChannel[4]
-                            + r1[2] * kernelInputChannel[5];
+                            sum += r0[0] * kernelInputChannel[1]
+                            + r0[1] * kernelInputChannel[2]
+                            + r1[0] * kernelInputChannel[4]
+                            + r1[1] * kernelInputChannel[5];
                         }
                         else //right edge so all the [2] are invalid
                         {
@@ -665,12 +667,12 @@ void ConvLayer::convolve_()
                     {
                         if(i==0) //left so [0] are invalid
                         {
-                            sum += r0[1] * kernelInputChannel[1]
-                                + r0[2] * kernelInputChannel[2]
-                                + r1[1] * kernelInputChannel[4]
-                                + r1[2] * kernelInputChannel[5]
-                                + r2[1] * kernelInputChannel[7]
-                                + r2[2] * kernelInputChannel[8];
+                            sum += r0[0] * kernelInputChannel[1]
+                                + r0[1] * kernelInputChannel[2]
+                                + r1[0] * kernelInputChannel[4]
+                                + r1[1] * kernelInputChannel[5]
+                                + r2[0] * kernelInputChannel[7]
+                                + r2[1] * kernelInputChannel[8];
                         }
                         else //right so [2] are invalid
                         {
