@@ -69,21 +69,6 @@ Scalar ConvLayer::activationValue(std::size_t channel, std::size_t y, std::size_
     return activation_(channel, y, x);
 }
 
-Scalar ConvLayer::kernelValue(std::size_t outputChannel, std::size_t inputChannel, std::size_t y, std::size_t x) const
-{
-    return kernels_(outputChannel, inputChannel, y, x);
-}
-
-Scalar ConvLayer::inputValue(std::size_t channel, std::size_t y, std::size_t x) const
-{
-    return input_(channel, y, x);
-}
-
-Scalar ConvLayer::activationValue(std::size_t channel, std::size_t y, std::size_t x) const
-{
-    return activation_(channel, y, x);
-}
-
 Tensor ConvLayer::backward(const Tensor& outputGradient, bool returnInputGradient)
 {
     //unpool
