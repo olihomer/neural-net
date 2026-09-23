@@ -63,6 +63,4 @@ public:
     Trainable& activeTrainable();
     
     AppEngine();
-    ~AppEngine();
-
 };

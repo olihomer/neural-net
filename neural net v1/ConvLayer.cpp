@@ -47,42 +47,9 @@ const Tensor& ConvLayer::forward (const Tensor& input)
 {
     input_ = input;
 
-    std::chrono::steady_clock::time_point convolveStart;
-    if constexpr (profileConvLayer)
-        convolveStart = std::chrono::steady_clock::now();
-
     convolve_();
 
-    std::chrono::duration<double> convolveElapsed{0.0};
-    if constexpr (profileConvLayer)
-        convolveElapsed = std::chrono::steady_clock::now() - convolveStart;
-
-    std::chrono::steady_clock::time_point maxPoolStart;
-    if constexpr (profileConvLayer)
-        maxPoolStart = std::chrono::steady_clock::now();
-
     maxPool_();
-
-    std::chrono::duration<double> maxPoolElapsed{0.0};
-    if constexpr (profileConvLayer)
-        maxPoolElapsed = std::chrono::steady_clock::now() - maxPoolStart;
-
-    if constexpr (profileConvLayer)
-    {
-        const double forwardSeconds = convolveElapsed.count() + maxPoolElapsed.count();
-
-        if(forwardSeconds > 0.0)
-        {
-            std::cout << "ConvLayer::forward benchmark ("
-                      << input_.dim(0) << " input channels, "
-                      << activation_.dim(0) << " output channels, "
-                      << input_.dim(1) << "x" << input_.dim(2) << " input):" << std::endl;
-            std::cout << "  convolve_: " << convolveElapsed.count() << " seconds, "
-                      << (convolveElapsed.count() / forwardSeconds) * 100.0 << "%" << std::endl;
-            std::cout << "  maxPool_: " << maxPoolElapsed.count() << " seconds, "
-                      << (maxPoolElapsed.count() / forwardSeconds) * 100.0 << "%" << std::endl;
-        }
-    }
 
     return pooled_;
 }
@@ -117,58 +84,89 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, bool returnInputGradien
     
     // unpool + unRelu
     
-    std::size_t outputChannels = activation_.dim(0);
-    std::size_t outputY = outputGradient.dim(1);
-    std::size_t outputX = outputGradient.dim(2);
+    const std::size_t outputChannels = activation_.dim(0);
+    const std::size_t outputY = outputGradient.dim(1);
+    const std::size_t outputX = outputGradient.dim(2);
     
     Tensor inputGradient;
     
     if(returnInputGradient==true)
         inputGradient = Tensor({input_.dim(0),input_.dim(1),input_.dim(2)});
 
-    auto inputY = input_.dim(1);
-    auto inputX = input_.dim(2);
-    auto inputChannels = input_.dim(0);
-    
-    std::chrono::steady_clock::time_point unpoolStart;
-    if constexpr (profileConvLayer)
-        unpoolStart = std::chrono::steady_clock::now();
+    const auto inputY = input_.dim(1);
+    const auto inputX = input_.dim(2);
+    const auto inputChannels = input_.dim(0);
 
+    //faster access code
+    
+    const Scalar* kernelData = kernels_.data();
+    Scalar* kernelGradientData = kernelGradient_.data();
+    Scalar* inputGradientData = inputGradient.data();
+    const Scalar* inputData = input_.data();
+    const Scalar* activationData = activation_.data();
+    const Scalar* maxPoolSourceData = maxPoolSource_.data();
+    const Scalar* outputGradientData = outputGradient.data();
+    
+    const std::size_t kernelStride = kernels_.dim(2) * kernels_.dim(3);
+    const std::size_t kernelX = kernels_.dim(3);
+    
     for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
     {
         std::size_t indexX = 0;
         std::size_t indexY = 0;
         
+        const Scalar* kernelOutChannel = kernelData + (outChan * inputChannels * kernelStride);
+        Scalar* kernelGradientOutChannel = kernelGradientData + (outChan * inputChannels * kernelStride);
+        const Scalar* activationChannel = activationData + (outChan * outputY * outputX);
+        const Scalar* maxPoolSourceChannel = maxPoolSourceData + (outChan * outputY * outputX);
+        const Scalar* outputGradientChannel = outputGradientData + (outChan * outputY * outputX);
+        
         for(std::size_t j=0;j<outputY;j++)
         {
+            const Scalar* maxPoolSourceRow = maxPoolSourceChannel + (j * outputX);
+            const Scalar* outputGradientRow = outputGradientChannel + (j * outputX);
+
             for(std::size_t i=0;i<outputX;i++)
             {
                 //identify winner from activation tensor
-                std::size_t index = (std::size_t)maxPoolSource_(outChan,j,i);
+                std::size_t index = (std::size_t)(*(maxPoolSourceRow + i));
                 std::size_t dx = (index == 2 || index == 0) ? 0 : 1;
                 std::size_t dy = index < 2 ? 0 : 1;
                 
                 std::size_t winX = indexX + dx;
                 std::size_t winY = indexY + dy;
                 
-                if(activation_(outChan, winY, winX) > 0.0) //unRelu => only carry gradient back if positive activation
+                if((*(activationChannel + (winY * outputX)) > 0.0)) //unRelu => only carry gradient back if positive activation
                 {
                     //carry back the gradient. store as a local temp for now to avoid multiple lookups
-                    auto g = outputGradient(outChan,j,i);
+                    const auto g = *(outputGradientRow + i);
                     
                     // do the unconvolve here!
                     // (winY, winX) is a coordinate of a live preactivation
                    
                     for(std::size_t inChan=0; inChan < inputChannels; inChan++)
+                    {
+                        Scalar* kernelGradientInChannel = kernelGradientOutChannel + (inChan * kernelStride);
+                        const Scalar* kernelInChannel = kernelOutChannel + (inChan * kernelStride);
+                        const Scalar* inputInChannel = inputData + (inChan * inputY * inputX);
+                        Scalar* inputGradientInChannel = inputGradientData + (inChan * inputY * inputX);
+                        
                         for(int n=-1;n<2;n++)
+                        {
+                            Scalar* kernelGradientRow = kernelGradientInChannel + ((n + 1) * kernelX);
+                            const Scalar* kernelRow = kernelInChannel + + ((n + 1) * kernelX);
+                            const Scalar* inputRow = inputInChannel + ((winY + n) * inputX);
+                            Scalar* inputGradientRow = inputGradientInChannel + ((winY + n) * inputX);
+                            
                             for(int m=-1;m<2;m++)
                             {
-                                if(!(winY+n<0 || winY+n>inputY-1 || winX+m<0 || winX+m>inputX-1))kernelGradient_(outChan, inChan, n+1, m+1) += input_(inChan,winY+n,winX+m) * g;
+                                if(!(winY+n<0 || winY+n>inputY-1 || winX+m<0 || winX+m>inputX-1))(*(kernelGradientRow + (m + 1))) += (*(inputRow + (winX + m))) * g;
                                 if(returnInputGradient==true)
-                                    if(!(winY+n<0 || winY+n>inputY-1 || winX+m<0 || winX+m>inputX-1))inputGradient(inChan,winY+n,winX+m) += kernels_(outChan, inChan,n+1,m+1) * g;
+                                    if(!(winY+n<0 || winY+n>inputY-1 || winX+m<0 || winX+m>inputX-1))(*(inputGradientRow + (winX + m))) += (*(kernelRow + (m + 1))) * g;
                             }
-                    biasGradient_[outChan] += g;
-                    
+                            biasGradient_[outChan] += g;
+                        }
+                    }
                 }
                 
                 indexX += stride;
@@ -176,24 +174,6 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, bool returnInputGradien
             indexY += stride;
             indexX = 0;
         }
-    }
-    std::chrono::duration<double> unpoolElapsed{0.0};
-    if constexpr (profileConvLayer)
-        unpoolElapsed = std::chrono::steady_clock::now() - unpoolStart;
-    
-    if constexpr (profileConvLayer)
-    {
-        const double loopSeconds = unpoolElapsed.count();
-
-        if(loopSeconds > 0.0)
-        {
-            std::cout << "ConvLayer::backward loop benchmark ("
-                      << inputChannels << " input channels, "
-                      << outputChannels << " output channels, "
-                      << inputY << "x" << inputX << " input):" << std::endl;
-            std::cout << "  unpool loop: " << unpoolElapsed.count() << " seconds, "
-                      << (unpoolElapsed.count() / loopSeconds) * 100.0 << "%" << std::endl;
-            }
     }
     
     return inputGradient;
@@ -203,42 +183,84 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, bool returnInputGradien
 
 void ConvLayer::convolve_()
 {
-    auto inputChannels = input_.dim(0);
-    auto inputY = input_.dim(1);
-    auto inputX = input_.dim(2);
-    auto outputChannels = kernels_.dim(0);
+    const auto inputChannels = input_.dim(0);
+    const auto inputY = input_.dim(1);
+    const auto inputX = input_.dim(2);
+    const auto outputChannels = kernels_.dim(0);
+    
+    //faster access code
+    
+    const Scalar* inputData = input_.data();
+    const Scalar* kernelData = kernels_.data();
+    Scalar* activationData = activation_.data();
+    const std::size_t channelStride = inputY * inputX;
+    const std::size_t kernelStride = kernels_.dim(2) * kernels_.dim(3);
+    const std::size_t kernelY = kernels_.dim(2);
     
     //same-padding with integer loops to handle edges more easily
     for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
+    {
+        const Scalar* kernelOutChannel = kernelData + outChan * kernelStride * inputChannels;
+        Scalar* activationChannel = activationData + outChan * channelStride;
         for(int j = 0; j < inputY; j++)
+        {
+            Scalar* activationRow = activationChannel + (j * inputX);
             for(int i = 0; i < inputX; i++)
             {
                 Scalar sum = biases_[outChan];
                 for(std::size_t inChan=0; inChan < inputChannels; inChan++)
+                {
+                    const Scalar* channel = inputData + inChan * channelStride;
+                    const Scalar* kernelInputChannel = kernelOutChannel + inChan * kernelStride;
+                    
                     for(int n=-1;n<2;n++)
+                    {
+                        const Scalar* row = channel + (j+n) * inputX + i;
+                        const Scalar* kernelRow = kernelInputChannel + (n+1) * kernelY;
                         for(int m=-1;m<2;m++)
                         {
-                            sum += (j+n<0 || j+n>inputY-1 || i+m<0 || i+m>inputX-1) ? 0.0f : input_(inChan,j+n,i+m) * kernels_(outChan,inChan,n+1,m+1);
+                            sum += (j+n<0 || j+n>inputY-1 || i+m<0 || i+m>inputX-1) ? 0.0f : (*(row + m)) * (*(kernelRow + m + 1));
                         }
-                activation_(outChan,j,i) = sum > 0.0 ? sum : 0.0;
+                    }
+                }
+                *(activationRow + i) = sum > 0.0 ? sum : 0.0;
             }
-    
+        }
+    }
 }
 
 void ConvLayer::gradient_descent(const Scalar scale)
 {
-    auto outputChannels = kernels_.dim(0);
-    auto inputChannels = kernels_.dim(1);
-    auto kY = kernels_.dim(2);
-    auto kX = kernels_.dim(3);
+    const auto outputChannels = kernels_.dim(0);
+    const auto inputChannels = kernels_.dim(1);
+    const auto kY = kernels_.dim(2);
+    const auto kX = kernels_.dim(3);
+    const auto kernelStride = kY * kX;
+   
+    //faster access code
+    Scalar* kernelData = kernels_.data();
+    const Scalar* kernelGradientData = kernelGradient_.data();
     
         for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
         {
+            Scalar* kernelOutChannel = kernelData + (outChan * inputChannels * kernelStride);
+            const Scalar* kernelGradientOutChannel = kernelGradientData + (outChan * inputChannels * kernelStride);
+            
             for(std::size_t inChan = 0; inChan < inputChannels; inChan++)
+            {
+                Scalar* kernelInChannel = kernelOutChannel + (inChan * kernelStride);
+                const Scalar* kernelGradientInChannel = kernelGradientOutChannel + (inChan * kernelStride);
+                
                 for(int j = 0; j < kY; j++)
+                {
+                    Scalar* kernelRow = kernelInChannel + (j * kX);
+                    const Scalar* kernelGradientRow = kernelGradientInChannel + (j * kX);
+                    
                     for(int i = 0; i < kX; i++)
-                        kernels_(outChan,inChan,j,i) -= kernelGradient_(outChan,inChan,j,i) * scale;
-            biases_[outChan] -= biasGradient_[outChan] * scale;
+                        *(kernelRow + i) -= *(kernelGradientRow + i) * scale;
+                }
+                biases_[outChan] -= biasGradient_[outChan] * scale;
+            }
         }
 }
 
@@ -352,7 +374,7 @@ void ConvLayer::pushCache()
 
 void ConvLayer::popCache()
 {
-    auto cache = cache_.front();
+    auto cache = std::move(cache_.front());
     cache_.pop();
     input_ = std::move(cache.input);
     activation_ = std::move(cache.activation);
