@@ -69,7 +69,7 @@ Scalar ConvLayer::activationValue(std::size_t channel, std::size_t y, std::size_
     return activation_(channel, y, x);
 }
 
-Tensor ConvLayer::backward(const Tensor& outputGradient, bool returnInputGradient)
+Tensor ConvLayer::backward(const Tensor& outputGradient, const bool returnInputGradient)
 {
     //unpool
     //Relu derivative
@@ -88,11 +88,18 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, bool returnInputGradien
     const std::size_t outputY = outputGradient.dim(1);
     const std::size_t outputX = outputGradient.dim(2);
     
+    //declaration of variables/pointers that might not get used
     Tensor inputGradient;
+    Scalar* inputGradientData;
+    Scalar* inputGradientInChannel;
+    Scalar* inputGradientRow;
     
     if(returnInputGradient==true)
+    {
         inputGradient = Tensor({input_.dim(0),input_.dim(1),input_.dim(2)});
-
+        Scalar* inputGradientData = inputGradient.data();
+    }
+        
     const auto inputY = input_.dim(1);
     const auto inputX = input_.dim(2);
     const auto inputChannels = input_.dim(0);
@@ -101,7 +108,6 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, bool returnInputGradien
     
     const Scalar* kernelData = kernels_.data();
     Scalar* kernelGradientData = kernelGradient_.data();
-    Scalar* inputGradientData = inputGradient.data();
     const Scalar* inputData = input_.data();
     const Scalar* activationData = activation_.data();
     const Scalar* maxPoolSourceData = maxPoolSource_.data();
@@ -117,9 +123,11 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, bool returnInputGradien
         
         const Scalar* kernelOutChannel = kernelData + (outChan * inputChannels * kernelStride);
         Scalar* kernelGradientOutChannel = kernelGradientData + (outChan * inputChannels * kernelStride);
-        const Scalar* activationChannel = activationData + (outChan * outputY * outputX);
+        const Scalar* activationChannel = activationData + (outChan * inputY * inputX);
         const Scalar* maxPoolSourceChannel = maxPoolSourceData + (outChan * outputY * outputX);
         const Scalar* outputGradientChannel = outputGradientData + (outChan * outputY * outputX);
+        
+        bool nodanger = false;
         
         for(std::size_t j=0;j<outputY;j++)
         {
@@ -136,7 +144,10 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, bool returnInputGradien
                 std::size_t winX = indexX + dx;
                 std::size_t winY = indexY + dy;
                 
-                if((*(activationChannel + (winY * outputX)) > 0.0)) //unRelu => only carry gradient back if positive activation
+                nodanger = false;
+                if(winX > 1 && winX < inputX-2 && winY > 0 && winY < inputY-2)nodanger=true;
+                
+                if((*(activationChannel + (winY * inputX) + winX) > 0.0)) //unRelu => only carry gradient back if positive activation
                 {
                     //carry back the gradient. store as a local temp for now to avoid multiple lookups
                     const auto g = *(outputGradientRow + i);
@@ -149,23 +160,37 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, bool returnInputGradien
                         Scalar* kernelGradientInChannel = kernelGradientOutChannel + (inChan * kernelStride);
                         const Scalar* kernelInChannel = kernelOutChannel + (inChan * kernelStride);
                         const Scalar* inputInChannel = inputData + (inChan * inputY * inputX);
-                        Scalar* inputGradientInChannel = inputGradientData + (inChan * inputY * inputX);
+                        if(returnInputGradient==true)
+                            inputGradientInChannel = inputGradientData + (inChan * inputY * inputX);
                         
                         for(int n=-1;n<2;n++)
                         {
                             Scalar* kernelGradientRow = kernelGradientInChannel + ((n + 1) * kernelX);
                             const Scalar* kernelRow = kernelInChannel + + ((n + 1) * kernelX);
                             const Scalar* inputRow = inputInChannel + ((winY + n) * inputX);
-                            Scalar* inputGradientRow = inputGradientInChannel + ((winY + n) * inputX);
+                            if(returnInputGradient==true)
+                                inputGradientRow = inputGradientInChannel + ((winY + n) * inputX);
                             
                             for(int m=-1;m<2;m++)
                             {
-                                if(!(winY+n<0 || winY+n>inputY-1 || winX+m<0 || winX+m>inputX-1))(*(kernelGradientRow + (m + 1))) += (*(inputRow + (winX + m))) * g;
-                                if(returnInputGradient==true)
-                                    if(!(winY+n<0 || winY+n>inputY-1 || winX+m<0 || winX+m>inputX-1))(*(inputGradientRow + (winX + m))) += (*(kernelRow + (m + 1))) * g;
+                                if(nodanger)
+                                {
+                                    (*(kernelGradientRow + (m + 1))) += (*(inputRow + (winX + m))) * g;
+                                    if(returnInputGradient==true)
+                                        (*(inputGradientRow + (winX + m))) += (*(kernelRow + (m + 1))) * g;
+                                }
+                                else
+                                {
+                                    if(!(winY+n<0 || winY+n>inputY-1 || winX+m<0 || winX+m>inputX-1))
+                                    {
+                                        (*(kernelGradientRow + (m + 1))) += (*(inputRow + (winX + m))) * g;
+                                        if(returnInputGradient==true)
+                                            (*(inputGradientRow + (winX + m))) += (*(kernelRow + (m + 1))) * g;
+                                    }
+                                }
                             }
-                            biasGradient_[outChan] += g;
                         }
+                        biasGradient_[outChan] += g;
                     }
                 }
                 

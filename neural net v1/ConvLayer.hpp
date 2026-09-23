@@ -33,7 +33,7 @@ public:
     
     void setKernel(std::size_t outputChannel, std::size_t inputChannel, const std::vector<Scalar>& data);
     const Tensor& forward(const Tensor& input);
-    Tensor backward(const Tensor& outputGradient, bool returnInputGradient);
+    Tensor backward(const Tensor& outputGradient, const bool returnInputGradient);
     void print() const;
     void zeroGradients();
     void gradient_descent(const Scalar scale);
