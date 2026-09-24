@@ -22,6 +22,8 @@
 
 std::random_device ConvLayer::rd_;
 std::mt19937 ConvLayer::rng_(ConvLayer::rd_());
+Scalar ConvLayer::beta1pow;
+Scalar ConvLayer::beta2pow;
 
 namespace
 {
@@ -37,10 +39,14 @@ activation_({outputChannels,inputHeight,inputWidth}),
 pooled_({outputChannels,inputHeight/stride,inputWidth/stride}),
 maxPoolSource_({outputChannels,inputHeight/stride,inputWidth/stride}),
 kernels_({outputChannels,inputChannels,3,3}),
-kernelGradient_({outputChannels,inputChannels,3,3})
+kernelGradient_({outputChannels,inputChannels,3,3}),
+kernel_m_({outputChannels,inputChannels,3,3}),
+kernel_v_({outputChannels,inputChannels,3,3})
 {
     biases_.resize(outputChannels);
     biasGradient_.resize(outputChannels);
+    bias_m_.resize(outputChannels);
+    bias_v_.resize(outputChannels);
 
     initialiseWeights();
 }
@@ -48,11 +54,8 @@ kernelGradient_({outputChannels,inputChannels,3,3})
 const Tensor& ConvLayer::forward (const Tensor& input)
 {
     input_ = input;
-
     convolve_();
-
     maxPool_();
-
     return pooled_;
 }
 
@@ -164,7 +167,6 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, const bool returnInputG
                                 const Scalar* kernelInChannel = kernelOutChannel + (inChan * kernelStride);
                                 const Scalar* inputInChannel = inputData + (inChan * inputY * inputX);
                                 Scalar* inputGradientInChannel = inputGradientData + (inChan * inputY * inputX);
-
 
                                 //unrolled kernel gradient loop
 
@@ -702,31 +704,71 @@ void ConvLayer::gradient_descent(const Scalar scale)
     const auto kY = kernels_.dim(2);
     const auto kX = kernels_.dim(3);
     const auto kernelStride = kY * kX;
-
+    
     //faster access code
     Scalar* kernelData = kernels_.data();
     const Scalar* kernelGradientData = kernelGradient_.data();
+    
+    //Adam parameters
+    Scalar* kernel_mData = kernel_m_.data();
+    Scalar* kernel_vData = kernel_v_.data();
+    Scalar kernel_mHat;
+    Scalar kernel_vHat;
+    Scalar bias_mHat;
+    Scalar bias_vHat;
+    
+    //Adam algorithm
+    // m = beta1 * prev m + (1 - beta1) * gradient
+    // v = beta2 * prev v + (1 - beta2) * gradient * gradient
+    // mhat = m / (1 - beta1^t)
+    // vhat = v / (1 - beta2^t)
+    // w = prev w - mhat / (sqrt (vhat) + epsilon) * alpha
 
         for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
         {
             Scalar* kernelOutChannel = kernelData + (outChan * inputChannels * kernelStride);
+            Scalar* kernel_mOutChannel = kernel_mData + (outChan * inputChannels * kernelStride);
+            Scalar* kernel_vOutChannel = kernel_vData + (outChan * inputChannels * kernelStride);
+            
             const Scalar* kernelGradientOutChannel = kernelGradientData + (outChan * inputChannels * kernelStride);
 
             for(std::size_t inChan = 0; inChan < inputChannels; inChan++)
             {
                 Scalar* kernelInChannel = kernelOutChannel + (inChan * kernelStride);
+                Scalar* kernel_mInChannel = kernel_mOutChannel + (inChan * kernelStride);
+                Scalar* kernel_vInChannel = kernel_vOutChannel + (inChan * kernelStride);
+                
                 const Scalar* kernelGradientInChannel = kernelGradientOutChannel + (inChan * kernelStride);
 
                 for(int j = 0; j < kY; j++)
                 {
                     Scalar* kernelRow = kernelInChannel + (j * kX);
+                    Scalar* kernel_mRow = kernel_mInChannel + (j * kX);
+                    Scalar* kernel_vRow = kernel_vInChannel + (j * kX);
+
                     const Scalar* kernelGradientRow = kernelGradientInChannel + (j * kX);
 
                     for(int i = 0; i < kX; i++)
-                        *(kernelRow + i) -= *(kernelGradientRow + i) * scale;
+                    {
+                        kernel_mRow[i] = beta1 * kernel_mRow[i] + (1 - beta1) * kernelGradientRow[i];
+                        kernel_vRow[i] = beta2 * kernel_vRow[i] + (1 - beta2) * kernelGradientRow[i] * kernelGradientRow[i];
+                        kernel_mHat = kernel_mRow[i] / (1 - beta1pow);
+                        kernel_vHat = kernel_vRow[i] / (1 - beta2pow);
+                        kernelRow[i] -= (kernel_mHat / (std::sqrt(kernel_vHat) + epsilon)) * scale;
+                        
+                       // *(kernelRow + i) -= *(kernelGradientRow + i) * scale;
+                        
+                    }
                 }
             }
-            biases_[outChan] -= biasGradient_[outChan] * scale;
+            bias_m_[outChan] = beta1 * bias_m_[outChan] + (1 - beta1) * biasGradient_[outChan];
+            bias_v_[outChan] = beta2 * bias_v_[outChan] + (1 - beta2) * biasGradient_[outChan] * biasGradient_[outChan];
+            bias_mHat = bias_m_[outChan] / (1 - beta1pow);
+            bias_vHat = bias_v_[outChan] / (1 - beta2pow);
+            
+            biases_[outChan] -= (bias_mHat / (std::sqrt(bias_mHat) + epsilon)) * scale;
+            
+            //biases_[outChan] -= biasGradient_[outChan] * scale;
         }
 }
 

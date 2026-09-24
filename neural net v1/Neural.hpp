@@ -65,6 +65,7 @@ public:
     void load(std::ifstream& stream);
 
     std::pair<std::size_t, Scalar> predict(const std::vector<Scalar>& input);
+    void resetBeta() override {;}
     
 private:
     // Internal data structure

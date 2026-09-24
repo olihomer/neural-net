@@ -32,6 +32,8 @@ void Trainer::train(const data_set& data, std::size_t epochs, std::size_t batchS
     
     const auto trainingStart = std::chrono::steady_clock::now();
     
+    network_.resetBeta(); //initialise Adam
+    
     for(std::size_t i = 0; i < epochs; i++)
     {
         double epoch_error = 0;

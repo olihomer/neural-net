@@ -62,10 +62,17 @@ public:
     void load(std::ifstream& file);
     
     static constexpr std::size_t stride = 2;
+    static constexpr Scalar beta1 = 0.9f;
+    static constexpr Scalar beta2 = 0.999f;
+    static constexpr Scalar epsilon = 1e-8f;
+    static Scalar beta1pow;
+    static Scalar beta2pow;
     
 private:
     Tensor kernels_; //outputs, inputs, kernelY, kernelX
     Tensor kernelGradient_; //outputs, inputs, kernelY, kernelX
+    Tensor kernel_m_;
+    Tensor kernel_v_;
     Tensor input_;
     Tensor activation_;
     Tensor pooled_;
@@ -75,6 +82,9 @@ private:
     
     std::vector<Scalar> biases_;
     std::vector<Scalar> biasGradient_;
+    std::vector<Scalar> bias_m_;
+    std::vector<Scalar> bias_v_;
+    
     std::queue<ConvCache> cache_;
     void initialiseWeights();
     

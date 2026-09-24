@@ -44,6 +44,7 @@ public:
     std::size_t find_highest_output(void){return classifier_.find_highest_output();};
     std::pair<std::size_t, Scalar> predict(const std::vector<Scalar>& input);
     std::vector<Scalar> offsetExample(const std::vector<Scalar>& input, std::size_t sizeX, std::size_t sizeY, int offsetX, int offSetY);
+    void resetBeta() override {ConvLayer::beta1pow=1.0f;ConvLayer::beta2pow=1.0f;}
     
     void save(const std::string& filename) const;
     void load(const std::string& filename);

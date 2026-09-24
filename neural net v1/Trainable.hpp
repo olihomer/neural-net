@@ -21,6 +21,7 @@ public:
     virtual void gradient_descent(std::size_t trainingSize, double learningRate) = 0;
     virtual double trainBatch(const data_set& training_data, const std::span<const std::size_t> batch) = 0;
     virtual void print_stats(std::ostream& ostream) = 0;
+    virtual void resetBeta() = 0;
 };
 
 
