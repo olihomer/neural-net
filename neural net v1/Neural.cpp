@@ -259,15 +259,9 @@ double Neural::trainBatch(const Matrix& inputs, const Matrix& targets)
 
 void Neural::gradient_descent(std::size_t trainingSize, double learningRate)
 {
-    const Scalar scale = static_cast<Scalar>(learningRate) / static_cast<Scalar>(trainingSize);
-    
     //update Adam parameters
     NeuronLayer::beta1pow *= NeuronLayer::beta1;
     NeuronLayer::beta2pow *= NeuronLayer::beta2;
-    
-    //Adam parameters
-    Scalar bias_mHat;
-    Scalar bias_vHat;
     
     //Adam algorithm
     // m = beta1 * prev m + (1 - beta1) * gradient
@@ -282,29 +276,34 @@ void Neural::gradient_descent(std::size_t trainingSize, double learningRate)
         
         current.weight_m = current.weight_m * current.beta1 + current.weight_gradient * (1 - current.beta1);
         current.weight_v = current.weight_v * current.beta2 +
-                            Matrix::hadamard(current.weight_gradient, current.weight_gradient) * (1 - current.beta1);
+                            Matrix::hadamard(current.weight_gradient, current.weight_gradient) * (1 - current.beta2);
         Matrix weight_mHat = current.weight_m * (1/(1 - current.beta1pow));
         Matrix weight_vHat = current.weight_v * (1/(1 - current.beta2pow));
         
         for(std::size_t i = 0; i < current.weight.size(); i++)
         {
-            current.weight.data()[i] -= (weight_mHat.data()[i] / (std::sqrt(weight_vHat.data()[i])+current.epsilon)) * learningRate;
+            const Scalar g = current.weight_gradient.data()[i];
+            
+            current.weight_m.data()[i] = current.weight_m.data()[i] * current.beta1 + g * (1 - current.beta1);
+            current.weight_v.data()[i] = current.weight_v.data()[i] * current.beta2 + g * g * (1 - current.beta2);
+            Scalar mHat = current.weight_m.data()[i] / (1.0f - current.beta1pow);
+            Scalar vHat = current.weight_v.data()[i] / (1.0f - current.beta2pow);
+            
+            current.weight.data()[i] -= (mHat / (std::sqrt(vHat)+current.epsilon)) * learningRate;
         }
-        
-        current.bias_m = current.bias_m * current.beta1 + current.bias_gradient * (1 - current.beta1);
-        current.bias_v = current.bias_v * current.beta2 +
-                            Matrix::hadamard(current.bias_gradient, current.bias_gradient) * (1 - current.beta1);
-        Matrix bias_mHat = current.bias_m * (1/(1 - current.beta1pow));
-        Matrix bias_vHat = current.bias_v * (1/(1 - current.beta2pow));
-        
+ 
         for(std::size_t i = 0; i < current.bias.size(); i++)
         {
-            current.bias.data()[i] -= (bias_mHat.data()[i] / (std::sqrt(bias_vHat.data()[i])+current.epsilon)) * learningRate;
+            const Scalar g = current.bias_gradient.data()[i];
+            
+            current.bias_m.data()[i] = current.bias_m.data()[i] * current.beta1 + g * (1 - current.beta1);
+            current.bias_v.data()[i] = current.bias_v.data()[i] * current.beta2 + g * g * (1 - current.beta2);
+            Scalar mHat = current.bias_m.data()[i] / (1.0f - current.beta1pow);
+            Scalar vHat = current.bias_v.data()[i] / (1.0f - current.beta2pow);
+            
+            current.bias.data()[i] -= (mHat / (std::sqrt(vHat)+current.epsilon)) * learningRate;
         }
         
-        
-        //layer_[j].bias -= layer_[j].bias_gradient * scale;
-        //layer_[j].weight -= layer_[j].weight_gradient * scale;
     }
 }
 
