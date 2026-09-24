@@ -271,7 +271,7 @@ void testNeuralSaveLoadRoundTrip()
     const std::string path = "/tmp/neural_net_v1_round_trip_test.nnet";
     const std::vector<Scalar> input = {0.25f, 0.75f};
 
-    Neural original({2, 3, 2}, ActivationType::Sigmoid, ActivationType::Sigmoid);
+    Neural original({2, 3, 2}, ActivationType::Sigmoid, ActivationType::Sigmoid, 0.0f);
     original.set_input(input);
     original.propagate();
     const Scalar originalOutput0 = original.get_output(0);
@@ -279,7 +279,7 @@ void testNeuralSaveLoadRoundTrip()
 
     original.save(path);
 
-    Neural loaded({1, 1}, ActivationType::Sigmoid, ActivationType::Sigmoid);
+    Neural loaded({1, 1}, ActivationType::Sigmoid, ActivationType::Sigmoid, 0.0f);
     loaded.load(path);
     loaded.set_input(input);
     loaded.propagate();

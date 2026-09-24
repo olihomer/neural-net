@@ -39,7 +39,8 @@ public:
                int outputActivation,
                int cnnConv1Channels,
                int cnnConv2Channels,
-               int cnnClassifierHiddenLayerSize);
+               int cnnClassifierHiddenLayerSize,
+               double dropout);
     void extracted(const std::vector<float> &vectorData);
     
     std::pair<int,float> sendRasterData(const float *data, std::size_t size);

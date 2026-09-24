@@ -25,8 +25,8 @@ class Neural : public Trainable
 public:
     
     //Constructor
-    Neural(std::vector<int> nodes_per_layer, const ActivationType hiddenActivationType, const ActivationType outputActivationType);
-    void configure(std::vector<int> nodes_per_layer, const ActivationType hiddenActivationType, const ActivationType outputActivationType);
+    Neural(std::vector<int> nodes_per_layer, const ActivationType hiddenActivationType, const ActivationType outputActivationType, const Scalar dropout);
+    void configure(std::vector<int> nodes_per_layer, const ActivationType hiddenActivationType, const ActivationType outputActivationType, const Scalar dropout);
     
     //Debug
     void print_dimensions(std::ostream& stream);
@@ -71,6 +71,7 @@ private:
     std::size_t layers_ = 0;
     std::size_t max_layers_ = 0;
     std::vector<layer> layer_;
+    Scalar dropout_;
 
     //Internal methods
     Scalar cost_function(const std::vector<Scalar>& target);

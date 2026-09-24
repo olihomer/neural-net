@@ -151,8 +151,6 @@ double Neural::trainBatch(const data_set &training_data, const std::span<const s
     return trainBatch(inputs, targets);
 }
 
-
-
 double Neural::trainBatch(const Matrix& inputs, const Matrix& targets)
 {
     if(inputs.rows() != layer_[0].size ||targets.rows() != layer_[layers_-1].size)
@@ -337,8 +335,6 @@ void Neural::propagateBatch(bool training)
     // weights matrix W: M x N
     // biases matrix b: M x 1
     
-    const Scalar dropout = 0.3f;
-    
     for(std::size_t i=1;i<layers_;i++) // step through layers
     {
         auto &current = layer_[i];
@@ -347,14 +343,14 @@ void Neural::propagateBatch(bool training)
         current.pre_activation = Matrix::broadcastAdd(Matrix::multiply(current.weight, previous.activation), current.bias);
         current.activationPreDropout = current.activation_function_.activate(current.pre_activation);
         
-        if(training==true && i==1 && dropout > 0.0f)
+        if(training==true && i==1 && dropout_ > 0.0f)
         {
             Matrix dropoutApplied(current.activationPreDropout.rows(), current.activationPreDropout.cols());
             
             for(std::size_t j = 0; j < dropoutApplied.size(); j++)
             {
-                dropoutApplied.data()[j]  = (((Scalar)std::rand()/RAND_MAX) > dropout ?
-                                             (1.0f/(1.0f-dropout)) :
+                dropoutApplied.data()[j]  = (((Scalar)std::rand()/RAND_MAX) > dropout_ ?
+                                             (1.0f/(1.0f - dropout_)) :
                                              0.0f);
             }
             current.activation = Matrix::hadamard(dropoutApplied, current.activationPreDropout);
@@ -369,17 +365,18 @@ void Neural::propagateBatch(bool training)
 }
 
 
-Neural::Neural(std::vector<int> nodes_per_layer, const ActivationType hiddenActivationType, const ActivationType outputActivationType)
+Neural::Neural(std::vector<int> nodes_per_layer, const ActivationType hiddenActivationType, const ActivationType outputActivationType, const Scalar dropout)
 {
-    configure(nodes_per_layer, hiddenActivationType, outputActivationType);
+    configure(nodes_per_layer, hiddenActivationType, outputActivationType, dropout);
 }
 
-void Neural::configure(std::vector<int> nodes_per_layer, const ActivationType hiddenActivationType, const ActivationType outputActivationType)
+void Neural::configure(std::vector<int> nodes_per_layer, const ActivationType hiddenActivationType, const ActivationType outputActivationType, const Scalar dropout)
 {
     layers_ = nodes_per_layer.size();
     max_layers_ = 0;
     layer_.clear();
     layer_.reserve(layers_);
+    dropout_ = dropout;
     
     std::cout << "Configuring neural with " << layers_ << " layers." << std::endl;
     

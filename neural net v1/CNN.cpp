@@ -18,18 +18,20 @@ namespace
 }
 
 CNN::CNN()
-:conv1_(8,1,28,28), conv2_(16,8,14,14),classifier_({784,128,10}, ActivationType::Relu, ActivationType::Softmax)
+:conv1_(8,1,28,28), conv2_(16,8,14,14),classifier_({784,128,10}, ActivationType::Relu, ActivationType::Softmax, 0.1f)
 {
     ;
 }
 
 void CNN::configure(std::size_t conv1OutputChannels,
                     std::size_t conv2OutputChannels,
-                    std::size_t classifierHiddenLayerSize)
+                    std::size_t classifierHiddenLayerSize,
+                    Scalar dropout)
 {
     conv1OutputChannels = std::max<std::size_t>(conv1OutputChannels, 1);
     conv2OutputChannels = std::max<std::size_t>(conv2OutputChannels, 1);
     classifierHiddenLayerSize = std::max<std::size_t>(classifierHiddenLayerSize, 1);
+    dropout = std::clamp<Scalar>(dropout, 0.0f, 0.95f);
 
     conv1_ = ConvLayer(conv1OutputChannels, 1, 28, 28);
     conv2_ = ConvLayer(conv2OutputChannels, conv1OutputChannels, 14, 14);
@@ -38,7 +40,8 @@ void CNN::configure(std::size_t conv1OutputChannels,
     classifier_.configure(
         {static_cast<int>(classifierInputs), static_cast<int>(classifierHiddenLayerSize), 10},
         ActivationType::Relu,
-        ActivationType::Softmax);
+        ActivationType::Softmax,
+        dropout);
 }
 
 void CNN::print() const
@@ -168,8 +171,11 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
         //load example into Tensor
         Tensor input({1,28,28});
 
+        int offsetX = std::round(((Scalar)rand()/RAND_MAX) * 4.0f) - 2;
+        int offsetY = std::round(((Scalar)rand()/RAND_MAX) * 4.0f) - 2;
+        
         for(std::size_t i=0; i<training_data.n_inputs(); i++)
-            input.data()[i]=training_data.get_data()[batch[index]].inputs[i];
+            input.data()[i]=CNN::offsetExample(training_data.get_data()[batch[index]].inputs,28,28,offsetX,offsetY)[i];
 
         for(std::size_t i=0; i<training_data.n_outputs(); i++)
             MLPtargets(i,index)=training_data.get_data()[batch[index]].outputs[i];
@@ -338,4 +344,19 @@ void CNN::load(const std::string& filename)
 
     if(!file)
         throw std::runtime_error("Failed while loading CNN");
+}
+
+std::vector<Scalar> CNN::offsetExample(const std::vector<Scalar>& input, std::size_t sizeX, std::size_t sizeY, int offsetX, int offSetY)
+{
+    std::vector<Scalar> output(sizeX * sizeY);
+    
+    
+    for(std::size_t targetY = 0; targetY < sizeY; targetY++)
+        for(std::size_t targetX = 0; targetX < sizeX; targetX++)
+        {
+            output.data()[targetY * sizeX + targetX] =
+            (targetX + offsetX < 0 || targetX + offsetX > sizeX - 1 || targetY + offSetY < 0 || targetY + offSetY > sizeY - 1) ? 0.0f :
+            input.data()[(targetY + offSetY) * sizeX + (targetX + offsetX)];
+        }
+    return output;
 }

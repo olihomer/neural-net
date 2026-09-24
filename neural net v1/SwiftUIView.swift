@@ -19,6 +19,7 @@ public struct SwiftUIView: View {
         case evaluationExamples
         case batchSize
         case learningRate
+        case dropout
         case cnnConv1Channels
         case cnnConv2Channels
         case cnnClassifierHiddenLayerSize
@@ -36,6 +37,7 @@ public struct SwiftUIView: View {
     @State private var evaluationExamplesText = "100"
     @State private var batchSizeText = "50"
     @State private var learningRateText = "0.05"
+    @State private var dropoutText = "0.1"
     @State private var cnnConv1ChannelsText = "8"
     @State private var cnnConv2ChannelsText = "16"
     @State private var cnnClassifierHiddenLayerSizeText = "128"
@@ -75,6 +77,9 @@ public struct SwiftUIView: View {
             }
             decimalField("Learning rate", text: $learningRateText, field: .learningRate) {
                 commitDouble($learningRateText, to: $settings.learningRate, range: 0.0...2.0)
+            }
+            decimalField("Dropout", text: $dropoutText, field: .dropout) {
+                commitDouble($dropoutText, to: $settings.dropout, range: 0.0...0.95)
             }
 
             if settings.model == .mlp {
@@ -231,6 +236,7 @@ public struct SwiftUIView: View {
         commitInteger($evaluationExamplesText, to: $settings.evaluationExamples, range: 1...60000)
         commitInteger($batchSizeText, to: $settings.batchSize, range: 1...60000)
         commitDouble($learningRateText, to: $settings.learningRate, range: 0.0...2.0)
+        commitDouble($dropoutText, to: $settings.dropout, range: 0.0...0.95)
         commitInteger($cnnConv1ChannelsText, to: $settings.cnnConv1Channels, range: 1...128)
         commitInteger($cnnConv2ChannelsText, to: $settings.cnnConv2Channels, range: 1...256)
         commitInteger($cnnClassifierHiddenLayerSizeText, to: $settings.cnnClassifierHiddenLayerSize, range: 1...512)

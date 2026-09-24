@@ -48,7 +48,7 @@ const ConvLayer& cnnLayerFor(const CNN& cnn, int layer)
 
 
 AppEngine::AppEngine()
-: mlp_({784,128,10}, ActivationType::Relu, ActivationType::Softmax)
+: mlp_({784,128,10}, ActivationType::Relu, ActivationType::Softmax, 0.1f)
 {
     std::cout << "Constructing Engine" << std::endl;
     
@@ -73,7 +73,8 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
                       int outputActivation,
                       int cnnConv1Channels,
                       int cnnConv2Channels,
-                      int cnnClassifierHiddenLayerSize)
+                      int cnnClassifierHiddenLayerSize,
+                      double dropout)
 {
     std::cout << "Entered RunApp" << std::endl;
     modelKind = std::clamp(modelKind, 0, 1);
@@ -85,6 +86,7 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
     cnnConv1Channels = std::max(cnnConv1Channels, 1);
     cnnConv2Channels = std::max(cnnConv2Channels, 1);
     cnnClassifierHiddenLayerSize = std::max(cnnClassifierHiddenLayerSize, 1);
+    dropout = std::clamp(dropout, 0.0, 0.95);
 
     const ActivationType hiddenActivationType = activationTypeFor(hiddenActivation);
     const ActivationType outputActivationType = activationTypeFor(outputActivation);
@@ -99,11 +101,12 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
         cnn_.configure(
             static_cast<std::size_t>(cnnConv1Channels),
             static_cast<std::size_t>(cnnConv2Channels),
-            static_cast<std::size_t>(cnnClassifierHiddenLayerSize));
+            static_cast<std::size_t>(cnnClassifierHiddenLayerSize),
+            static_cast<Scalar>(dropout));
     }
     else
     {
-        mlp_.configure({784, hiddenLayerSize, 10}, hiddenActivationType, outputActivationType);
+        mlp_.configure({784, hiddenLayerSize, 10}, hiddenActivationType, outputActivationType, static_cast<Scalar>(dropout));
     }
 
     Trainer trainer(activeTrainable());

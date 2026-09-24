@@ -7,6 +7,9 @@
 
 #include "Matrix.hpp"
 #include <iostream>
+
+#define ACCELERATE_NEW_LAPACK
+#define ACCELERATE_LAPACK_ILP64
 #include <Accelerate/Accelerate.h>
 
 Matrix::Matrix(std::size_t rows, std::size_t cols, const std::vector<Scalar> data)

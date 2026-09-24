@@ -44,6 +44,7 @@ struct TrainingSettings: Sendable {
     var evaluationExamples: Int = 100
     var batchSize: Int = 50
     var learningRate: Double = 0.05
+    var dropout: Double = 0.1
     var hiddenActivation: ActivationChoice = .relu
     var outputActivation: ActivationChoice = .softmax
     var cnnConv1Channels: Int = 8
@@ -123,7 +124,8 @@ final class EngineBox: ObservableObject, @unchecked Sendable {
             CInt(settings.outputActivation.rawValue),
             CInt(settings.cnnConv1Channels),
             CInt(settings.cnnConv2Channels),
-            CInt(settings.cnnClassifierHiddenLayerSize)
+            CInt(settings.cnnClassifierHiddenLayerSize),
+            settings.dropout
         )
     }
 
