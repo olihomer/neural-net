@@ -274,12 +274,6 @@ void Neural::gradient_descent(std::size_t trainingSize, double learningRate)
     {
         NeuronLayer& current = layer_[j];
         
-        current.weight_m = current.weight_m * current.beta1 + current.weight_gradient * (1 - current.beta1);
-        current.weight_v = current.weight_v * current.beta2 +
-                            Matrix::hadamard(current.weight_gradient, current.weight_gradient) * (1 - current.beta2);
-        Matrix weight_mHat = current.weight_m * (1/(1 - current.beta1pow));
-        Matrix weight_vHat = current.weight_v * (1/(1 - current.beta2pow));
-        
         for(std::size_t i = 0; i < current.weight.size(); i++)
         {
             const Scalar g = current.weight_gradient.data()[i];
