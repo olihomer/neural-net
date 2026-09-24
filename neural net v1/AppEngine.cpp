@@ -66,6 +66,7 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
                       int hiddenLayerSize,
                       int epochs,
                       int trainingExamples,
+                      int evaluationExamples,
                       int batchSize,
                       double learningRate,
                       int hiddenActivation,
@@ -88,10 +89,8 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
     const ActivationType hiddenActivationType = activationTypeFor(hiddenActivation);
     const ActivationType outputActivationType = activationTypeFor(outputActivation);
     const ModelKind selectedModel = modelKind == static_cast<int>(ModelKind::CNN) ? ModelKind::CNN : ModelKind::MLP;
-    
-    const int evaluationExamples = 1000;
-    
-    mnist_data mnist("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", trainingExamples);
+        
+    mnist_data mnist("/Users/oliverhomer/Xcode/neural net v1/fashion-mnist_train.csv", trainingExamples);
     
     selectModel(selectedModel);
 
@@ -110,13 +109,13 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
     Trainer trainer(activeTrainable());
     trainer.train(mnist, epochs, batchSize, learningRate, progress);
     
-    mnist_data mnist_training_data2("/Users/oliverhomer/Xcode/neural net v1/mnist_test.csv", trainingExamples + evaluationExamples);
+    mnist_data mnist_training_data2("/Users/oliverhomer/Xcode/neural net v1/fashion-mnist_test.csv", evaluationExamples);
 
     int wrong = 0;
     
     for(int i=0;i<evaluationExamples;i++)
     {
-        int guess = i+trainingExamples;
+        int guess = i;
         int guess_label = mnist_training_data2.get_label(guess);
         //std::cout << "Guess = " << guess_label;
         

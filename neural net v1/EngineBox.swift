@@ -41,6 +41,7 @@ struct TrainingSettings: Sendable {
     var hiddenLayerSize: Int = 128
     var epochs: Int = 50
     var trainingExamples: Int = 1000
+    var evaluationExamples: Int = 100
     var batchSize: Int = 50
     var learningRate: Double = 0.05
     var hiddenActivation: ActivationChoice = .relu
@@ -115,6 +116,7 @@ final class EngineBox: ObservableObject, @unchecked Sendable {
             CInt(settings.hiddenLayerSize),
             CInt(settings.epochs),
             CInt(settings.trainingExamples),
+            CInt(settings.evaluationExamples),
             CInt(settings.batchSize),
             settings.learningRate,
             CInt(settings.hiddenActivation.rawValue),

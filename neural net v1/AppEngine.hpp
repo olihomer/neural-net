@@ -32,6 +32,7 @@ public:
                int hiddenLayerSize,
                int epochs,
                int trainingExamples,
+               int evaluationExamples,
                int batchSize,
                double learningRate,
                int hiddenActivation,

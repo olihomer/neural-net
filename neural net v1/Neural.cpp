@@ -174,7 +174,7 @@ double Neural::trainBatch(const Matrix& inputs, const Matrix& targets)
 
     //propagate through network
     
-    propagateBatch();
+    propagateBatch(true);
         
     const auto& probabilities = output.activation;
     double total_loss = 0.0;
@@ -324,7 +324,7 @@ void Neural::propagate()
   
 }
 
-void Neural::propagateBatch()
+void Neural::propagateBatch(bool training)
 {
     // Pre-activation z = W a_prev + b
     // Activation a = f(z)
@@ -332,13 +332,25 @@ void Neural::propagateBatch()
     // weights matrix W: M x N
     // biases matrix b: M x 1
     
+    const Scalar dropout = 0.3f;
+    
     for(std::size_t i=1;i<layers_;i++) // step through layers
     {
         auto &current = layer_[i];
         const auto& previous = layer_[i - 1];
         
         current.pre_activation = Matrix::broadcastAdd(Matrix::multiply(current.weight, previous.activation), current.bias);
-        current.activation = current.activation_function_.activate(current.pre_activation);
+        if(i==1 && dropout > 0.0f)
+        {
+            current.activation = current.activation_function_.activate(current.pre_activation) *
+            ((std::rand()/RAND_MAX) > dropout ?
+            (1.0f/(1.0f-dropout)) :
+            0.0f);
+        }
+        else
+        {
+            current.activation = current.activation_function_.activate(current.pre_activation);
+        }
     }
   
 }

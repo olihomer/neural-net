@@ -54,7 +54,7 @@ public:
     
     //Public methods
     void propagate();
-    void propagateBatch();
+    void propagateBatch(bool training=false);
     void gradient_descent(std::size_t trainingSize, double learningRate) override;
     double trainBatch(const data_set& training_data, const std::span<const std::size_t> batch) override;
     double trainBatch(const Matrix& inputs, const Matrix& targets);

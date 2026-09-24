@@ -84,6 +84,7 @@
 		DEA6372830586B210031E9F3 /* ConvLayer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ConvLayer.cpp; sourceTree = "<group>"; };
 		DEA6372A305ACDBA0031E9F3 /* Trainable.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Trainable.hpp; sourceTree = "<group>"; };
 		DEA6372B305ACDBA0031E9F3 /* Trainable.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Trainable.cpp; sourceTree = "<group>"; };
+		DEA6372F306537760031E9F3 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		DED68A222B824122004ED2CE /* neural net v1 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "neural net v1"; sourceTree = BUILT_PRODUCTS_DIR; };
 		DED68A252B824122004ED2CE /* AppEngine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AppEngine.cpp; sourceTree = "<group>"; };
 		DED68A302B82477A004ED2CE /* data */ = {isa = PBXFileReference; lastKnownFileType = text; path = data; sourceTree = "<group>"; };
@@ -128,6 +129,7 @@
 				DED68A302B82477A004ED2CE /* data */,
 				DE414377302B626B009B4026 /* AGENTS.md */,
 				DE414378302B627E009B4026 /* PROJECT_NOTES.md */,
+				DEA6372F306537760031E9F3 /* .gitignore */,
 				DED68A242B824122004ED2CE /* neural net v1 */,
 				DEA63703305363490031E9F3 /* neural net v1 tests */,
 				DEA6371E30561FEF0031E9F3 /* Frameworks */,
@@ -234,6 +236,7 @@
 				TargetAttributes = {
 					DEA63701305363490031E9F3 = {
 						CreatedOnToolsVersion = 26.6;
+						LastSwiftMigration = 2660;
 					};
 					DED68A212B824122004ED2CE = {
 						CreatedOnToolsVersion = 15.2;
@@ -302,18 +305,23 @@
 		DEA63707305363490031E9F3 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
 		};
 		DEA63708305363490031E9F3 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};

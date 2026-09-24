@@ -16,6 +16,7 @@ public struct SwiftUIView: View {
         case hiddenLayerSize
         case epochs
         case trainingExamples
+        case evaluationExamples
         case batchSize
         case learningRate
         case cnnConv1Channels
@@ -32,6 +33,7 @@ public struct SwiftUIView: View {
     @State private var hiddenLayerSizeText = "128"
     @State private var epochsText = "50"
     @State private var trainingExamplesText = "1000"
+    @State private var evaluationExamplesText = "100"
     @State private var batchSizeText = "50"
     @State private var learningRateText = "0.05"
     @State private var cnnConv1ChannelsText = "8"
@@ -64,6 +66,9 @@ public struct SwiftUIView: View {
             }
             integerField("Training examples", text: $trainingExamplesText, field: .trainingExamples) {
                 commitInteger($trainingExamplesText, to: $settings.trainingExamples, range: 1...60000)
+            }
+            integerField("Evaluation examples", text: $evaluationExamplesText, field: .evaluationExamples) {
+                commitInteger($evaluationExamplesText, to: $settings.evaluationExamples, range: 1...10000)
             }
             integerField("Batch size", text: $batchSizeText, field: .batchSize) {
                 commitInteger($batchSizeText, to: $settings.batchSize, range: 1...60000)
@@ -223,6 +228,7 @@ public struct SwiftUIView: View {
         commitInteger($hiddenLayerSizeText, to: $settings.hiddenLayerSize, range: 1...512)
         commitInteger($epochsText, to: $settings.epochs, range: 1...5000)
         commitInteger($trainingExamplesText, to: $settings.trainingExamples, range: 1...60000)
+        commitInteger($evaluationExamplesText, to: $settings.evaluationExamples, range: 1...60000)
         commitInteger($batchSizeText, to: $settings.batchSize, range: 1...60000)
         commitDouble($learningRateText, to: $settings.learningRate, range: 0.0...2.0)
         commitInteger($cnnConv1ChannelsText, to: $settings.cnnConv1Channels, range: 1...128)
