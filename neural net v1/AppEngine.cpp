@@ -90,7 +90,7 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
     const ActivationType outputActivationType = activationTypeFor(outputActivation);
     const ModelKind selectedModel = modelKind == static_cast<int>(ModelKind::CNN) ? ModelKind::CNN : ModelKind::MLP;
         
-    mnist_data mnist("/Users/oliverhomer/Xcode/neural net v1/fashion-mnist_train.csv", trainingExamples);
+    mnist_data mnist("/Users/oliverhomer/Xcode/neural net v1/data/fashion-mnist_train.csv", trainingExamples);
     
     selectModel(selectedModel);
 
@@ -107,9 +107,18 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
     }
 
     Trainer trainer(activeTrainable());
-    trainer.train(mnist, epochs, batchSize, learningRate, progress);
     
-    mnist_data mnist_training_data2("/Users/oliverhomer/Xcode/neural net v1/fashion-mnist_test.csv", evaluationExamples);
+    try
+    {
+        trainer.train(mnist, epochs, batchSize, learningRate, progress);
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "ERROR: " << e.what() << '\n';
+        return 0;
+    }
+    
+    mnist_data mnist_training_data2("/Users/oliverhomer/Xcode/neural net v1/data/fashion-mnist_test.csv", evaluationExamples);
 
     int wrong = 0;
     

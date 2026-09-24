@@ -230,12 +230,17 @@ double Neural::trainBatch(const Matrix& inputs, const Matrix& targets)
         
         if(previous_index == 0)
         {
-            previous.error =std::move(propagated_error);
+            previous.error = std::move(propagated_error);
             
         }
         else
         {
-            previous.error = Matrix::hadamard(propagated_error, previous.activation_function_.derivative(previous.activation));
+            if(previous_index == 1) //dropout layer
+            {
+                propagated_error = Matrix::hadamard(propagated_error, previous.dropoutApplied);
+            }
+            
+            previous.error = Matrix::hadamard(propagated_error, previous.activation_function_.derivative(previous.activationPreDropout));
             
             //accumulate output layer bias gradient across each row
             
@@ -340,16 +345,24 @@ void Neural::propagateBatch(bool training)
         const auto& previous = layer_[i - 1];
         
         current.pre_activation = Matrix::broadcastAdd(Matrix::multiply(current.weight, previous.activation), current.bias);
-        if(i==1 && dropout > 0.0f)
+        current.activationPreDropout = current.activation_function_.activate(current.pre_activation);
+        
+        if(training==true && i==1 && dropout > 0.0f)
         {
-            current.activation = current.activation_function_.activate(current.pre_activation) *
-            ((std::rand()/RAND_MAX) > dropout ?
-            (1.0f/(1.0f-dropout)) :
-            0.0f);
+            Matrix dropoutApplied(current.activationPreDropout.rows(), current.activationPreDropout.cols());
+            
+            for(std::size_t j = 0; j < dropoutApplied.size(); j++)
+            {
+                dropoutApplied.data()[j]  = (((Scalar)std::rand()/RAND_MAX) > dropout ?
+                                             (1.0f/(1.0f-dropout)) :
+                                             0.0f);
+            }
+            current.activation = Matrix::hadamard(dropoutApplied, current.activationPreDropout);
+            current.dropoutApplied = std::move(dropoutApplied);
         }
         else
         {
-            current.activation = current.activation_function_.activate(current.pre_activation);
+            current.activation = current.activationPreDropout;
         }
     }
   

@@ -42,7 +42,8 @@ void NeuronLayer::load(std::ifstream& file)
     error = Matrix(size,1);
     bias_gradient = Matrix(size,1);
     weight_gradient = Matrix(size,inputs);
-
+    activationPreDropout = Matrix(size,1);
+    dropoutApplied = Matrix(size,1);
 
     //Weights
     file.read(reinterpret_cast<char*>(weight.data()),weight.size()*sizeof(Scalar));

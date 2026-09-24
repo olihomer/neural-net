@@ -132,9 +132,8 @@ Matrix Matrix::hadamard(const Matrix& lhs, const Matrix& rhs)
     
     Matrix m(lhs.rows(), lhs.cols());
     
-    for(std::size_t row = 0; row < m.rows(); row++)
-        for(std::size_t col = 0; col < m.cols(); col++)
-                m(row,col) = lhs(row,col) * rhs (row,col);
+    for(std::size_t i = 0; i < m.rows() * m.cols(); i++)
+            m.data_[i] = lhs.data_[i] * rhs.data_[i];
     
     return m;
 }

@@ -24,11 +24,13 @@ public:
     Matrix bias;
     Matrix weight;
     Matrix weight_gradient;
+    Matrix dropoutApplied;
+    Matrix activationPreDropout;
     
     inline static Sigmoid default_activation_function_{};
     
     explicit NeuronLayer (const ActivationFunction& af = default_activation_function_)
-        : activation_function_(af), weight(0,0), activation(0,0), bias(0,0), pre_activation(0,0), error(0,0), bias_gradient(0,0), weight_gradient(0,0)
+        : activation_function_(af), weight(0,0), activation(0,0), bias(0,0), pre_activation(0,0), error(0,0), bias_gradient(0,0), weight_gradient(0,0), dropoutApplied(0,0), activationPreDropout(0, 0)
     {
         ;
     }
