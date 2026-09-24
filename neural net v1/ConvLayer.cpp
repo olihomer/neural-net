@@ -866,7 +866,13 @@ void ConvLayer::print() const
 void ConvLayer::zeroGradients()
 {
     kernelGradient_.fill(0.0f);
+    kernel_m_.fill(0.0f);
+    kernel_v_.fill(0.0f);
+    
     std::fill(biasGradient_.begin(),biasGradient_.end(),0.0f);
+    std::fill(bias_m_.begin(),bias_m_.end(),0.0f);
+    std::fill(bias_v_.begin(),bias_v_.end(),0.0f);
+
 }
 
 
