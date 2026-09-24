@@ -174,8 +174,10 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
         int offsetX = std::round(((Scalar)rand()/RAND_MAX) * 4.0f) - 2;
         int offsetY = std::round(((Scalar)rand()/RAND_MAX) * 4.0f) - 2;
         
+        std::vector<Scalar> offset = CNN::offsetExample(training_data.get_data()[batch[index]].inputs,28,28,offsetX,offsetY);
+        
         for(std::size_t i=0; i<training_data.n_inputs(); i++)
-            input.data()[i]=CNN::offsetExample(training_data.get_data()[batch[index]].inputs,28,28,offsetX,offsetY)[i];
+            input.data()[i]= offset[i];
 
         for(std::size_t i=0; i<training_data.n_outputs(); i++)
             MLPtargets(i,index)=training_data.get_data()[batch[index]].outputs[i];
