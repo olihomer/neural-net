@@ -19,21 +19,30 @@ public:
     
     Matrix error;
     Matrix bias_gradient;
+    Matrix bias_m;
+    Matrix bias_v;
     Matrix pre_activation;
     Matrix activation;
     Matrix bias;
     Matrix weight;
     Matrix weight_gradient;
+    Matrix weight_m;
+    Matrix weight_v;
     Matrix dropoutApplied;
     Matrix activationPreDropout;
+    
+    static constexpr Scalar beta1 = 0.9f;
+    static constexpr Scalar beta2 = 0.999f;
+    static constexpr Scalar epsilon = 1e-8f;
+
+    inline static Scalar beta1pow = 1.0f;
+    inline static Scalar beta2pow = 1.0f;
     
     inline static Sigmoid default_activation_function_{};
     
     explicit NeuronLayer (const ActivationFunction& af = default_activation_function_)
-        : activation_function_(af), weight(0,0), activation(0,0), bias(0,0), pre_activation(0,0), error(0,0), bias_gradient(0,0), weight_gradient(0,0), dropoutApplied(0,0), activationPreDropout(0, 0)
-    {
-        ;
-    }
+    : activation_function_(af), weight(0,0), activation(0,0), bias(0,0), pre_activation(0,0), error(0,0), bias_gradient(0,0), weight_gradient(0,0), dropoutApplied(0,0), activationPreDropout(0, 0), bias_m(0,0), bias_v(0, 0), weight_m(0, 0), weight_v(0, 0) {}
+    
 
     void save(std::ofstream& file) const;
     void load(std::ifstream& file);

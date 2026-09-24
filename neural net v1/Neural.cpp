@@ -261,10 +261,50 @@ void Neural::gradient_descent(std::size_t trainingSize, double learningRate)
 {
     const Scalar scale = static_cast<Scalar>(learningRate) / static_cast<Scalar>(trainingSize);
     
+    //update Adam parameters
+    NeuronLayer::beta1pow *= NeuronLayer::beta1;
+    NeuronLayer::beta2pow *= NeuronLayer::beta2;
+    
+    //Adam parameters
+    Scalar bias_mHat;
+    Scalar bias_vHat;
+    
+    //Adam algorithm
+    // m = beta1 * prev m + (1 - beta1) * gradient
+    // v = beta2 * prev v + (1 - beta2) * gradient * gradient
+    // mhat = m / (1 - beta1^t)
+    // vhat = v / (1 - beta2^t)
+    // w = prev w - mhat / (sqrt (vhat) + epsilon) * alpha
+    
     for (std::size_t j=1;j<layers_;j++) // loop through layers starting from second
     {
-        layer_[j].bias -= layer_[j].bias_gradient * scale;
-        layer_[j].weight -= layer_[j].weight_gradient * scale;
+        NeuronLayer& current = layer_[j];
+        
+        current.weight_m = current.weight_m * current.beta1 + current.weight_gradient * (1 - current.beta1);
+        current.weight_v = current.weight_v * current.beta2 +
+                            Matrix::hadamard(current.weight_gradient, current.weight_gradient) * (1 - current.beta1);
+        Matrix weight_mHat = current.weight_m * (1/(1 - current.beta1pow));
+        Matrix weight_vHat = current.weight_v * (1/(1 - current.beta2pow));
+        
+        for(std::size_t i = 0; i < current.weight.size(); i++)
+        {
+            current.weight.data()[i] -= (weight_mHat.data()[i] / (std::sqrt(weight_vHat.data()[i])+current.epsilon)) * learningRate;
+        }
+        
+        current.bias_m = current.bias_m * current.beta1 + current.bias_gradient * (1 - current.beta1);
+        current.bias_v = current.bias_v * current.beta2 +
+                            Matrix::hadamard(current.bias_gradient, current.bias_gradient) * (1 - current.beta1);
+        Matrix bias_mHat = current.bias_m * (1/(1 - current.beta1pow));
+        Matrix bias_vHat = current.bias_v * (1/(1 - current.beta2pow));
+        
+        for(std::size_t i = 0; i < current.bias.size(); i++)
+        {
+            current.bias.data()[i] -= (bias_mHat.data()[i] / (std::sqrt(bias_vHat.data()[i])+current.epsilon)) * learningRate;
+        }
+        
+        
+        //layer_[j].bias -= layer_[j].bias_gradient * scale;
+        //layer_[j].weight -= layer_[j].weight_gradient * scale;
     }
 }
 
@@ -397,10 +437,16 @@ void Neural::configure(std::vector<int> nodes_per_layer, const ActivationType hi
         layer_[i].pre_activation = Matrix(layer_[i].size,1);
         layer_[i].error = Matrix(layer_[i].size,1);
         layer_[i].bias_gradient = Matrix(layer_[i].size,1);
+        layer_[i].bias_m = Matrix(layer_[i].size,1);
+        layer_[i].bias_v = Matrix(layer_[i].size,1);
 
+        
         layer_[i].bias = Matrix(layer_[i].size,1);
         layer_[i].weight = Matrix(layer_[i].size,i>0 ? layer_[i-1].size : 1);
         layer_[i].weight_gradient = Matrix(layer_[i].size,i>0 ? layer_[i-1].size : 1);
+        layer_[i].weight_m = Matrix(layer_[i].size,i>0 ? layer_[i-1].size : 1);
+        layer_[i].weight_v = Matrix(layer_[i].size,i>0 ? layer_[i-1].size : 1);
+        
         
         layer_[i].bias = layer_[i].bias.apply(
                                 []

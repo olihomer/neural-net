@@ -22,8 +22,6 @@
 
 std::random_device ConvLayer::rd_;
 std::mt19937 ConvLayer::rng_(ConvLayer::rd_());
-Scalar ConvLayer::beta1pow;
-Scalar ConvLayer::beta2pow;
 
 namespace
 {
@@ -697,7 +695,7 @@ void ConvLayer::convolve_()
     }
 }
 
-void ConvLayer::gradient_descent(const Scalar scale)
+void ConvLayer::gradient_descent(std::size_t batchSize, const Scalar learningRate)
 {
     const auto outputChannels = kernels_.dim(0);
     const auto inputChannels = kernels_.dim(1);
@@ -750,23 +748,25 @@ void ConvLayer::gradient_descent(const Scalar scale)
 
                     for(int i = 0; i < kX; i++)
                     {
-                        kernel_mRow[i] = beta1 * kernel_mRow[i] + (1 - beta1) * kernelGradientRow[i];
-                        kernel_vRow[i] = beta2 * kernel_vRow[i] + (1 - beta2) * kernelGradientRow[i] * kernelGradientRow[i];
+                        const Scalar g = kernelGradientRow[i];
+                        kernel_mRow[i] = beta1 * kernel_mRow[i] + (1 - beta1) * g;
+                        kernel_vRow[i] = beta2 * kernel_vRow[i] + (1 - beta2) * g * g;
                         kernel_mHat = kernel_mRow[i] / (1 - beta1pow);
                         kernel_vHat = kernel_vRow[i] / (1 - beta2pow);
-                        kernelRow[i] -= (kernel_mHat / (std::sqrt(kernel_vHat) + epsilon)) * scale;
+                        kernelRow[i] -= (kernel_mHat / (std::sqrt(kernel_vHat) + epsilon)) * learningRate;
                         
                        // *(kernelRow + i) -= *(kernelGradientRow + i) * scale;
                         
                     }
                 }
             }
-            bias_m_[outChan] = beta1 * bias_m_[outChan] + (1 - beta1) * biasGradient_[outChan];
-            bias_v_[outChan] = beta2 * bias_v_[outChan] + (1 - beta2) * biasGradient_[outChan] * biasGradient_[outChan];
+            const Scalar g = biasGradient_[outChan];
+            bias_m_[outChan] = beta1 * bias_m_[outChan] + (1 - beta1) * g;
+            bias_v_[outChan] = beta2 * bias_v_[outChan] + (1 - beta2) * g * g;
             bias_mHat = bias_m_[outChan] / (1 - beta1pow);
             bias_vHat = bias_v_[outChan] / (1 - beta2pow);
             
-            biases_[outChan] -= (bias_mHat / (std::sqrt(bias_mHat) + epsilon)) * scale;
+            biases_[outChan] -= (bias_mHat / (std::sqrt(bias_vHat) + epsilon)) * learningRate;
             
             //biases_[outChan] -= biasGradient_[outChan] * scale;
         }
@@ -866,13 +866,7 @@ void ConvLayer::print() const
 void ConvLayer::zeroGradients()
 {
     kernelGradient_.fill(0.0f);
-    kernel_m_.fill(0.0f);
-    kernel_v_.fill(0.0f);
-    
     std::fill(biasGradient_.begin(),biasGradient_.end(),0.0f);
-    std::fill(bias_m_.begin(),bias_m_.end(),0.0f);
-    std::fill(bias_v_.begin(),bias_v_.end(),0.0f);
-
 }
 
 

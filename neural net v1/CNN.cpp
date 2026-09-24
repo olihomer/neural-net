@@ -140,15 +140,14 @@ void CNN::backward(const Tensor& outputGradient)
 
 void CNN::gradient_descent(std::size_t trainingSize, double learningRate)
 {
-    const Scalar scale = static_cast<Scalar>(learningRate) / static_cast<Scalar>(trainingSize);
-    
-    conv1_.gradient_descent(scale);
-    conv2_.gradient_descent(scale);
-    classifier_.gradient_descent(trainingSize, learningRate);
-    
     //update Adam parameters
     ConvLayer::beta1pow *= ConvLayer::beta1;
     ConvLayer::beta2pow *= ConvLayer::beta2;
+    
+    conv1_.gradient_descent(trainingSize, learningRate);
+    conv2_.gradient_descent(trainingSize, learningRate);
+    classifier_.gradient_descent(trainingSize, learningRate);
+
 
 }
 

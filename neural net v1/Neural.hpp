@@ -65,7 +65,7 @@ public:
     void load(std::ifstream& stream);
 
     std::pair<std::size_t, Scalar> predict(const std::vector<Scalar>& input);
-    void resetBeta() override {;}
+    void resetBeta() override {NeuronLayer::beta1pow=1.0f;NeuronLayer::beta2pow=0.1f;}
     
 private:
     // Internal data structure

@@ -36,7 +36,7 @@ public:
     Tensor backward(const Tensor& outputGradient, const bool returnInputGradient);
     void print() const;
     void zeroGradients();
-    void gradient_descent(const Scalar scale);
+    void gradient_descent(std::size_t batchSize, const Scalar learningRate);
     void pushCache();
     void popCache();
     std::size_t getInputWidth() const {return input_.dim(2);};
@@ -65,8 +65,8 @@ public:
     static constexpr Scalar beta1 = 0.9f;
     static constexpr Scalar beta2 = 0.999f;
     static constexpr Scalar epsilon = 1e-8f;
-    static Scalar beta1pow;
-    static Scalar beta2pow;
+    inline static Scalar beta1pow = 1.0f;
+    inline static Scalar beta2pow = 1.0f;
     
 private:
     Tensor kernels_; //outputs, inputs, kernelY, kernelX
