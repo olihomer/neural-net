@@ -38,7 +38,11 @@ void NeuronLayer::load(std::ifstream& file)
     activation = Matrix(size,1);
     pre_activation = Matrix(size,1);
     weight = Matrix(size,inputs);
+    weight_m = Matrix(size,inputs);
+    weight_v = Matrix(size,inputs);
     bias = Matrix(size,1);
+    bias_m = Matrix(size,1);
+    bias_v = Matrix(size,1);
     error = Matrix(size,1);
     bias_gradient = Matrix(size,1);
     weight_gradient = Matrix(size,inputs);

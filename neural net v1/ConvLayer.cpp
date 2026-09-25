@@ -952,10 +952,15 @@ void ConvLayer::load(std::ifstream& file)
 
     kernels_ = Tensor({outChans,inChans,3,3});
     kernelGradient_ = Tensor({outChans,inChans,3,3});
+    kernel_m_ = Tensor({outChans,inChans,3,3});
+    kernel_v_ = Tensor({outChans,inChans,3,3});
+    
     input_ = Tensor({inChans,InputY,InputX});
     activation_ = Tensor({outChans,InputY,InputX});
     biases_.resize(outChans);
     biasGradient_.resize(outChans);
+    bias_m_.resize(outChans);
+    bias_v_.resize(outChans);
     pooled_ = Tensor({outChans,InputY/stride,InputX/stride});
     maxPoolSource_ = Tensor({outChans,InputY/stride,InputX/stride});
     cache_ = {};
