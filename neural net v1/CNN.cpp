@@ -21,7 +21,7 @@ namespace
     constexpr std::size_t rotationImageSide = 28;
     constexpr std::size_t rotationImageSize = rotationImageSide * rotationImageSide;
     constexpr Scalar pi = 3.14159265358979323846f;
-    constexpr std::array<int, 7> rotationDegrees = {-5, 0, 5};
+    constexpr std::array<int, 3> rotationDegrees = {-5, 0, 5};
 
     struct RotationContribution
     {
@@ -101,11 +101,7 @@ namespace
         static const std::array<RotationLookup, rotationDegrees.size()> lookups = {
             makeRotationLookup(rotationDegrees[0]),
             makeRotationLookup(rotationDegrees[1]),
-            makeRotationLookup(rotationDegrees[2]),
-            makeRotationLookup(rotationDegrees[3]),
-            makeRotationLookup(rotationDegrees[4]),
-            makeRotationLookup(rotationDegrees[5]),
-            makeRotationLookup(rotationDegrees[6])
+            makeRotationLookup(rotationDegrees[2])
         };
 
         return lookups;
@@ -166,7 +162,7 @@ namespace
 }
 
 CNN::CNN()
-: convLayer_{ConvLayer(8, 1, 28, 28), ConvLayer(16, 8, 14, 14), ConvLayer(32, 16, 7, 7)},
+: convLayer_{ConvLayer(8, 1, 28, 28,true), ConvLayer(16, 8, 14, 14,true), ConvLayer(32, 16, 7, 7,false)},
   classifier_({288,128,10}, ActivationType::Relu, ActivationType::Softmax, 0.1f),
   nLayers_(3)
 {
@@ -188,13 +184,16 @@ void CNN::configure(std::vector<std::size_t>convOutputChannels,
     std::size_t height = 28;
     std::size_t width = 28;
 
+    std::size_t index = 0;
+    
     for(std::size_t outChannels : convOutputChannels)
     {
         outChannels = std::max<std::size_t>(outChannels, 1);
-        convLayer_.emplace_back(outChannels, inChannels, height, width);
+        convLayer_.emplace_back(outChannels, inChannels, height, width, index>1 ? false : true);
         inChannels = outChannels;
         height = convLayer_.back().getOutputHeight();
         width = convLayer_.back().getOutputWidth();
+        index++;
     }
 
     classifierHiddenLayerSize = std::max<std::size_t>(classifierHiddenLayerSize, 1);
@@ -279,7 +278,7 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
 
         const std::size_t rotationIndex = static_cast<std::size_t>(rand()) % rotationDegrees.size();
         std::vector<Scalar> augmented = rotateExampleWithLookup(training_data.get_data()[batch[index]].inputs,28,28,rotationIndex);
-        augmented = offsetExample(augmented, 28, 28, -4 + rand() % 8, -4 + rand () % 8);
+        augmented = offsetExample(augmented, 28, 28, -4 + rand() % 8, -2 + rand () % 5);
         
         for(std::size_t i=0; i<training_data.n_inputs(); i++)
             input.data()[i] = augmented[i];

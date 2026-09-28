@@ -29,7 +29,8 @@ public:
     ConvLayer(std::size_t outputChannels,
               std::size_t inputChannels,
               std::size_t inputHeight,
-              std::size_t inputWidth);
+              std::size_t inputWidth,
+              bool bPooling);
     
     void setKernel(std::size_t outputChannel, std::size_t inputChannel, const std::vector<Scalar>& data);
     Tensor& forward(const Tensor& input);
@@ -79,6 +80,7 @@ private:
     Tensor maxPoolSource_;
     static std::mt19937 rng_;
     static std::random_device rd_;
+    bool bPooling_;
     
     std::vector<Scalar> biases_;
     std::vector<Scalar> biasGradient_;

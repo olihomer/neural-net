@@ -31,15 +31,17 @@ constexpr bool profileConvLayer = false;
 ConvLayer::ConvLayer(std::size_t outputChannels,
                      std::size_t inputChannels,
                      std::size_t inputHeight,
-                     std::size_t inputWidth)
+                     std::size_t inputWidth,
+                     bool bPooling)
 :input_({inputChannels,inputHeight,inputWidth}),
 activation_({outputChannels,inputHeight,inputWidth}),
-pooled_({outputChannels,std::max(inputHeight/stride,(std::size_t(7))),std::max(inputWidth/stride,(std::size_t(7)))}),
-maxPoolSource_({outputChannels,std::max(inputHeight/stride,(std::size_t(7))),std::max(inputWidth/stride,(std::size_t(7)))}),
+pooled_({outputChannels,inputHeight/(bPooling ? stride : 1), inputWidth/(bPooling ? stride : 1)}),
+maxPoolSource_({outputChannels, inputHeight/(bPooling ? stride : 1), inputWidth/(bPooling ? stride : 1)}),
 kernels_({outputChannels,inputChannels,3,3}),
 kernelGradient_({outputChannels,inputChannels,3,3}),
 kernel_m_({outputChannels,inputChannels,3,3}),
-kernel_v_({outputChannels,inputChannels,3,3})
+kernel_v_({outputChannels,inputChannels,3,3}),
+bPooling_(bPooling)
 {
     biases_.resize(outputChannels);
     biasGradient_.resize(outputChannels);
@@ -54,8 +56,14 @@ Tensor& ConvLayer::forward (const Tensor& input)
 {
     input_ = input;
     convolve_();
-    maxPool_();
-    return pooled_;
+    
+    if(bPooling_)
+    {
+        maxPool_();
+        return pooled_;
+    }
+    
+    return activation_;
 }
 
 Scalar ConvLayer::kernelValue(std::size_t outputChannel, std::size_t inputChannel, std::size_t y, std::size_t x) const
@@ -134,7 +142,7 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, const bool returnInputG
                 for(std::size_t i=0;i<outputX;i++)
                 {
                     //identify winner from activation tensor
-                    const std::size_t index = static_cast<std::size_t>(*(maxPoolSourceRow + i));
+                    const std::size_t index = bPooling_ ? static_cast<std::size_t>(*(maxPoolSourceRow + i)) : 0;
                     const std::size_t dx = (index == 2 || index == 0) ? 0 : 1;
                     const std::size_t dy = index < 2 ? 0 : 1;
 
@@ -284,7 +292,7 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, const bool returnInputG
                 for(std::size_t i=0;i<outputX;i++)
                 {
                     //identify winner from activation tensor
-                    const std::size_t index = static_cast<std::size_t>(*(maxPoolSourceRow + i));
+                    const std::size_t index = bPooling_ ? (static_cast<std::size_t>(*(maxPoolSourceRow + i))) : 0;
                     const std::size_t dx = (index == 2 || index == 0) ? 0 : 1;
                     const std::size_t dy = index < 2 ? 0 : 1;
 
@@ -379,9 +387,9 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, const bool returnInputG
                         }
                     }
 
-                    indexX += stride;
+                    indexX += bPooling_ ? stride : 1;
                 }
-                indexY += stride;
+                indexY += bPooling_ ? stride : 1;
             }
         }
 
