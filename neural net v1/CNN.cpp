@@ -21,7 +21,7 @@ namespace
     constexpr std::size_t rotationImageSide = 28;
     constexpr std::size_t rotationImageSize = rotationImageSide * rotationImageSide;
     constexpr Scalar pi = 3.14159265358979323846f;
-    constexpr std::array<int, 7> rotationDegrees = {-15, -10, -5, 0, 5, 10, 15};
+    constexpr std::array<int, 7> rotationDegrees = {-5, 0, 5};
 
     struct RotationContribution
     {
