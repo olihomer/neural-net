@@ -18,12 +18,16 @@
 #include <string>
 #include <vector>
 #include <numeric>
+#include <array>
 #include "Matrix.hpp"
 #include "Tensor.hpp"
 #include "CNN.hpp"
 
 
 namespace {
+
+constexpr Scalar pi = 3.14159265358979323846f;
+constexpr std::array<int, 7> visualizationRotationDegrees = {-15, -10, -5, 0, 5, 10, 15};
 
 const ActivationType activationTypeFor(int choice)
 {
@@ -42,7 +46,7 @@ const ActivationType activationTypeFor(int choice)
 
 const ConvLayer& cnnLayerFor(const CNN& cnn, int layer)
 {
-    const int layerIndex = std::clamp(layer - 1, 0, static_cast<int>(MAX_LAYERS) - 1);
+    const int layerIndex = std::clamp(layer - 1, 0, static_cast<int>(cnn.convLayer_.size()) - 1);
     return cnn.convLayer_[static_cast<std::size_t>(layerIndex)];
 }
 }
@@ -72,8 +76,8 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
                       double learningRate,
                       int hiddenActivation,
                       int outputActivation,
-                      int cnnConv1Channels,
-                      int cnnConv2Channels,
+                      const int *cnnConvChannels,
+                      int cnnConvLayerCount,
                       int cnnClassifierHiddenLayerSize,
                       double dropout)
 {
@@ -84,10 +88,19 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
     trainingExamples = std::max(trainingExamples, 1);
     batchSize = std::max(batchSize, 1);
     learningRate = std::max(learningRate, 0.0);
-    cnnConv1Channels = std::max(cnnConv1Channels, 1);
-    cnnConv2Channels = std::max(cnnConv2Channels, 1);
     cnnClassifierHiddenLayerSize = std::max(cnnClassifierHiddenLayerSize, 1);
     dropout = std::clamp(dropout, 0.0, 0.95);
+
+    std::vector<std::size_t> cnnLayerChannels;
+    if(cnnConvChannels != nullptr && cnnConvLayerCount > 0)
+    {
+        cnnLayerChannels.reserve(static_cast<std::size_t>(cnnConvLayerCount));
+        for(int i = 0; i < cnnConvLayerCount; i++)
+            cnnLayerChannels.push_back(static_cast<std::size_t>(std::max(cnnConvChannels[i], 1)));
+    }
+
+    if(cnnLayerChannels.empty())
+        cnnLayerChannels = {8, 16, 32};
 
     const ActivationType hiddenActivationType = activationTypeFor(hiddenActivation);
     const ActivationType outputActivationType = activationTypeFor(outputActivation);
@@ -100,8 +113,7 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
     if(activeModel_ == ModelKind::CNN)
     {
         cnn_.configure(
-                       {static_cast<std::size_t>(cnnConv1Channels),
-                           static_cast<std::size_t>(cnnConv2Channels)},
+            cnnLayerChannels,
             static_cast<std::size_t>(cnnClassifierHiddenLayerSize),
             static_cast<Scalar>(dropout));
     }
@@ -142,6 +154,14 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
     }
     
     std::cout << "Success rate: " << (1 - (float(wrong) / float(evaluationExamples)) ) << std::endl;
+
+    if(activeModel_ == ModelKind::CNN && trainingExamples > 0)
+    {
+        const std::size_t rotationIndex = static_cast<std::size_t>(rand()) % visualizationRotationDegrees.size();
+        const Scalar theta = static_cast<Scalar>(visualizationRotationDegrees[rotationIndex]) * pi / 180.0f;
+        std::vector<Scalar> augmented = cnn_.rotateExample(mnist.get_data()[0].inputs, 28, 28, theta);
+        cnn_.predict(augmented);
+    }
     
     return 0;
 }
@@ -188,6 +208,12 @@ bool AppEngine::loadNetwork(const char *path)
 int AppEngine::activeModelKind() const
 {
     return static_cast<int>(activeModel_);
+}
+
+
+int AppEngine::cnnLayerCount() const
+{
+    return static_cast<int>(cnn_.convLayer_.size());
 }
 
 

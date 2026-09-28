@@ -11,44 +11,203 @@
 #include <chrono>
 #include <algorithm>
 #include <fstream>
+#include <cmath>
+#include <array>
+
 
 namespace
 {
     constexpr bool profileCNN = false;
+    constexpr std::size_t rotationImageSide = 28;
+    constexpr std::size_t rotationImageSize = rotationImageSide * rotationImageSide;
+    constexpr Scalar pi = 3.14159265358979323846f;
+    constexpr std::array<int, 7> rotationDegrees = {-15, -10, -5, 0, 5, 10, 15};
+
+    struct RotationContribution
+    {
+        std::size_t targetIndex = 0;
+        Scalar weight = 0.0f;
+    };
+
+    struct SourcePixelRotation
+    {
+        std::array<RotationContribution, 4> contributions;
+        std::size_t count = 0;
+    };
+
+    struct RotationLookup
+    {
+        int degrees = 0;
+        std::array<SourcePixelRotation, rotationImageSize> sourcePixels;
+    };
+
+    void addContribution(SourcePixelRotation& sourcePixel, int targetX, int targetY, Scalar weight)
+    {
+        if(weight <= 0.0f ||
+           targetX < 0 ||
+           targetY < 0 ||
+           targetX >= static_cast<int>(rotationImageSide) ||
+           targetY >= static_cast<int>(rotationImageSide))
+        {
+            return;
+        }
+
+        sourcePixel.contributions[sourcePixel.count] = {
+            static_cast<std::size_t>(targetY) * rotationImageSide + static_cast<std::size_t>(targetX),
+            weight
+        };
+        sourcePixel.count++;
+    }
+
+    RotationLookup makeRotationLookup(int degrees)
+    {
+        RotationLookup lookup;
+        lookup.degrees = degrees;
+
+        const Scalar theta = static_cast<Scalar>(degrees) * pi / 180.0f;
+        const Scalar cosTheta = std::cos(theta);
+        const Scalar sinTheta = std::sin(theta);
+        const Scalar centre = static_cast<Scalar>(rotationImageSide - 1) / 2.0f;
+
+        for(std::size_t sourceY = 0; sourceY < rotationImageSide; sourceY++)
+        {
+            for(std::size_t sourceX = 0; sourceX < rotationImageSide; sourceX++)
+            {
+                const Scalar x = static_cast<Scalar>(sourceX) - centre;
+                const Scalar y = static_cast<Scalar>(sourceY) - centre;
+                const Scalar targetX = cosTheta * x - sinTheta * y + centre;
+                const Scalar targetY = sinTheta * x + cosTheta * y + centre;
+
+                const int x0 = static_cast<int>(std::floor(targetX));
+                const int y0 = static_cast<int>(std::floor(targetY));
+                const int x1 = x0 + 1;
+                const int y1 = y0 + 1;
+                const Scalar xWeight = targetX - static_cast<Scalar>(x0);
+                const Scalar yWeight = targetY - static_cast<Scalar>(y0);
+
+                SourcePixelRotation& sourcePixel = lookup.sourcePixels[sourceY * rotationImageSide + sourceX];
+                addContribution(sourcePixel, x0, y0, (1.0f - xWeight) * (1.0f - yWeight));
+                addContribution(sourcePixel, x1, y0, xWeight * (1.0f - yWeight));
+                addContribution(sourcePixel, x0, y1, (1.0f - xWeight) * yWeight);
+                addContribution(sourcePixel, x1, y1, xWeight * yWeight);
+            }
+        }
+
+        return lookup;
+    }
+
+    const std::array<RotationLookup, rotationDegrees.size()>& rotationLookups()
+    {
+        static const std::array<RotationLookup, rotationDegrees.size()> lookups = {
+            makeRotationLookup(rotationDegrees[0]),
+            makeRotationLookup(rotationDegrees[1]),
+            makeRotationLookup(rotationDegrees[2]),
+            makeRotationLookup(rotationDegrees[3]),
+            makeRotationLookup(rotationDegrees[4]),
+            makeRotationLookup(rotationDegrees[5]),
+            makeRotationLookup(rotationDegrees[6])
+        };
+
+        return lookups;
+    }
+
+    std::size_t nearestRotationIndexForDegrees(int degrees)
+    {
+        std::size_t bestIndex = 0;
+        int bestDistance = std::abs(degrees - rotationDegrees[0]);
+
+        for(std::size_t i = 1; i < rotationDegrees.size(); i++)
+        {
+            const int distance = std::abs(degrees - rotationDegrees[i]);
+            if(distance < bestDistance)
+            {
+                bestDistance = distance;
+                bestIndex = i;
+            }
+        }
+
+        return bestIndex;
+    }
+
+    std::size_t nearestRotationIndexForRadians(Scalar theta)
+    {
+        const int degrees = static_cast<int>(std::round(theta * 180.0f / pi));
+        return nearestRotationIndexForDegrees(degrees);
+    }
+
+    std::vector<Scalar> rotateExampleWithLookup(const std::vector<Scalar>& input,
+                                                std::size_t sizeX,
+                                                std::size_t sizeY,
+                                                std::size_t lookupIndex)
+    {
+        if(input.size() != sizeX * sizeY)
+            throw std::runtime_error("Input doesn't match requested image size");
+
+        if(sizeX != rotationImageSide || sizeY != rotationImageSide)
+            throw std::runtime_error("Precomputed rotation lookup only supports 28x28 images");
+
+        std::vector<Scalar> output(rotationImageSize, 0.0f);
+        const RotationLookup& lookup = rotationLookups()[lookupIndex];
+
+        for(std::size_t sourceIndex = 0; sourceIndex < rotationImageSize; sourceIndex++)
+        {
+            const Scalar sourceValue = input[sourceIndex];
+            const SourcePixelRotation& sourcePixel = lookup.sourcePixels[sourceIndex];
+
+            for(std::size_t i = 0; i < sourcePixel.count; i++)
+            {
+                const RotationContribution& contribution = sourcePixel.contributions[i];
+                output[contribution.targetIndex] += sourceValue * contribution.weight;
+            }
+        }
+
+        return output;
+    }
 }
 
 CNN::CNN()
-:convLayer_{ConvLayer(8, 1, 28, 28), ConvLayer(16, 8, 14, 14)},classifier_({784,128,10}, ActivationType::Relu, ActivationType::Softmax, 0.1f), nLayers_(2)
+: convLayer_{ConvLayer(8, 1, 28, 28), ConvLayer(16, 8, 14, 14), ConvLayer(32, 16, 7, 7)},
+  classifier_({288,128,10}, ActivationType::Relu, ActivationType::Softmax, 0.1f),
+  nLayers_(3)
 {
-    
 }
 
 void CNN::configure(std::vector<std::size_t>convOutputChannels,
                     std::size_t classifierHiddenLayerSize,
                     Scalar dropout)
 {
-    nLayers_ = std::min<std::size_t>(convOutputChannels.size(), MAX_LAYERS);
+    nLayers_ = convOutputChannels.size();
+
+    convLayer_.clear();
+    convLayer_.reserve(nLayers_);
+
     if(nLayers_ == 0)
         throw std::runtime_error("CNN requires at least one convolution layer");
 
-    for(std:: size_t i = 0; i < nLayers_; i++)
+    std::size_t inChannels = 1;
+    std::size_t height = 28;
+    std::size_t width = 28;
+
+    for(std::size_t outChannels : convOutputChannels)
     {
-        convOutputChannels[i] = std::max<std::size_t>(convOutputChannels[i], 1);
-        convLayer_[i] = ConvLayer(convOutputChannels[i], i==0 ? 1 : convOutputChannels[i-1], 28/std::pow(2,i), 28/std::pow(2,i));
+        outChannels = std::max<std::size_t>(outChannels, 1);
+        convLayer_.emplace_back(outChannels, inChannels, height, width);
+        inChannels = outChannels;
+        height = convLayer_.back().getOutputHeight();
+        width = convLayer_.back().getOutputWidth();
     }
-        
+
     classifierHiddenLayerSize = std::max<std::size_t>(classifierHiddenLayerSize, 1);
     dropout = std::clamp<Scalar>(dropout, 0.0f, 0.95f);
 
-    const std::size_t finalSide = convLayer_[nLayers_ - 1].getOutputHeight();
-    const std::size_t classifierInputs = convOutputChannels[nLayers_ - 1] * finalSide * finalSide;
+    const ConvLayer& finalLayer = convLayer_.back();
+    const std::size_t classifierInputs = finalLayer.getOutputChannels() * finalLayer.getOutputHeight() * finalLayer.getOutputWidth();
+    std::cout << "Classifier inputs: " << classifierInputs << " output height: " << finalLayer.getOutputHeight() << " output width: " << finalLayer.getOutputWidth() << " nLayers: " << nLayers_ << std::endl;
     classifier_.configure(
         {static_cast<int>(classifierInputs), static_cast<int>(classifierHiddenLayerSize), 10},
         ActivationType::Relu,
         ActivationType::Softmax,
         dropout);
-    
-    std::cout << "Configuring CNN with convOutputChannels: " << convOutputChannels[0] << "," << convOutputChannels[1] << " and nLayers: " << nLayers_ << std::endl;
 }
 
 void CNN::print() const
@@ -70,7 +229,7 @@ const Tensor& CNN::forward(const Tensor& input)
 void CNN::backward(const Tensor& outputGradient)
 {
     Tensor x;
-    
+
     x = convLayer_[nLayers_-1].backward(outputGradient, true);
 
     for(std::size_t i = nLayers_ - 1; i-- > 1;)
@@ -87,7 +246,7 @@ void CNN::gradient_descent(std::size_t trainingSize, double learningRate)
     //update Adam parameters
     ConvLayer::beta1pow *= ConvLayer::beta1;
     ConvLayer::beta2pow *= ConvLayer::beta2;
-    
+
     for(std::size_t i = 0; i < nLayers_; i++)
         convLayer_[i].gradient_descent(trainingSize, learningRate);
 
@@ -118,13 +277,12 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
         //load example into Tensor
         Tensor input({1,28,28});
 
-        int offsetX = std::round(((Scalar)rand()/RAND_MAX) * 4.0f) - 2;
-        int offsetY = std::round(((Scalar)rand()/RAND_MAX) * 4.0f) - 2;
-        
-        std::vector<Scalar> offset = CNN::offsetExample(training_data.get_data()[batch[index]].inputs,28,28,offsetX,offsetY);
+        const std::size_t rotationIndex = static_cast<std::size_t>(rand()) % rotationDegrees.size();
+        std::vector<Scalar> augmented = rotateExampleWithLookup(training_data.get_data()[batch[index]].inputs,28,28,rotationIndex);
+        augmented = offsetExample(augmented, 28, 28, -4 + rand() % 8, -4 + rand () % 8);
         
         for(std::size_t i=0; i<training_data.n_inputs(); i++)
-            input.data()[i]= offset[i];
+            input.data()[i] = augmented[i];
 
         for(std::size_t i=0; i<training_data.n_outputs(); i++)
             MLPtargets(i,index)=training_data.get_data()[batch[index]].outputs[i];
@@ -139,7 +297,7 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
         //cache network values for backwards pass
         for(std::size_t i = 0; i < nLayers_; i++)
             convLayer_[i].pushCache();
-        
+
         if constexpr (profileCNN)
             forwardElapsed += std::chrono::steady_clock::now() - forwardStart;
 
@@ -259,7 +417,7 @@ void CNN::save(const std::string& filename) const
 
     for(std::size_t i = 0; i < nLayers_; i++)
         convLayer_[i].save(file);
-    
+
         classifier_.save(file);
 
     if(!file)
@@ -286,11 +444,9 @@ void CNN::load(const std::string& filename)
 
     if(version!=4)
         throw std::runtime_error("Unsupported file version");
-    
+
     //CNN Layers
     file.read(reinterpret_cast<char*>(&nLayers_),sizeof(nLayers_));
-    if(nLayers_ == 0 || nLayers_ > MAX_LAYERS)
-        throw std::runtime_error("Unsupported CNN layer count");
 
     for(std::size_t i = 0; i < nLayers_; i++)
         convLayer_[i].load(file);
@@ -309,8 +465,8 @@ void CNN::load(const std::string& filename)
 std::vector<Scalar> CNN::offsetExample(const std::vector<Scalar>& input, std::size_t sizeX, std::size_t sizeY, int offsetX, int offSetY)
 {
     std::vector<Scalar> output(sizeX * sizeY);
-    
-    
+
+
     for(std::size_t targetY = 0; targetY < sizeY; targetY++)
         for(std::size_t targetX = 0; targetX < sizeX; targetX++)
         {
@@ -319,4 +475,10 @@ std::vector<Scalar> CNN::offsetExample(const std::vector<Scalar>& input, std::si
             input.data()[(targetY + offSetY) * sizeX + (targetX + offsetX)];
         }
     return output;
+}
+
+
+std::vector<Scalar> CNN::rotateExample(const std::vector<Scalar>& input, std::size_t sizeX, std::size_t sizeY, Scalar theta)
+{
+    return rotateExampleWithLookup(input, sizeX, sizeY, nearestRotationIndexForRadians(theta));
 }

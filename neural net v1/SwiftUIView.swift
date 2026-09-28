@@ -12,7 +12,7 @@ import NeuralApp
 @MainActor private weak var globalProgressModel: TrainingProgressModel?
 
 public struct SwiftUIView: View {
-    private enum FocusedField {
+    private enum FocusedField: Hashable {
         case hiddenLayerSize
         case epochs
         case trainingExamples
@@ -20,8 +20,7 @@ public struct SwiftUIView: View {
         case batchSize
         case learningRate
         case dropout
-        case cnnConv1Channels
-        case cnnConv2Channels
+        case cnnConvChannels(Int)
         case cnnClassifierHiddenLayerSize
     }
 
@@ -36,10 +35,9 @@ public struct SwiftUIView: View {
     @State private var trainingExamplesText = "1000"
     @State private var evaluationExamplesText = "100"
     @State private var batchSizeText = "50"
-    @State private var learningRateText = "0.05"
+    @State private var learningRateText = "0.001"
     @State private var dropoutText = "0.1"
-    @State private var cnnConv1ChannelsText = "8"
-    @State private var cnnConv2ChannelsText = "16"
+    @State private var cnnConvChannelTexts = ["8", "16", "32"]
     @State private var cnnClassifierHiddenLayerSizeText = "128"
     @State private var isTraining = false
     @State private var fileStatus = ""
@@ -109,12 +107,23 @@ public struct SwiftUIView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
-                integerField("Conv1 channels", text: $cnnConv1ChannelsText, field: .cnnConv1Channels) {
-                    commitInteger($cnnConv1ChannelsText, to: $settings.cnnConv1Channels, range: 1...128)
+                ForEach(cnnConvChannelTexts.indices, id: \.self) { index in
+                    integerField("Conv\(index + 1) channels", text: bindingForConvChannelText(at: index), field: .cnnConvChannels(index)) {
+                        commitConvChannel(at: index)
+                    }
                 }
-                integerField("Conv2 channels", text: $cnnConv2ChannelsText, field: .cnnConv2Channels) {
-                    commitInteger($cnnConv2ChannelsText, to: $settings.cnnConv2Channels, range: 1...256)
+
+                HStack {
+                    Button("Remove layer") {
+                        removeConvLayer()
+                    }
+                    .disabled(cnnConvChannelTexts.count <= 1)
+
+                    Button("Add layer") {
+                        addConvLayer()
+                    }
                 }
+
                 integerField("Classifier hidden", text: $cnnClassifierHiddenLayerSizeText, field: .cnnClassifierHiddenLayerSize) {
                     commitInteger($cnnClassifierHiddenLayerSizeText, to: $settings.cnnClassifierHiddenLayerSize, range: 1...512)
                 }
@@ -141,12 +150,10 @@ public struct SwiftUIView: View {
 
                         if let kernelSnapshot {
                             kernelStore.snapshot = kernelSnapshot
-                            openWindow(id: "cnn-kernels")
                         }
 
                         if let activationSnapshot {
                             activationStore.snapshot = activationSnapshot
-                            openWindow(id: "cnn-activations")
                         }
                     }
                 }
@@ -237,9 +244,64 @@ public struct SwiftUIView: View {
         commitInteger($batchSizeText, to: $settings.batchSize, range: 1...60000)
         commitDouble($learningRateText, to: $settings.learningRate, range: 0.0...2.0)
         commitDouble($dropoutText, to: $settings.dropout, range: 0.0...0.95)
-        commitInteger($cnnConv1ChannelsText, to: $settings.cnnConv1Channels, range: 1...128)
-        commitInteger($cnnConv2ChannelsText, to: $settings.cnnConv2Channels, range: 1...256)
+        for index in cnnConvChannelTexts.indices {
+            commitConvChannel(at: index)
+        }
         commitInteger($cnnClassifierHiddenLayerSizeText, to: $settings.cnnClassifierHiddenLayerSize, range: 1...512)
+    }
+
+    private func bindingForConvChannelText(at index: Int) -> Binding<String> {
+        Binding(
+            get: {
+                guard cnnConvChannelTexts.indices.contains(index) else {
+                    return "1"
+                }
+                return cnnConvChannelTexts[index]
+            },
+            set: { newValue in
+                guard cnnConvChannelTexts.indices.contains(index) else {
+                    return
+                }
+                cnnConvChannelTexts[index] = newValue
+            }
+        )
+    }
+
+    private func commitConvChannel(at index: Int) {
+        guard cnnConvChannelTexts.indices.contains(index) else {
+            return
+        }
+
+        let text = bindingForConvChannelText(at: index)
+        let value = Binding<Int>(
+            get: {
+                guard settings.cnnConvChannels.indices.contains(index) else {
+                    return 1
+                }
+                return settings.cnnConvChannels[index]
+            },
+            set: { newValue in
+                guard settings.cnnConvChannels.indices.contains(index) else {
+                    return
+                }
+                settings.cnnConvChannels[index] = newValue
+            }
+        )
+
+        commitInteger(text, to: value, range: 1...512)
+    }
+
+    private func addConvLayer() {
+        cnnConvChannelTexts.append("32")
+        settings.cnnConvChannels.append(32)
+    }
+
+    private func removeConvLayer() {
+        guard cnnConvChannelTexts.count > 1 else {
+            return
+        }
+        cnnConvChannelTexts.removeLast()
+        settings.cnnConvChannels.removeLast()
     }
 
     private func saveNetwork() {

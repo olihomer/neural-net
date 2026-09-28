@@ -43,12 +43,11 @@ struct TrainingSettings: Sendable {
     var trainingExamples: Int = 1000
     var evaluationExamples: Int = 100
     var batchSize: Int = 50
-    var learningRate: Double = 0.05
+    var learningRate: Double = 0.001
     var dropout: Double = 0.1
     var hiddenActivation: ActivationChoice = .relu
     var outputActivation: ActivationChoice = .softmax
-    var cnnConv1Channels: Int = 8
-    var cnnConv2Channels: Int = 16
+    var cnnConvChannels: [Int] = [8, 16, 32]
     var cnnClassifierHiddenLayerSize: Int = 128
 }
 
@@ -111,22 +110,25 @@ final class EngineBox: ObservableObject, @unchecked Sendable {
     func runApp(settings: TrainingSettings) -> Int32 {
         lock.lock()
         defer { lock.unlock() }
-        return engine.runApp(
-            progress_callback,
-            CInt(settings.model.rawValue),
-            CInt(settings.hiddenLayerSize),
-            CInt(settings.epochs),
-            CInt(settings.trainingExamples),
-            CInt(settings.evaluationExamples),
-            CInt(settings.batchSize),
-            settings.learningRate,
-            CInt(settings.hiddenActivation.rawValue),
-            CInt(settings.outputActivation.rawValue),
-            CInt(settings.cnnConv1Channels),
-            CInt(settings.cnnConv2Channels),
-            CInt(settings.cnnClassifierHiddenLayerSize),
-            settings.dropout
-        )
+        let convChannels = settings.cnnConvChannels.map { CInt(max($0, 1)) }
+        return convChannels.withUnsafeBufferPointer { buffer in
+            engine.runApp(
+                progress_callback,
+                CInt(settings.model.rawValue),
+                CInt(settings.hiddenLayerSize),
+                CInt(settings.epochs),
+                CInt(settings.trainingExamples),
+                CInt(settings.evaluationExamples),
+                CInt(settings.batchSize),
+                settings.learningRate,
+                CInt(settings.hiddenActivation.rawValue),
+                CInt(settings.outputActivation.rawValue),
+                buffer.baseAddress,
+                CInt(buffer.count),
+                CInt(settings.cnnClassifierHiddenLayerSize),
+                settings.dropout
+            )
+        }
     }
 
     func cnnKernelSnapshot() -> KernelVisualizationSnapshot {
@@ -136,7 +138,12 @@ final class EngineBox: ObservableObject, @unchecked Sendable {
         var layers: [KernelLayerSnapshot] = []
         var maxMagnitude: Float = 0.0
 
-        for layer in [1, 2] {
+        let layerCount = max(Int(engine.cnnLayerCount()), 0)
+        guard layerCount > 0 else {
+            return KernelVisualizationSnapshot(layers: [], maxMagnitude: 0.000001)
+        }
+
+        for layer in 1...layerCount {
             let outputChannels = Int(engine.cnnKernelOutputChannels(CInt(layer)))
             let inputChannels = Int(engine.cnnKernelInputChannels(CInt(layer)))
             let height = Int(engine.cnnKernelHeight(CInt(layer)))
@@ -180,7 +187,7 @@ final class EngineBox: ObservableObject, @unchecked Sendable {
 
             layers.append(KernelLayerSnapshot(
                 id: layer,
-                name: layer == 1 ? "Conv1" : "Conv2",
+                name: "Conv\(layer)",
                 outputChannels: outputChannels,
                 inputChannels: inputChannels,
                 kernelHeight: height,
@@ -204,8 +211,13 @@ final class EngineBox: ObservableObject, @unchecked Sendable {
             sections.append(inputSection)
         }
 
-        for layer in [1, 2] {
-            if let activationSection = buildActivationSection(layer: layer, name: layer == 1 ? "Conv1 Feature Maps" : "Conv2 Feature Maps") {
+        let layerCount = max(Int(engine.cnnLayerCount()), 0)
+        guard layerCount > 0 else {
+            return ActivationVisualizationSnapshot(sections: sections, maxMagnitude: max(maxMagnitude, 0.000001))
+        }
+
+        for layer in 1...layerCount {
+            if let activationSection = buildActivationSection(layer: layer, name: "Conv\(layer) Feature Maps") {
                 maxMagnitude = max(maxMagnitude, activationSection.maps.flatMap(\.values).map(abs).max() ?? 0.0)
                 sections.append(activationSection)
             }

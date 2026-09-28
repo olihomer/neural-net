@@ -37,8 +37,8 @@ public:
                double learningRate,
                int hiddenActivation,
                int outputActivation,
-               int cnnConv1Channels,
-               int cnnConv2Channels,
+               const int *cnnConvChannels,
+               int cnnConvLayerCount,
                int cnnClassifierHiddenLayerSize,
                double dropout);
     void extracted(const std::vector<float> &vectorData);
@@ -47,6 +47,7 @@ public:
     bool saveNetwork(const char *path);
     bool loadNetwork(const char *path);
     int activeModelKind() const;
+    int cnnLayerCount() const;
     int cnnKernelOutputChannels(int layer) const;
     int cnnKernelInputChannels(int layer) const;
     int cnnKernelHeight(int layer) const;
