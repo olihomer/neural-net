@@ -42,7 +42,8 @@ const ActivationType activationTypeFor(int choice)
 
 const ConvLayer& cnnLayerFor(const CNN& cnn, int layer)
 {
-    return cnn.convLayer_[layer];
+    const int layerIndex = std::clamp(layer - 1, 0, static_cast<int>(MAX_LAYERS) - 1);
+    return cnn.convLayer_[static_cast<std::size_t>(layerIndex)];
 }
 }
 

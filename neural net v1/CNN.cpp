@@ -27,7 +27,10 @@ void CNN::configure(std::vector<std::size_t>convOutputChannels,
                     std::size_t classifierHiddenLayerSize,
                     Scalar dropout)
 {
-    nLayers_ = convOutputChannels.size();
+    nLayers_ = std::min<std::size_t>(convOutputChannels.size(), MAX_LAYERS);
+    if(nLayers_ == 0)
+        throw std::runtime_error("CNN requires at least one convolution layer");
+
     for(std:: size_t i = 0; i < nLayers_; i++)
     {
         convOutputChannels[i] = std::max<std::size_t>(convOutputChannels[i], 1);
@@ -37,7 +40,8 @@ void CNN::configure(std::vector<std::size_t>convOutputChannels,
     classifierHiddenLayerSize = std::max<std::size_t>(classifierHiddenLayerSize, 1);
     dropout = std::clamp<Scalar>(dropout, 0.0f, 0.95f);
 
-    const std::size_t classifierInputs = convOutputChannels[nLayers_ - 1] * convOutputChannels[nLayers_ - 1];
+    const std::size_t finalSide = convLayer_[nLayers_ - 1].getOutputHeight();
+    const std::size_t classifierInputs = convOutputChannels[nLayers_ - 1] * finalSide * finalSide;
     classifier_.configure(
         {static_cast<int>(classifierInputs), static_cast<int>(classifierHiddenLayerSize), 10},
         ActivationType::Relu,
@@ -55,12 +59,12 @@ void CNN::print() const
 
 const Tensor& CNN::forward(const Tensor& input)
 {
-    Tensor& x = convLayer_[0].forward(input);
+    const Tensor* x = &convLayer_[0].forward(input);
 
     for(std::size_t i = 1; i < nLayers_; i++)
-        x = convLayer_[i].forward(x);
+        x = &convLayer_[i].forward(*x);
 
-    return x;
+    return *x;
 }
 
 void CNN::backward(const Tensor& outputGradient)
@@ -69,9 +73,10 @@ void CNN::backward(const Tensor& outputGradient)
     
     x = convLayer_[nLayers_-1].backward(outputGradient, true);
 
-    if(nLayers_>2)
-        for(std::size_t i = nLayers_-2; i > 1; i--)
+    for(std::size_t i = nLayers_ - 1; i-- > 1;)
+    {
             x = convLayer_[i].backward(x, true);
+    }
 
     convLayer_[0].backward(x, false);
 }
@@ -168,7 +173,7 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
             forwardStart = std::chrono::steady_clock::now();
 
         for(std::size_t i = 0; i < nLayers_; i++)
-            convLayer_[i].pushCache();
+            convLayer_[i].popCache();
 
         if constexpr (profileCNN)
             forwardElapsed += std::chrono::steady_clock::now() - forwardStart;
@@ -252,7 +257,7 @@ void CNN::save(const std::string& filename) const
     //CNN Layers
     file.write(reinterpret_cast<const char*>(&nLayers_),sizeof(nLayers_));
 
-    for(std::size_t i;i<nLayers_;i++)
+    for(std::size_t i = 0; i < nLayers_; i++)
         convLayer_[i].save(file);
     
         classifier_.save(file);
@@ -284,13 +289,16 @@ void CNN::load(const std::string& filename)
     
     //CNN Layers
     file.read(reinterpret_cast<char*>(&nLayers_),sizeof(nLayers_));
-    
-    for(std::size_t i;i<nLayers_;i++)
+    if(nLayers_ == 0 || nLayers_ > MAX_LAYERS)
+        throw std::runtime_error("Unsupported CNN layer count");
+
+    for(std::size_t i = 0; i < nLayers_; i++)
         convLayer_[i].load(file);
 
     classifier_.load(file);
 
-    const std::size_t classifierInputs = convLayer_[nLayers_].getOutputChannels() * convLayer_[nLayers_].getOutputHeight() * convLayer_[nLayers_].getOutputWidth();
+    const std::size_t lastLayer = nLayers_ - 1;
+    const std::size_t classifierInputs = convLayer_[lastLayer].getOutputChannels() * convLayer_[lastLayer].getOutputHeight() * convLayer_[lastLayer].getOutputWidth();
     if(classifier_.nInputs_() != classifierInputs)
         throw std::runtime_error("Loaded CNN classifier input size does not match convolution output size");
 
