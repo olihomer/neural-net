@@ -42,7 +42,7 @@ const ActivationType activationTypeFor(int choice)
 
 const ConvLayer& cnnLayerFor(const CNN& cnn, int layer)
 {
-    return layer == 2 ? cnn.conv2_ : cnn.conv1_;
+    return cnn.convLayer_[layer];
 }
 }
 
@@ -99,8 +99,8 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
     if(activeModel_ == ModelKind::CNN)
     {
         cnn_.configure(
-            static_cast<std::size_t>(cnnConv1Channels),
-            static_cast<std::size_t>(cnnConv2Channels),
+                       {static_cast<std::size_t>(cnnConv1Channels),
+                           static_cast<std::size_t>(cnnConv2Channels)},
             static_cast<std::size_t>(cnnClassifierHiddenLayerSize),
             static_cast<Scalar>(dropout));
     }

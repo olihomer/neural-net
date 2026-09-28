@@ -47,9 +47,10 @@ kernel_v_({outputChannels,inputChannels,3,3})
     bias_v_.resize(outputChannels);
 
     initialiseWeights();
+    std::cout << "Constructing ConvLayer with shape " << outputChannels << "," << inputChannels << "," << inputHeight << "," << inputWidth << std::endl;
 }
 
-const Tensor& ConvLayer::forward (const Tensor& input)
+Tensor& ConvLayer::forward (const Tensor& input)
 {
     input_ = input;
     convolve_();

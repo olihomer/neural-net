@@ -18,30 +18,33 @@ namespace
 }
 
 CNN::CNN()
-:conv1_(8,1,28,28), conv2_(16,8,14,14),classifier_({784,128,10}, ActivationType::Relu, ActivationType::Softmax, 0.1f)
+:convLayer_{ConvLayer(8, 1, 28, 28), ConvLayer(16, 8, 14, 14)},classifier_({784,128,10}, ActivationType::Relu, ActivationType::Softmax, 0.1f), nLayers_(2)
 {
-    ;
+    
 }
 
-void CNN::configure(std::size_t conv1OutputChannels,
-                    std::size_t conv2OutputChannels,
+void CNN::configure(std::vector<std::size_t>convOutputChannels,
                     std::size_t classifierHiddenLayerSize,
                     Scalar dropout)
 {
-    conv1OutputChannels = std::max<std::size_t>(conv1OutputChannels, 1);
-    conv2OutputChannels = std::max<std::size_t>(conv2OutputChannels, 1);
+    nLayers_ = convOutputChannels.size();
+    for(std:: size_t i = 0; i < nLayers_; i++)
+    {
+        convOutputChannels[i] = std::max<std::size_t>(convOutputChannels[i], 1);
+        convLayer_[i] = ConvLayer(convOutputChannels[i], i==0 ? 1 : convOutputChannels[i-1], 28/std::pow(2,i), 28/std::pow(2,i));
+    }
+        
     classifierHiddenLayerSize = std::max<std::size_t>(classifierHiddenLayerSize, 1);
     dropout = std::clamp<Scalar>(dropout, 0.0f, 0.95f);
 
-    conv1_ = ConvLayer(conv1OutputChannels, 1, 28, 28);
-    conv2_ = ConvLayer(conv2OutputChannels, conv1OutputChannels, 14, 14);
-
-    const std::size_t classifierInputs = conv2OutputChannels * 7 * 7;
+    const std::size_t classifierInputs = convOutputChannels[nLayers_ - 1] * convOutputChannels[nLayers_ - 1];
     classifier_.configure(
         {static_cast<int>(classifierInputs), static_cast<int>(classifierHiddenLayerSize), 10},
         ActivationType::Relu,
         ActivationType::Softmax,
         dropout);
+    
+    std::cout << "Configuring CNN with convOutputChannels: " << convOutputChannels[0] << "," << convOutputChannels[1] << " and nLayers: " << nLayers_ << std::endl;
 }
 
 void CNN::print() const
@@ -52,89 +55,25 @@ void CNN::print() const
 
 const Tensor& CNN::forward(const Tensor& input)
 {
-    std::chrono::steady_clock::time_point conv1ForwardStart;
-    if constexpr (profileCNN)
-        conv1ForwardStart = std::chrono::steady_clock::now();
+    Tensor& x = convLayer_[0].forward(input);
 
-    auto& x1 = conv1_.forward(input);
+    for(std::size_t i = 1; i < nLayers_; i++)
+        x = convLayer_[i].forward(x);
 
-    std::chrono::duration<double> conv1ForwardElapsed{0.0};
-    if constexpr (profileCNN)
-        conv1ForwardElapsed = std::chrono::steady_clock::now() - conv1ForwardStart;
-
-    std::chrono::steady_clock::time_point conv2ForwardStart;
-    if constexpr (profileCNN)
-        conv2ForwardStart = std::chrono::steady_clock::now();
-
-    auto& x2 = conv2_.forward(x1);
-
-    std::chrono::duration<double> conv2ForwardElapsed{0.0};
-    if constexpr (profileCNN)
-        conv2ForwardElapsed = std::chrono::steady_clock::now() - conv2ForwardStart;
-
-    std::chrono::steady_clock::time_point flattenStart;
-    if constexpr (profileCNN)
-        flattenStart = std::chrono::steady_clock::now();
-
-    std::chrono::duration<double> flattenElapsed{0.0};
-    if constexpr (profileCNN)
-        flattenElapsed = std::chrono::steady_clock::now() - flattenStart;
-
-    if constexpr (profileCNN)
-    {
-        const double forwardSeconds = conv1ForwardElapsed.count() + conv2ForwardElapsed.count() + flattenElapsed.count();
-
-        if(forwardSeconds > 0.0)
-        {
-            std::cout << "CNN::forward benchmark:" << std::endl;
-            std::cout << "  conv1_.forward: " << conv1ForwardElapsed.count() << " seconds, "
-                      << (conv1ForwardElapsed.count() / forwardSeconds) * 100.0 << "%" << std::endl;
-            std::cout << "  conv2_.forward: " << conv2ForwardElapsed.count() << " seconds, "
-                      << (conv2ForwardElapsed.count() / forwardSeconds) * 100.0 << "%" << std::endl;
-            std::cout << "  flatten_: " << flattenElapsed.count() << " seconds, "
-                      << (flattenElapsed.count() / forwardSeconds) * 100.0 << "%" << std::endl;
-        }
-    }
-
-    return x2;
+    return x;
 }
 
 void CNN::backward(const Tensor& outputGradient)
 {
-    std::chrono::steady_clock::time_point conv2BackwardStart;
-    if constexpr (profileCNN)
-        conv2BackwardStart = std::chrono::steady_clock::now();
+    Tensor x;
+    
+    x = convLayer_[nLayers_-1].backward(outputGradient, true);
 
-    Tensor x2 = conv2_.backward(outputGradient, true);
+    if(nLayers_>2)
+        for(std::size_t i = nLayers_-2; i > 1; i--)
+            x = convLayer_[i].backward(x, true);
 
-    std::chrono::duration<double> conv2BackwardElapsed{0.0};
-    if constexpr (profileCNN)
-        conv2BackwardElapsed = std::chrono::steady_clock::now() - conv2BackwardStart;
-
-    std::chrono::steady_clock::time_point conv1BackwardStart;
-    if constexpr (profileCNN)
-        conv1BackwardStart = std::chrono::steady_clock::now();
-
-    conv1_.backward(x2, false);
-
-    std::chrono::duration<double> conv1BackwardElapsed{0.0};
-    if constexpr (profileCNN)
-        conv1BackwardElapsed = std::chrono::steady_clock::now() - conv1BackwardStart;
-
-    if constexpr (profileCNN)
-    {
-        const double totalBackwardSeconds = conv2BackwardElapsed.count() + conv1BackwardElapsed.count();
-
-        if(totalBackwardSeconds > 0.0)
-        {
-            std::cout << "CNN::backward layer benchmark:" << std::endl;
-            std::cout << "  conv2_.backward: " << conv2BackwardElapsed.count() << " seconds, "
-                      << (conv2BackwardElapsed.count() / totalBackwardSeconds) * 100.0 << "%" << std::endl;
-            std::cout << "  conv1_.backward: " << conv1BackwardElapsed.count() << " seconds, "
-                      << (conv1BackwardElapsed.count() / totalBackwardSeconds) * 100.0 << "%" << std::endl;
-        }
-    }
-
+    convLayer_[0].backward(x, false);
 }
 
 
@@ -144,11 +83,10 @@ void CNN::gradient_descent(std::size_t trainingSize, double learningRate)
     ConvLayer::beta1pow *= ConvLayer::beta1;
     ConvLayer::beta2pow *= ConvLayer::beta2;
     
-    conv1_.gradient_descent(trainingSize, learningRate);
-    conv2_.gradient_descent(trainingSize, learningRate);
+    for(std::size_t i = 0; i < nLayers_; i++)
+        convLayer_[i].gradient_descent(trainingSize, learningRate);
+
     classifier_.gradient_descent(trainingSize, learningRate);
-
-
 }
 
 double CNN::trainBatch(const data_set& training_data, const std::span<const std::size_t> batch)
@@ -163,8 +101,8 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
 
     double total_error = 0;
 
-    conv1_.zeroGradients();
-    conv2_.zeroGradients();
+    for(std::size_t i = 0; i < nLayers_; i++)
+        convLayer_[i].zeroGradients();
 
     Matrix MLPinputs(classifier_.nInputs_(),batch.size());
     Matrix MLPtargets(classifier_.nOutputs_(),batch.size());
@@ -194,9 +132,9 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
         const auto& outputTensor = forward(input);
 
         //cache network values for backwards pass
-        conv1_.pushCache();
-        conv2_.pushCache();
-
+        for(std::size_t i = 0; i < nLayers_; i++)
+            convLayer_[i].pushCache();
+        
         if constexpr (profileCNN)
             forwardElapsed += std::chrono::steady_clock::now() - forwardStart;
 
@@ -219,7 +157,7 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
 
     //inputError matrix now contains error gradients for entire batch. Backprop through CNN one at a time.
 
-    Tensor outputGradient({conv2_.getOutputChannels(), conv2_.getOutputHeight(), conv2_.getOutputWidth()});
+    Tensor outputGradient({convLayer_[nLayers_-1].getOutputChannels(), convLayer_[nLayers_-1].getOutputHeight(), convLayer_[nLayers_-1].getOutputWidth()});
 
     for(std::size_t index=0; index<batch.size(); index++)
     {
@@ -229,8 +167,8 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
         if constexpr (profileCNN)
             forwardStart = std::chrono::steady_clock::now();
 
-        conv1_.popCache();
-        conv2_.popCache();
+        for(std::size_t i = 0; i < nLayers_; i++)
+            convLayer_[i].pushCache();
 
         if constexpr (profileCNN)
             forwardElapsed += std::chrono::steady_clock::now() - forwardStart;
@@ -277,10 +215,10 @@ void CNN::print_stats(std::ostream& ostream)
 
 std::pair<std::size_t, Scalar> CNN::predict(const std::vector<Scalar>& input)
 {
-    if((conv1_.getInputWidth()*conv1_.getInputHeight())!=input.size())throw std::runtime_error("Input doesn't match CNN shape");
+    if((convLayer_[0].getInputWidth()*convLayer_[0].getInputHeight())!=input.size())throw std::runtime_error("Input doesn't match CNN shape");
 
     //load example into Tensor
-    Tensor inputTensor({1,conv1_.getInputHeight(),conv1_.getInputWidth()});
+    Tensor inputTensor({1,convLayer_[0].getInputHeight(),convLayer_[0].getInputWidth()});
 
     for(std::size_t j=0; j<input.size(); j++)
         inputTensor.data()[j] = input[j];
@@ -308,12 +246,16 @@ void CNN::save(const std::string& filename) const
     file.write(MAGIC, sizeof(MAGIC));
 
     //Version
-    const uint8_t version = 3;
+    const uint8_t version = 4;
     file.write(reinterpret_cast<const char*>(&version),sizeof(version));
 
-    conv1_.save(file);
-    conv2_.save(file);
-    classifier_.save(file);
+    //CNN Layers
+    file.write(reinterpret_cast<const char*>(&nLayers_),sizeof(nLayers_));
+
+    for(std::size_t i;i<nLayers_;i++)
+        convLayer_[i].save(file);
+    
+        classifier_.save(file);
 
     if(!file)
         throw std::runtime_error("Failed while saving");
@@ -337,14 +279,18 @@ void CNN::load(const std::string& filename)
     std::uint8_t version;
     file.read(reinterpret_cast<char*>(&version),sizeof(version));
 
-    if(version!=3)
+    if(version!=4)
         throw std::runtime_error("Unsupported file version");
+    
+    //CNN Layers
+    file.read(reinterpret_cast<char*>(&nLayers_),sizeof(nLayers_));
+    
+    for(std::size_t i;i<nLayers_;i++)
+        convLayer_[i].load(file);
 
-    conv1_.load(file);
-    conv2_.load(file);
     classifier_.load(file);
 
-    const std::size_t classifierInputs = conv2_.getOutputChannels() * conv2_.getOutputHeight() * conv2_.getOutputWidth();
+    const std::size_t classifierInputs = convLayer_[nLayers_].getOutputChannels() * convLayer_[nLayers_].getOutputHeight() * convLayer_[nLayers_].getOutputWidth();
     if(classifier_.nInputs_() != classifierInputs)
         throw std::runtime_error("Loaded CNN classifier input size does not match convolution output size");
 

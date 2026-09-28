@@ -17,21 +17,24 @@
 #include "Neural.hpp"
 #include "Trainable.hpp"
 
+namespace
+{
+constexpr std::size_t MAX_LAYERS = 2;
+}
+
 class CNN : public Trainable
 {
 public:
     CNN();
-    void configure(std::size_t conv1OutputChannels,
-                   std::size_t conv2OutputChannels,
+    void configure(std::vector<std::size_t> convLayerOutputChannels,
                    std::size_t classifierHiddenLayerSize,
                    Scalar dropout);
     
     const Tensor& forward(const Tensor& input);
     void backward(const Tensor& outputGradient);
-
+    
     void print() const;
-    ConvLayer conv1_;
-    ConvLayer conv2_;
+    std::array<ConvLayer,MAX_LAYERS> convLayer_;
     Neural classifier_;
     
     void gradient_descent(std::size_t trainingSize, double learningRate) override;
@@ -48,6 +51,9 @@ public:
     
     void save(const std::string& filename) const;
     void load(const std::string& filename);
+    
+private:
+    std::size_t nLayers_;
 };
 
 

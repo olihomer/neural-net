@@ -33,11 +33,14 @@ void Trainer::train(const data_set& data, std::size_t epochs, std::size_t batchS
     const auto trainingStart = std::chrono::steady_clock::now();
     
     network_.resetBeta(); //initialise Adam
+    double initialLearningRate = learningRate;
     
     for(std::size_t i = 0; i < epochs; i++)
     {
         double epoch_error = 0;
         std::size_t batches = 0;
+        
+        learningRate = initialLearningRate * std::pow(0.5f,i/15);
         
         std::shuffle(order_.begin(),order_.end(), rng);
 
@@ -56,8 +59,8 @@ void Trainer::train(const data_set& data, std::size_t epochs, std::size_t batchS
         if((i+1) % 5 == 0 || i == epochs - 1)
         {
             std::cout << i << " ";
-            std::cout << "Total error: " << total_error << std::endl;
-            network_.print_stats(std::cout);
+            std::cout << "Learning rate: " << learningRate << " Total error: " << total_error << std::endl;
+            //network_.print_stats(std::cout);
             if(progressCallback!=nullptr)progressCallback(int(i),total_error);
         }
         
