@@ -45,7 +45,7 @@ public:
     std::vector<Scalar> offsetExample(const std::vector<Scalar>& input, std::size_t sizeX, std::size_t sizeY, int offsetX, int offSetY);
     std::vector<Scalar> rotateExample(const std::vector<Scalar>& input, std::size_t sizeX, std::size_t sizeY, Scalar theta);
 
-    void resetBeta() override {ConvLayer::beta1pow=1.0f;ConvLayer::beta2pow=1.0f;}
+    void resetBeta() override {ConvLayer::beta1pow=1.0f;ConvLayer::beta2pow=1.0f;classifier_.resetBeta();}
     
     void save(const std::string& filename) const;
     void load(const std::string& filename);

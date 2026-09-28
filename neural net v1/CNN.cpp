@@ -17,6 +17,7 @@
 
 namespace
 {
+    constexpr std::size_t FILE_VERSION = 5;
     constexpr bool profileCNN = false;
     constexpr std::size_t rotationImageSide = 28;
     constexpr std::size_t rotationImageSize = rotationImageSide * rotationImageSide;
@@ -163,7 +164,7 @@ namespace
 
 CNN::CNN()
 : convLayer_{ConvLayer(8, 1, 28, 28,true), ConvLayer(16, 8, 14, 14,true), ConvLayer(32, 16, 7, 7,false)},
-  classifier_({288,128,10}, ActivationType::Relu, ActivationType::Softmax, 0.1f),
+  classifier_({1568,128,10}, ActivationType::Relu, ActivationType::Softmax, 0.1f),
   nLayers_(3)
 {
 }
@@ -278,7 +279,7 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
 
         const std::size_t rotationIndex = static_cast<std::size_t>(rand()) % rotationDegrees.size();
         std::vector<Scalar> augmented = rotateExampleWithLookup(training_data.get_data()[batch[index]].inputs,28,28,rotationIndex);
-        augmented = offsetExample(augmented, 28, 28, -4 + rand() % 8, -2 + rand () % 5);
+        augmented = offsetExample(augmented, 28, 28, -2 + rand() % 5, -2 + rand () % 5);
         
         for(std::size_t i=0; i<training_data.n_inputs(); i++)
             input.data()[i] = augmented[i];
@@ -408,7 +409,7 @@ void CNN::save(const std::string& filename) const
     file.write(MAGIC, sizeof(MAGIC));
 
     //Version
-    const uint8_t version = 4;
+    const uint8_t version = FILE_VERSION;
     file.write(reinterpret_cast<const char*>(&version),sizeof(version));
 
     //CNN Layers
@@ -441,7 +442,7 @@ void CNN::load(const std::string& filename)
     std::uint8_t version;
     file.read(reinterpret_cast<char*>(&version),sizeof(version));
 
-    if(version!=4)
+    if(version!=FILE_VERSION)
         throw std::runtime_error("Unsupported file version");
 
     //CNN Layers

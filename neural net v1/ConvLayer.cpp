@@ -265,9 +265,9 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, const bool returnInputG
                             biasGradient_[outChan] += g;
                         }
                     }
-                    indexX += stride;
+                    indexX += bPooling_ ? stride : 1;
                 }
-                indexY += stride;
+                indexY += bPooling_ ? stride : 1;
             }
         }
         return inputGradient;
@@ -918,6 +918,9 @@ void ConvLayer::initialiseWeights()
 
 void ConvLayer::save(std::ofstream& file) const
 {
+    //Pooling flag
+    file.write(reinterpret_cast<const char*>(&bPooling_),sizeof(bPooling_));
+    
     //Output channels
     auto outChans = getOutputChannels();
     file.write(reinterpret_cast<const char*>(&outChans),sizeof(outChans));
@@ -943,6 +946,9 @@ void ConvLayer::save(std::ofstream& file) const
 
 void ConvLayer::load(std::ifstream& file)
 {
+    //Pooling flag
+    file.read(reinterpret_cast<char*>(&bPooling_),sizeof(bPooling_));
+
     //Output channels
     std::size_t outChans;
     file.read(reinterpret_cast<char*>(&outChans),sizeof(outChans));
@@ -970,8 +976,8 @@ void ConvLayer::load(std::ifstream& file)
     biasGradient_.resize(outChans);
     bias_m_.resize(outChans);
     bias_v_.resize(outChans);
-    pooled_ = Tensor({outChans,InputY/stride,InputX/stride});
-    maxPoolSource_ = Tensor({outChans,InputY/stride,InputX/stride});
+    pooled_ = Tensor({outChans,InputY/(bPooling_?stride:1),InputX/(bPooling_?stride:1)});
+    maxPoolSource_ = Tensor({outChans,InputY/(bPooling_?stride:1),InputX/(bPooling_?stride:1)});
     cache_ = {};
 
     //Kernels
