@@ -86,6 +86,7 @@ private:
     std::vector<Scalar> biasGradient_;
     std::vector<Scalar> bias_m_;
     std::vector<Scalar> bias_v_;
+    std::vector<Scalar> paddedInput_;
     
     std::queue<ConvCache> cache_;
     void initialiseWeights();

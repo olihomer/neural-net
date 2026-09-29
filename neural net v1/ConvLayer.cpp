@@ -47,6 +47,7 @@ bPooling_(bPooling)
     biasGradient_.resize(outputChannels);
     bias_m_.resize(outputChannels);
     bias_v_.resize(outputChannels);
+    paddedInput_.resize(inputChannels * (inputWidth+2) * (inputHeight*2),0.0f);
 
     initialiseWeights();
     std::cout << "Constructing ConvLayer with shape " << outputChannels << "," << inputChannels << "," << inputHeight << "," << inputWidth << std::endl;
@@ -718,28 +719,26 @@ void ConvLayer::convolvePadded_()
     const Scalar* inputData = input_.data();
     const Scalar* kernelData = kernels_.data();
     Scalar* activationData = activation_.data();
+    Scalar* paddedData = paddedInput_.data();
     const std::size_t channelStride = inputY * inputX;
     const std::size_t kernelStride = kernels_.dim(2) * kernels_.dim(3);
     
     //padded buffer
-    Scalar* buffer = new Scalar[inputChannels*(inputX+2)*(inputY+2)];
-    const std::size_t bufferChannelStride = (inputX+2)*(inputY+2);
+    const std::size_t paddedWidth = inputX + 2;
+    const std::size_t paddedChannelStride = (inputY + 2) * paddedWidth;
     
     for(std::size_t inChan = 0; inChan < inputChannels; inChan++)
     {
-        Scalar *bufferChannel = buffer + (inChan * bufferChannelStride);
         const Scalar *inputChannel = inputData + (inChan * channelStride);
-        std::memset(bufferChannel, 0, (inputX+2)*sizeof(Scalar));
+        Scalar *paddedInputChannel = paddedData + (inChan * paddedChannelStride);
         
         for(std::size_t i = 0; i < inputY; i++)
         {
-            bufferChannel[i * (inputX+2)] = 0;
-            std::memcpy(bufferChannel + (i+1) * (inputX+2) + 1, inputChannel + i * inputX, inputX * sizeof(Scalar));
-            bufferChannel[(i+1) * (inputX+2) + inputX + 1] = 0;
+            std::memcpy(paddedInputChannel + (i+1) * (inputX+2) + 1, inputChannel + i * inputX, inputX * sizeof(Scalar));
         }
-        std::memset(bufferChannel + (inputX+2) * (inputY+1), 0, (inputX+2) * sizeof(Scalar));
     }
     
+   
     
     //same-padding with integer loops to handle edges more easily
     for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
@@ -754,7 +753,7 @@ void ConvLayer::convolvePadded_()
         {
             Scalar* activationRow = activationChannel + j * inputX;
             
-            int i = 1;
+            int i = 0;
             
             // Process four neighbouring output pixels at once.
             for (; i + 3 < static_cast<int>(inputX); i += 4)
@@ -765,19 +764,19 @@ void ConvLayer::convolvePadded_()
                 for (std::size_t inChan = 0; inChan < inputChannels; ++inChan)
                 {
                     const Scalar* channel =
-                    inputData + inChan * channelStride;
+                    paddedData + inChan * paddedChannelStride;
                     
                     const Scalar* k =
                     kernelOutChannel + inChan * kernelStride;
                     
                     const Scalar* row0 =
-                    channel + (j - 1) * inputX;
+                    channel + j + paddedWidth;
                     
                     const Scalar* row1 =
-                    channel + j * inputX;
+                    row0 + paddedWidth;
                     
                     const Scalar* row2 =
-                    channel + (j + 1) * inputX;
+                    row1 + paddedWidth;
                     
                     // Top kernel row
                     //vfmaq_n_f32(a,b,x) => a = a + b * x
@@ -847,19 +846,19 @@ void ConvLayer::convolvePadded_()
                      ++inChan)
                 {
                     const Scalar* channel =
-                    inputData + inChan * channelStride;
+                    paddedData + inChan * paddedChannelStride;
                     
                     const Scalar* k =
                     kernelOutChannel + inChan * kernelStride;
                     
                     const Scalar* r0 =
-                    channel + (j - 1) * inputX + i - 1;
+                    channel + j + paddedWidth + i - 1;
                     
                     const Scalar* r1 =
-                    channel + j * inputX + i - 1;
+                    r0 + paddedWidth;
                     
                     const Scalar* r2 =
-                    channel + (j + 1) * inputX + i - 1;
+                    r1 + paddedWidth;
                     
                     sum += r0[0] * k[0]
                     + r0[1] * k[1]
@@ -879,7 +878,6 @@ void ConvLayer::convolvePadded_()
         
         
     }
-    delete[] buffer;
 
 }
 
