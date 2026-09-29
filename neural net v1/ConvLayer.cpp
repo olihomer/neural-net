@@ -18,7 +18,7 @@
 #include <random>
 #include <arm_neon.h>
 #include <fstream>
-
+#include "Matrix.hpp"
 
 std::random_device ConvLayer::rd_;
 std::mt19937 ConvLayer::rng_(ConvLayer::rd_());
@@ -55,7 +55,7 @@ bPooling_(bPooling)
 Tensor& ConvLayer::forward (const Tensor& input)
 {
     input_ = input;
-    convolve_();
+    convolvePadded_();
     
     if(bPooling_)
     {
@@ -412,7 +412,7 @@ void ConvLayer::convolve_()
     Scalar* activationData = activation_.data();
     const std::size_t channelStride = inputY * inputX;
     const std::size_t kernelStride = kernels_.dim(2) * kernels_.dim(3);
-
+    
     //same-padding with integer loops to handle edges more easily
     for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
     {
@@ -704,6 +704,187 @@ void ConvLayer::convolve_()
     }
 }
 
+
+
+void ConvLayer::convolvePadded_()
+{
+    const auto inputChannels = input_.dim(0);
+    const auto inputY = input_.dim(1);
+    const auto inputX = input_.dim(2);
+    const auto outputChannels = kernels_.dim(0);
+    
+    //faster access code
+    
+    const Scalar* inputData = input_.data();
+    const Scalar* kernelData = kernels_.data();
+    Scalar* activationData = activation_.data();
+    const std::size_t channelStride = inputY * inputX;
+    const std::size_t kernelStride = kernels_.dim(2) * kernels_.dim(3);
+    
+    //padded buffer
+    Scalar* buffer = new Scalar[inputChannels*(inputX+2)*(inputY+2)];
+    const std::size_t bufferChannelStride = (inputX+2)*(inputY+2);
+    
+    for(std::size_t inChan = 0; inChan < inputChannels; inChan++)
+    {
+        Scalar *bufferChannel = buffer + (inChan * bufferChannelStride);
+        const Scalar *inputChannel = inputData + (inChan * channelStride);
+        std::memset(bufferChannel, 0, (inputX+2)*sizeof(Scalar));
+        
+        for(std::size_t i = 0; i < inputY; i++)
+        {
+            bufferChannel[i * (inputX+2)] = 0;
+            std::memcpy(bufferChannel + (i+1) * (inputX+2) + 1, inputChannel + i * inputX, inputX * sizeof(Scalar));
+            bufferChannel[(i+1) * (inputX+2) + inputX + 1] = 0;
+        }
+        std::memset(bufferChannel + (inputX+2) * (inputY+1), 0, (inputX+2) * sizeof(Scalar));
+    }
+    
+    
+    //same-padding with integer loops to handle edges more easily
+    for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
+    {
+        const Scalar* kernelOutChannel = kernelData + outChan * kernelStride * inputChannels;
+        Scalar* activationChannel = activationData + outChan * channelStride;
+        
+        
+        //interior section using NEON
+        
+        for (int j = 0; j < static_cast<int>(inputY); ++j)
+        {
+            Scalar* activationRow = activationChannel + j * inputX;
+            
+            int i = 1;
+            
+            // Process four neighbouring output pixels at once.
+            for (; i + 3 < static_cast<int>(inputX); i += 4)
+            {
+                // [bias, bias, bias, bias]
+                float32x4_t sums = vdupq_n_f32(biases_[outChan]); //broadcast
+                
+                for (std::size_t inChan = 0; inChan < inputChannels; ++inChan)
+                {
+                    const Scalar* channel =
+                    inputData + inChan * channelStride;
+                    
+                    const Scalar* k =
+                    kernelOutChannel + inChan * kernelStride;
+                    
+                    const Scalar* row0 =
+                    channel + (j - 1) * inputX;
+                    
+                    const Scalar* row1 =
+                    channel + j * inputX;
+                    
+                    const Scalar* row2 =
+                    channel + (j + 1) * inputX;
+                    
+                    // Top kernel row
+                    //vfmaq_n_f32(a,b,x) => a = a + b * x
+                    
+                    sums = vfmaq_n_f32(
+                                       sums,
+                                       vld1q_f32(row0 + i - 1),
+                                       k[0]);
+                    
+                    sums = vfmaq_n_f32(
+                                       sums,
+                                       vld1q_f32(row0 + i),
+                                       k[1]);
+                    
+                    sums = vfmaq_n_f32(
+                                       sums,
+                                       vld1q_f32(row0 + i + 1),
+                                       k[2]);
+                    
+                    // Middle kernel row
+                    sums = vfmaq_n_f32(
+                                       sums,
+                                       vld1q_f32(row1 + i - 1),
+                                       k[3]);
+                    
+                    sums = vfmaq_n_f32(
+                                       sums,
+                                       vld1q_f32(row1 + i),
+                                       k[4]);
+                    
+                    sums = vfmaq_n_f32(
+                                       sums,
+                                       vld1q_f32(row1 + i + 1),
+                                       k[5]);
+                    
+                    // Bottom kernel row
+                    sums = vfmaq_n_f32(
+                                       sums,
+                                       vld1q_f32(row2 + i - 1),
+                                       k[6]);
+                    
+                    sums = vfmaq_n_f32(
+                                       sums,
+                                       vld1q_f32(row2 + i),
+                                       k[7]);
+                    
+                    sums = vfmaq_n_f32(
+                                       sums,
+                                       vld1q_f32(row2 + i + 1),
+                                       k[8]);
+                }
+                
+                // ReLU four outputs simultaneously.
+                sums = vmaxq_f32(sums, vdupq_n_f32(0.0f));
+                
+                // Store four output pixels.
+                vst1q_f32(activationRow + i, sums);
+            }
+            
+            // Scalar tail for the 0–3 interior pixels left over.
+            for (; i < static_cast<int>(inputX); ++i)
+            {
+                Scalar sum = biases_[outChan];
+                
+                for (std::size_t inChan = 0;
+                     inChan < inputChannels;
+                     ++inChan)
+                {
+                    const Scalar* channel =
+                    inputData + inChan * channelStride;
+                    
+                    const Scalar* k =
+                    kernelOutChannel + inChan * kernelStride;
+                    
+                    const Scalar* r0 =
+                    channel + (j - 1) * inputX + i - 1;
+                    
+                    const Scalar* r1 =
+                    channel + j * inputX + i - 1;
+                    
+                    const Scalar* r2 =
+                    channel + (j + 1) * inputX + i - 1;
+                    
+                    sum += r0[0] * k[0]
+                    + r0[1] * k[1]
+                    + r0[2] * k[2]
+                    + r1[0] * k[3]
+                    + r1[1] * k[4]
+                    + r1[2] * k[5]
+                    + r2[0] * k[6]
+                    + r2[1] * k[7]
+                    + r2[2] * k[8];
+                }
+                
+                activationRow[i] =
+                sum > 0.0f ? sum : 0.0f;
+            }
+        }
+        
+        
+    }
+    delete[] buffer;
+
+}
+
+
+
 void ConvLayer::gradient_descent(std::size_t batchSize, const Scalar learningRate)
 {
     const auto outputChannels = kernels_.dim(0);
@@ -988,4 +1169,347 @@ void ConvLayer::load(std::ifstream& file)
 
     if(!file)
         throw std::runtime_error("Failed while loading convolution layer");
+}
+
+
+
+void ConvLayer::convolveIm2Col_()
+{
+    const auto inputChannels = input_.dim(0);
+    const auto inputY = input_.dim(1);
+    const auto inputX = input_.dim(2);
+    const auto outputChannels = kernels_.dim(0);
+
+    //faster access code
+
+    const Scalar* inputData = input_.data();
+    const Scalar* kernelData = kernels_.data();
+    Scalar* activationData = activation_.data();
+    const std::size_t channelStride = inputY * inputX;
+    const std::size_t kernelStride = kernels_.dim(2) * kernels_.dim(3);
+    const std::size_t inputMatrixCols = inputChannels * kernelStride;
+
+    //Im2Col
+    // Need to create two matrices
+    // First matrix is the inputs divided into patches same size as kernel (3x3)
+    // One row for each position on the input image, i.e. rows = InputY x Input X
+    // Each row contains InputChannels x 3 x 3 elements, i.e. columns = InputChannels x kernelStride
+    
+    Matrix inputIm2Col(channelStride, inputMatrixCols);
+    
+    //second matrix is the kernels laid out in columns (repeated for each input channel), where each column is an output channel
+    // so rows  = InputChannels x kernelstride
+    // and columns = OutputChannels
+    
+    Matrix kernelIm2Col(inputMatrixCols, outputChannels);
+    
+    // populate input matrix
+    
+    std::size_t sourceIndex = 0; //points to current starting position on input image
+    Scalar* inputMatrixData = inputIm2Col.data(); //points to current row of inputMatrix to be popoulated
+    std::size_t inChan = 0; //points to current inputChannel on input image
+    
+        for(std::size_t i = 0; i < inputMatrixCols; i++) //walk across the row
+        {
+            inputMatrixData[i] = 0;//now we need to pull the right nine entries from the source data, adding padding
+            
+            
+            
+        }
+    
+    
+    
+    
+    
+    
+    
+    //same-padding with integer loops to handle edges more easily
+    for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
+    {
+        const Scalar* kernelOutChannel = kernelData + outChan * kernelStride * inputChannels;
+        Scalar* activationChannel = activationData + outChan * channelStride;
+
+        //Interior Section using scalar code
+        /*
+        for(int j = 1; j < inputY-1; j++)
+        {
+            Scalar* activationRow = activationChannel + (j * inputX);
+            for(int i = 1; i < inputX-1; i++)
+            {
+                Scalar sum = biases_[outChan];
+                for(std::size_t inChan=0; inChan < inputChannels; inChan++)
+                {
+                    const Scalar* channel = inputData + inChan * channelStride;
+                    const Scalar* kernelInputChannel = kernelOutChannel + inChan * kernelStride;
+
+                        const Scalar* r0 = channel + (j - 1) * inputX + i - 1;
+                        const Scalar* r1 = channel + j * inputX + i - 1;
+                        const Scalar* r2 = channel + (j + 1) * inputX + i - 1;
+
+                        sum += r0[0] * kernelInputChannel[0]
+                            + r0[1] * kernelInputChannel[1]
+                            + r0[2] * kernelInputChannel[2]
+                            + r1[0] * kernelInputChannel[3]
+                            + r1[1] * kernelInputChannel[4]
+                            + r1[2] * kernelInputChannel[5]
+                            + r2[0] * kernelInputChannel[6]
+                            + r2[1] * kernelInputChannel[7]
+                            + r2[2] * kernelInputChannel[8];
+                }
+                *(activationRow + i) = sum > 0.0f ? sum : 0.0f;
+            }
+        }*/
+
+        //interior section using NEON
+
+        for (int j = 1; j < static_cast<int>(inputY) - 1; ++j)
+        {
+            Scalar* activationRow = activationChannel + j * inputX;
+
+            int i = 1;
+
+            // Process four neighbouring output pixels at once.
+            for (; i + 3 < static_cast<int>(inputX) - 1; i += 4)
+            {
+                // [bias, bias, bias, bias]
+                float32x4_t sums = vdupq_n_f32(biases_[outChan]); //broadcast
+
+                for (std::size_t inChan = 0; inChan < inputChannels; ++inChan)
+                {
+                    const Scalar* channel =
+                        inputData + inChan * channelStride;
+
+                    const Scalar* k =
+                        kernelOutChannel + inChan * kernelStride;
+
+                    const Scalar* row0 =
+                        channel + (j - 1) * inputX;
+
+                    const Scalar* row1 =
+                        channel + j * inputX;
+
+                    const Scalar* row2 =
+                        channel + (j + 1) * inputX;
+
+                    // Top kernel row
+                    //vfmaq_n_f32(a,b,x) => a = a + b * x
+
+                    sums = vfmaq_n_f32(
+                        sums,
+                        vld1q_f32(row0 + i - 1),
+                        k[0]);
+
+                    sums = vfmaq_n_f32(
+                        sums,
+                        vld1q_f32(row0 + i),
+                        k[1]);
+
+                    sums = vfmaq_n_f32(
+                        sums,
+                        vld1q_f32(row0 + i + 1),
+                        k[2]);
+
+                    // Middle kernel row
+                    sums = vfmaq_n_f32(
+                        sums,
+                        vld1q_f32(row1 + i - 1),
+                        k[3]);
+
+                    sums = vfmaq_n_f32(
+                        sums,
+                        vld1q_f32(row1 + i),
+                        k[4]);
+
+                    sums = vfmaq_n_f32(
+                        sums,
+                        vld1q_f32(row1 + i + 1),
+                        k[5]);
+
+                    // Bottom kernel row
+                    sums = vfmaq_n_f32(
+                        sums,
+                        vld1q_f32(row2 + i - 1),
+                        k[6]);
+
+                    sums = vfmaq_n_f32(
+                        sums,
+                        vld1q_f32(row2 + i),
+                        k[7]);
+
+                    sums = vfmaq_n_f32(
+                        sums,
+                        vld1q_f32(row2 + i + 1),
+                        k[8]);
+                }
+
+                // ReLU four outputs simultaneously.
+                sums = vmaxq_f32(sums, vdupq_n_f32(0.0f));
+
+                // Store four output pixels.
+                vst1q_f32(activationRow + i, sums);
+            }
+
+            // Scalar tail for the 0–3 interior pixels left over.
+            for (; i < static_cast<int>(inputX) - 1; ++i)
+            {
+                Scalar sum = biases_[outChan];
+
+                for (std::size_t inChan = 0;
+                     inChan < inputChannels;
+                     ++inChan)
+                {
+                    const Scalar* channel =
+                        inputData + inChan * channelStride;
+
+                    const Scalar* k =
+                        kernelOutChannel + inChan * kernelStride;
+
+                    const Scalar* r0 =
+                        channel + (j - 1) * inputX + i - 1;
+
+                    const Scalar* r1 =
+                        channel + j * inputX + i - 1;
+
+                    const Scalar* r2 =
+                        channel + (j + 1) * inputX + i - 1;
+
+                    sum += r0[0] * k[0]
+                         + r0[1] * k[1]
+                         + r0[2] * k[2]
+                         + r1[0] * k[3]
+                         + r1[1] * k[4]
+                         + r1[2] * k[5]
+                         + r2[0] * k[6]
+                         + r2[1] * k[7]
+                         + r2[2] * k[8];
+                }
+
+                activationRow[i] =
+                    sum > 0.0f ? sum : 0.0f;
+            }
+        }
+
+        //edges section
+
+        //top and bottom edges
+        for(std::size_t j = 0; j < inputY ; j += (inputY - 1))
+        {
+            Scalar* activationRow = activationChannel + (j * inputX);
+            for(int i = 1; i < inputX - 1; i++)
+            {
+                Scalar sum = biases_[outChan];
+                for(std::size_t inChan=0; inChan < inputChannels; inChan++)
+                {
+                    const Scalar* channel = inputData + inChan * channelStride;
+                    const Scalar* kernelInputChannel = kernelOutChannel + inChan * kernelStride;
+
+                    const Scalar* r0 = (j != 0) ? channel + (j - 1) * inputX + i - 1: channel; // all invalid if j = 0
+                    const Scalar* r1 = channel + j * inputX + i - 1; //all valid
+                    const Scalar* r2 = (j != inputY - 1) ? channel + (j + 1) * inputX + i - 1: channel; //all invalid if j = inputY - 1
+
+                    if(j==0) // top edge
+                    {
+                        sum += r1[0] * kernelInputChannel[3]
+                            + r1[1] * kernelInputChannel[4]
+                            + r1[2] * kernelInputChannel[5]
+                            + r2[0] * kernelInputChannel[6]
+                            + r2[1] * kernelInputChannel[7]
+                            + r2[2] * kernelInputChannel[8];
+                    }
+                    else //bottom edge
+                    {
+                        sum += r0[0] * kernelInputChannel[0]
+                        + r0[1] * kernelInputChannel[1]
+                        + r0[2] * kernelInputChannel[2]
+                        + r1[0] * kernelInputChannel[3]
+                        + r1[1] * kernelInputChannel[4]
+                        + r1[2] * kernelInputChannel[5];
+                    }
+                }
+                *(activationRow + i) = sum > 0.0f ? sum : 0.0f;
+            }
+        }
+
+
+        //left and right edges
+        for(std::size_t j = 0; j < inputY; j++)
+        {
+            Scalar* activationRow = activationChannel + (j * inputX);
+            for(int i = 0; i < inputX; i+=(inputX - 1))
+            {
+                Scalar sum = biases_[outChan];
+                for(std::size_t inChan=0; inChan < inputChannels; inChan++)
+                {
+                    const Scalar* channel = inputData + inChan * channelStride;
+                    const Scalar* kernelInputChannel = kernelOutChannel + inChan * kernelStride;
+
+                    const std::size_t xBase = (i == 0) ? 0 : static_cast<std::size_t>(i - 1); //increase pointer for left hand side
+
+                    const Scalar* r0 = (j != 0) ? channel + (j - 1) * inputX + xBase: channel; // all invalid if j = 0
+                    const Scalar* r1 = channel + j * inputX + xBase; //all valid
+                    const Scalar* r2 = (j != inputY - 1) ? channel + (j + 1) * inputX + xBase: channel; //all invalid if j = inputY - 1
+
+                    if(j == 0) // top edge
+                    {
+                        if(i == 0) // left edge so all the [0] are invalid
+                        {
+                            sum += r1[0] * kernelInputChannel[4]
+                            + r1[1] * kernelInputChannel[5]
+                            + r2[0] * kernelInputChannel[7]
+                            + r2[1] * kernelInputChannel[8];
+                        }
+                        else //right edge so all the [2] are invalid
+                        {
+                            sum += r1[0] * kernelInputChannel[3]
+                                + r1[1] * kernelInputChannel[4]
+                                + r2[0] * kernelInputChannel[6]
+                                + r2[1] * kernelInputChannel[7];
+                        }
+                    }
+                    else if(j == (inputY-1)) //bottom edge
+                    {
+                        if(i == 0) // left edge so all the [0] are invalid
+                        {
+                            sum += r0[0] * kernelInputChannel[1]
+                            + r0[1] * kernelInputChannel[2]
+                            + r1[0] * kernelInputChannel[4]
+                            + r1[1] * kernelInputChannel[5];
+                        }
+                        else //right edge so all the [2] are invalid
+                        {
+                            sum += r0[0] * kernelInputChannel[0]
+                            + r0[1] * kernelInputChannel[1]
+                            + r1[0] * kernelInputChannel[3]
+                            + r1[1] * kernelInputChannel[4];
+                        }
+                    }
+                    else // middle of the left/right rows
+                    {
+                        if(i==0) //left so [0] are invalid
+                        {
+                            sum += r0[0] * kernelInputChannel[1]
+                                + r0[1] * kernelInputChannel[2]
+                                + r1[0] * kernelInputChannel[4]
+                                + r1[1] * kernelInputChannel[5]
+                                + r2[0] * kernelInputChannel[7]
+                                + r2[1] * kernelInputChannel[8];
+                        }
+                        else //right so [2] are invalid
+                        {
+                            sum += r0[0] * kernelInputChannel[0]
+                                + r0[1] * kernelInputChannel[1]
+                                + r1[0] * kernelInputChannel[3]
+                                + r1[1] * kernelInputChannel[4]
+                                + r2[0] * kernelInputChannel[6]
+                            + r2[1] * kernelInputChannel[7];
+                        }
+
+                    }
+                }
+                *(activationRow + i) = sum > 0.0f ? sum : 0.0f;
+            }
+        }
+
+
+    }
 }

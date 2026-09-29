@@ -91,6 +91,9 @@ private:
     void initialiseWeights();
     
     void convolve_();
+    void convolvePadded_();
+    void convolveIm2Col_();
+
     void maxPool_();
     
 };
