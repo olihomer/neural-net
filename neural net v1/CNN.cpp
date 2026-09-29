@@ -11,155 +11,13 @@
 #include <chrono>
 #include <algorithm>
 #include <fstream>
-#include <cmath>
-#include <array>
+#include "ImageAugmenter.hpp"
 
 
 namespace
 {
     constexpr std::size_t FILE_VERSION = 5;
     constexpr bool profileCNN = false;
-    constexpr std::size_t rotationImageSide = 28;
-    constexpr std::size_t rotationImageSize = rotationImageSide * rotationImageSide;
-    constexpr Scalar pi = 3.14159265358979323846f;
-    constexpr std::array<int, 3> rotationDegrees = {-5, 0, 5};
-
-    struct RotationContribution
-    {
-        std::size_t targetIndex = 0;
-        Scalar weight = 0.0f;
-    };
-
-    struct SourcePixelRotation
-    {
-        std::array<RotationContribution, 4> contributions;
-        std::size_t count = 0;
-    };
-
-    struct RotationLookup
-    {
-        int degrees = 0;
-        std::array<SourcePixelRotation, rotationImageSize> sourcePixels;
-    };
-
-    void addContribution(SourcePixelRotation& sourcePixel, int targetX, int targetY, Scalar weight)
-    {
-        if(weight <= 0.0f ||
-           targetX < 0 ||
-           targetY < 0 ||
-           targetX >= static_cast<int>(rotationImageSide) ||
-           targetY >= static_cast<int>(rotationImageSide))
-        {
-            return;
-        }
-
-        sourcePixel.contributions[sourcePixel.count] = {
-            static_cast<std::size_t>(targetY) * rotationImageSide + static_cast<std::size_t>(targetX),
-            weight
-        };
-        sourcePixel.count++;
-    }
-
-    RotationLookup makeRotationLookup(int degrees)
-    {
-        RotationLookup lookup;
-        lookup.degrees = degrees;
-
-        const Scalar theta = static_cast<Scalar>(degrees) * pi / 180.0f;
-        const Scalar cosTheta = std::cos(theta);
-        const Scalar sinTheta = std::sin(theta);
-        const Scalar centre = static_cast<Scalar>(rotationImageSide - 1) / 2.0f;
-
-        for(std::size_t sourceY = 0; sourceY < rotationImageSide; sourceY++)
-        {
-            for(std::size_t sourceX = 0; sourceX < rotationImageSide; sourceX++)
-            {
-                const Scalar x = static_cast<Scalar>(sourceX) - centre;
-                const Scalar y = static_cast<Scalar>(sourceY) - centre;
-                const Scalar targetX = cosTheta * x - sinTheta * y + centre;
-                const Scalar targetY = sinTheta * x + cosTheta * y + centre;
-
-                const int x0 = static_cast<int>(std::floor(targetX));
-                const int y0 = static_cast<int>(std::floor(targetY));
-                const int x1 = x0 + 1;
-                const int y1 = y0 + 1;
-                const Scalar xWeight = targetX - static_cast<Scalar>(x0);
-                const Scalar yWeight = targetY - static_cast<Scalar>(y0);
-
-                SourcePixelRotation& sourcePixel = lookup.sourcePixels[sourceY * rotationImageSide + sourceX];
-                addContribution(sourcePixel, x0, y0, (1.0f - xWeight) * (1.0f - yWeight));
-                addContribution(sourcePixel, x1, y0, xWeight * (1.0f - yWeight));
-                addContribution(sourcePixel, x0, y1, (1.0f - xWeight) * yWeight);
-                addContribution(sourcePixel, x1, y1, xWeight * yWeight);
-            }
-        }
-
-        return lookup;
-    }
-
-    const std::array<RotationLookup, rotationDegrees.size()>& rotationLookups()
-    {
-        static const std::array<RotationLookup, rotationDegrees.size()> lookups = {
-            makeRotationLookup(rotationDegrees[0]),
-            makeRotationLookup(rotationDegrees[1]),
-            makeRotationLookup(rotationDegrees[2])
-        };
-
-        return lookups;
-    }
-
-    std::size_t nearestRotationIndexForDegrees(int degrees)
-    {
-        std::size_t bestIndex = 0;
-        int bestDistance = std::abs(degrees - rotationDegrees[0]);
-
-        for(std::size_t i = 1; i < rotationDegrees.size(); i++)
-        {
-            const int distance = std::abs(degrees - rotationDegrees[i]);
-            if(distance < bestDistance)
-            {
-                bestDistance = distance;
-                bestIndex = i;
-            }
-        }
-
-        return bestIndex;
-    }
-
-    std::size_t nearestRotationIndexForRadians(Scalar theta)
-    {
-        const int degrees = static_cast<int>(std::round(theta * 180.0f / pi));
-        return nearestRotationIndexForDegrees(degrees);
-    }
-
-    std::vector<Scalar> rotateExampleWithLookup(const std::vector<Scalar>& input,
-                                                std::size_t sizeX,
-                                                std::size_t sizeY,
-                                                std::size_t lookupIndex)
-    {
-        if(input.size() != sizeX * sizeY)
-            throw std::runtime_error("Input doesn't match requested image size");
-
-        if(sizeX != rotationImageSide || sizeY != rotationImageSide)
-            throw std::runtime_error("Precomputed rotation lookup only supports 28x28 images");
-
-        std::vector<Scalar> output(rotationImageSize, 0.0f);
-        const RotationLookup& lookup = rotationLookups()[lookupIndex];
-
-        for(std::size_t sourceIndex = 0; sourceIndex < rotationImageSize; sourceIndex++)
-        {
-            const Scalar sourceValue = input[sourceIndex];
-            const SourcePixelRotation& sourcePixel = lookup.sourcePixels[sourceIndex];
-
-            for(std::size_t i = 0; i < sourcePixel.count; i++)
-            {
-                const RotationContribution& contribution = sourcePixel.contributions[i];
-                output[contribution.targetIndex] += sourceValue * contribution.weight;
-            }
-        }
-
-        return output;
-    }
 }
 
 CNN::CNN()
@@ -270,6 +128,9 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
 
     Matrix MLPinputs(classifier_.nInputs_(),batch.size());
     Matrix MLPtargets(classifier_.nOutputs_(),batch.size());
+    ImageAugmenter augmenter;
+    std::vector<Scalar> rotated(training_data.n_inputs());
+    std::vector<Scalar> augmented(training_data.n_inputs());
 
     //CNN forward pass and populate matrix of CNN outputs for entire batch
     for(std::size_t index=0; index<batch.size(); index++)
@@ -277,9 +138,9 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
         //load example into Tensor
         Tensor input({1,28,28});
 
-        const std::size_t rotationIndex = static_cast<std::size_t>(rand()) % rotationDegrees.size();
-        std::vector<Scalar> augmented = rotateExampleWithLookup(training_data.get_data()[batch[index]].inputs,28,28,rotationIndex);
-        augmented = offsetExample(augmented, 28, 28, -2 + rand() % 5, -2 + rand () % 5);
+        const std::size_t rotationIndex = static_cast<std::size_t>(rand()) % augmenter.rotationCount();
+        augmenter.rotate(training_data.get_data()[batch[index]].inputs.data(), rotated.data(), 28, 28, rotationIndex);
+        augmenter.translate(rotated.data(), augmented.data(), 28, 28, -2 + rand() % 5, -2 + rand() % 5);
         
         for(std::size_t i=0; i<training_data.n_inputs(); i++)
             input.data()[i] = augmented[i];
@@ -460,25 +321,4 @@ void CNN::load(const std::string& filename)
 
     if(!file)
         throw std::runtime_error("Failed while loading CNN");
-}
-
-std::vector<Scalar> CNN::offsetExample(const std::vector<Scalar>& input, std::size_t sizeX, std::size_t sizeY, int offsetX, int offSetY)
-{
-    std::vector<Scalar> output(sizeX * sizeY);
-
-
-    for(std::size_t targetY = 0; targetY < sizeY; targetY++)
-        for(std::size_t targetX = 0; targetX < sizeX; targetX++)
-        {
-            output.data()[targetY * sizeX + targetX] =
-            (targetX + offsetX < 0 || targetX + offsetX > sizeX - 1 || targetY + offSetY < 0 || targetY + offSetY > sizeY - 1) ? 0.0f :
-            input.data()[(targetY + offSetY) * sizeX + (targetX + offsetX)];
-        }
-    return output;
-}
-
-
-std::vector<Scalar> CNN::rotateExample(const std::vector<Scalar>& input, std::size_t sizeX, std::size_t sizeY, Scalar theta)
-{
-    return rotateExampleWithLookup(input, sizeX, sizeY, nearestRotationIndexForRadians(theta));
 }

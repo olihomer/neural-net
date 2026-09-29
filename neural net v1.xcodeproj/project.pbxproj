@@ -27,6 +27,7 @@
 		DEA6372630582CAF0031E9F3 /* CNN.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEA6372530582CAF0031E9F3 /* CNN.cpp */; };
 		DEA6372930586B210031E9F3 /* ConvLayer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEA6372830586B210031E9F3 /* ConvLayer.cpp */; };
 		DEA6372C305ACDBA0031E9F3 /* Trainable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEA6372B305ACDBA0031E9F3 /* Trainable.cpp */; };
+		DEA63732306BF70A0031E9F3 /* ImageAugmenter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEA63731306BF70A0031E9F3 /* ImageAugmenter.cpp */; };
 		DED68A262B824122004ED2CE /* AppEngine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DED68A252B824122004ED2CE /* AppEngine.cpp */; };
 		DED68A342B8E8C35004ED2CE /* Neural.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DED68A322B8E8C35004ED2CE /* Neural.cpp */; };
 /* End PBXBuildFile section */
@@ -85,6 +86,8 @@
 		DEA6372A305ACDBA0031E9F3 /* Trainable.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Trainable.hpp; sourceTree = "<group>"; };
 		DEA6372B305ACDBA0031E9F3 /* Trainable.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Trainable.cpp; sourceTree = "<group>"; };
 		DEA6372F306537760031E9F3 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
+		DEA63730306BF6E50031E9F3 /* ImageAugmenter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ImageAugmenter.hpp; sourceTree = "<group>"; };
+		DEA63731306BF70A0031E9F3 /* ImageAugmenter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ImageAugmenter.cpp; sourceTree = "<group>"; };
 		DED68A222B824122004ED2CE /* neural net v1 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "neural net v1"; sourceTree = BUILT_PRODUCTS_DIR; };
 		DED68A252B824122004ED2CE /* AppEngine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AppEngine.cpp; sourceTree = "<group>"; };
 		DED68A302B82477A004ED2CE /* data */ = {isa = PBXFileReference; lastKnownFileType = text; path = data; sourceTree = "<group>"; };
@@ -175,6 +178,8 @@
 				DE414379302B6367009B4026 /* NeuronLayer.hpp */,
 				DEA636F3305040ED0031E9F3 /* NeuronLayer.cpp */,
 				DEA636ED3044F4810031E9F3 /* module.modulemap */,
+				DEA63730306BF6E50031E9F3 /* ImageAugmenter.hpp */,
+				DEA63731306BF70A0031E9F3 /* ImageAugmenter.cpp */,
 				DEA636EA3044EDCB0031E9F3 /* SwiftMain.swift */,
 				DEA636E83044E3C40031E9F3 /* SwiftUIView.swift */,
 				DEA636EF304724990031E9F3 /* DrawingPad.swift */,
@@ -270,6 +275,7 @@
 			files = (
 				DEA6371D3053655F0031E9F3 /* data_set.cpp in Sources */,
 				DEA6371B305364FB0031E9F3 /* NeuronLayer.cpp in Sources */,
+				DEA63732306BF70A0031E9F3 /* ImageAugmenter.cpp in Sources */,
 				DEA63719305364DD0031E9F3 /* Matrix.cpp in Sources */,
 				DEA6371C305365040031E9F3 /* ActivationFunction.cpp in Sources */,
 				DEA6371A305364F20031E9F3 /* Neural.cpp in Sources */,

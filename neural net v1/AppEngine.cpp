@@ -22,6 +22,7 @@
 #include "Matrix.hpp"
 #include "Tensor.hpp"
 #include "CNN.hpp"
+#include "ImageAugmenter.hpp"
 
 
 namespace {
@@ -159,7 +160,9 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
     {
         const std::size_t rotationIndex = static_cast<std::size_t>(rand()) % visualizationRotationDegrees.size();
         const Scalar theta = static_cast<Scalar>(visualizationRotationDegrees[rotationIndex]) * pi / 180.0f;
-        std::vector<Scalar> augmented = cnn_.rotateExample(mnist.get_data()[0].inputs, 28, 28, theta);
+        ImageAugmenter augmenter;
+        std::vector<Scalar> augmented(mnist.get_data()[0].inputs.size());
+        augmenter.rotate(mnist.get_data()[0].inputs.data(), augmented.data(), 28, 28, theta);
         cnn_.predict(augmented);
     }
     

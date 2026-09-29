@@ -42,8 +42,6 @@ public:
     Scalar get_output(std::size_t node){return classifier_.get_output(node);};
     std::size_t find_highest_output(void){return classifier_.find_highest_output();};
     std::pair<std::size_t, Scalar> predict(const std::vector<Scalar>& input);
-    std::vector<Scalar> offsetExample(const std::vector<Scalar>& input, std::size_t sizeX, std::size_t sizeY, int offsetX, int offSetY);
-    std::vector<Scalar> rotateExample(const std::vector<Scalar>& input, std::size_t sizeX, std::size_t sizeY, Scalar theta);
 
     void resetBeta() override {ConvLayer::beta1pow=1.0f;ConvLayer::beta2pow=1.0f;classifier_.resetBeta();}
     
