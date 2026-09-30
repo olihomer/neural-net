@@ -19,6 +19,9 @@
 #include <arm_neon.h>
 #include <fstream>
 #include "Matrix.hpp"
+#define ACCELERATE_NEW_LAPACK
+#define ACCELERATE_LAPACK_ILP64
+#include <Accelerate/Accelerate.h>
 
 std::random_device ConvLayer::rd_;
 std::mt19937 ConvLayer::rng_(ConvLayer::rd_());
@@ -42,7 +45,7 @@ kernelGradient_({outputChannels,inputChannels,3,3}),
 kernel_m_({outputChannels,inputChannels,3,3}),
 kernel_v_({outputChannels,inputChannels,3,3}),
 bPooling_(bPooling),
-kernelIm2Col_(outputChannels, inputChannels * 3 * 3)
+inputIm2Col_(inputHeight * inputWidth, inputChannels * 3 * 3)
 {
     biases_.resize(outputChannels);
     biasGradient_.resize(outputChannels);
@@ -1056,7 +1059,6 @@ void ConvLayer::zeroGradients()
 {
     kernelGradient_.fill(0.0f);
     std::fill(biasGradient_.begin(),biasGradient_.end(),0.0f);
-    bKernelMatrixGood_=false;
 }
 
 
@@ -1157,6 +1159,7 @@ void ConvLayer::load(std::ifstream& file)
     biasGradient_.resize(outChans);
     bias_m_.resize(outChans);
     bias_v_.resize(outChans);
+    paddedInput_.resize((InputX+2)*(InputY+2));
     pooled_ = Tensor({outChans,InputY/(bPooling_?stride:1),InputX/(bPooling_?stride:1)});
     maxPoolSource_ = Tensor({outChans,InputY/(bPooling_?stride:1),InputX/(bPooling_?stride:1)});
     cache_ = {};
@@ -1213,13 +1216,13 @@ void ConvLayer::convolveIm2Col_()
     // One row for each position on the input image, i.e. rows = InputY x Input X
     // Each row contains InputChannels x 3 x 3 elements, i.e. columns = InputChannels x kernelStride
     
-    Matrix inputIm2Col(inputX * inputY, inputMatrixCols);
+    //Matrix inputIm2Col(inputX * inputY, inputMatrixCols);
     
     // populate input matrix from paddedData
     
     std::size_t sourceIndex = 0; //points to current top-left position on paddedData
     std::size_t destIndex = 0; //points to current cell of matrix to be populated
-    Scalar* inputMatrixData = inputIm2Col.data(); //points to inputMatrix
+    Scalar* inputMatrixData = inputIm2Col_.data(); //points to inputMatrix
     
     Scalar* currentChanPaddedData = paddedData;
     
@@ -1253,43 +1256,32 @@ void ConvLayer::convolveIm2Col_()
         currentChanPaddedData = paddedData;
     }
     
-    //second matrix is the kernels laid out in columns (repeated for each input channel), where each column is an output channel
-    // so rows  = InputChannels x kernelstride
-    // and columns = OutputChannels
-    // but I think we should flip it for ease/speed of populating, then do a multiply transpose
-    // so rows = outputChannels and columns = inputChannels x kernelstride
+    //second matrix is the our existing kernel tensor
+    //now just need to do kernels_ * inputIm2Col T -> activation
     
-    if(!bKernelMatrixGood_) //only initialise kernel once per batch
-    {
-        
-        Scalar* kernelMatrixData = kernelIm2Col_.data();
-        destIndex = 0;
-        
-        for(std::size_t outChan = 0; outChan < outputChannels; outChan++) //walk through output channels, each one will be a row
-        {
-            const Scalar* kernelOutChannel = kernelData + outChan * kernelStride * inputChannels;
-            
-            for(std::size_t inChan = 0; inChan < inputChannels; inChan++) //walk through the input channels, as we work across the row
-            {
-                const Scalar* kernelInChannel = kernelOutChannel + inChan * kernelStride;
-                
-                for(std::size_t kIndex = 0; kIndex < kernelStride ; kIndex++) //walk through kernel
-                {
-                    kernelMatrixData[destIndex++] = kernelInChannel[kIndex];
-                }
-            }
-        }
-        bKernelMatrixGood_ = true;
-    }
+    cblas_sgemm(
+                CblasRowMajor,
+                CblasNoTrans,
+                CblasTrans,
+                outputChannels,
+                channelStride,
+                inputMatrixCols,
+                1.0f,
+                kernels_.data(),
+                inputMatrixCols,
+                inputIm2Col_.data(),
+                inputMatrixCols,
+                0.0f,
+                activation_.data(),
+                channelStride
+                );
     
-    //activation matrix will have rows = InputX x InputY and cols = outputChannels
-    
-    auto activationMatrix = Matrix::multiplyTranspose(inputIm2Col, kernelIm2Col_);
     
     for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
         for(std::size_t i = 0; i < inputX*inputY; i++)
         {
-            activation_.data()[outChan * channelStride + i] = activationMatrix(i,outChan);
+            Scalar& value = activation_.data()[outChan * channelStride + i];
+            value = std::max(0.0f, value + biases_[outChan]);
         }
     
 }

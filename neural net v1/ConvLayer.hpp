@@ -82,7 +82,6 @@ private:
     static std::mt19937 rng_;
     static std::random_device rd_;
     bool bPooling_;
-    bool bKernelMatrixGood_;
     
     std::vector<Scalar> biases_;
     std::vector<Scalar> biasGradient_;
@@ -90,7 +89,7 @@ private:
     std::vector<Scalar> bias_v_;
     std::vector<Scalar> paddedInput_;
     
-    Matrix kernelIm2Col_;
+    Matrix inputIm2Col_;
     
     std::queue<ConvCache> cache_;
     void initialiseWeights();
