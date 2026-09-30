@@ -88,6 +88,17 @@ Matrix Matrix::multiply(const Matrix& lhs, const Matrix& rhs)
     return result;
 }
 
+Matrix Matrix::multiplyTranspose(const Matrix& lhs, const Matrix& rhs)
+{
+    if(lhs.cols_ != rhs.cols_)throw std::runtime_error("Matrices cannot be multiplied");
+    
+    Matrix result(lhs.rows_, rhs.cols_);
+    
+    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, lhs.rows_, rhs.cols_, lhs.cols_, 1.0f, lhs.data_.data(), lhs.cols_, rhs.data_.data(), rhs.cols_, 0.0f, result.data_.data(), rhs.cols_);
+    
+    return result;
+}
+
 Matrix Matrix::multiply_old(const Matrix& lhs, const Matrix& rhs)
 {
     if(lhs.cols() != rhs.rows())throw std::runtime_error("Matrices cannot be multiplied");
