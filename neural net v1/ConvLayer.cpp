@@ -37,21 +37,25 @@ ConvLayer::ConvLayer(std::size_t outputChannels,
                      std::size_t inputWidth,
                      bool bPooling)
 :input_({inputChannels,inputHeight,inputWidth}),
+inputBatch_({miniBatchSize,inputChannels,inputHeight,inputWidth}),
 activation_({outputChannels,inputHeight,inputWidth}),
+activationBatch_({miniBatchSize,outputChannels,inputHeight,inputWidth}),
 pooled_({outputChannels,inputHeight/(bPooling ? stride : 1), inputWidth/(bPooling ? stride : 1)}),
+pooledBatch_({miniBatchSize,outputChannels,inputHeight/(bPooling ? stride : 1), inputWidth/(bPooling ? stride : 1)}),
 maxPoolSource_({outputChannels, inputHeight/(bPooling ? stride : 1), inputWidth/(bPooling ? stride : 1)}),
+maxPoolSourceBatch_({miniBatchSize,outputChannels, inputHeight/(bPooling ? stride : 1), inputWidth/(bPooling ? stride : 1)}),
 kernels_({outputChannels,inputChannels,3,3}),
 kernelGradient_({outputChannels,inputChannels,3,3}),
 kernel_m_({outputChannels,inputChannels,3,3}),
 kernel_v_({outputChannels,inputChannels,3,3}),
 bPooling_(bPooling),
-inputIm2Col_(inputHeight * inputWidth, inputChannels * 3 * 3)
+inputIm2Col_(miniBatchSize * inputHeight * inputWidth, inputChannels * 3 * 3)
 {
     biases_.resize(outputChannels);
     biasGradient_.resize(outputChannels);
     bias_m_.resize(outputChannels);
     bias_v_.resize(outputChannels);
-    paddedInput_.resize(inputChannels * (inputWidth+2) * (inputHeight+2),0.0f);
+    paddedInput_.resize(miniBatchSize * inputChannels * (inputWidth+2) * (inputHeight+2),0.0f);
 
     initialiseWeights();
     std::cout << "Constructing ConvLayer with shape " << outputChannels << "," << inputChannels << "," << inputHeight << "," << inputWidth << std::endl;
@@ -71,6 +75,24 @@ Tensor& ConvLayer::forward (const Tensor& input)
     return activation_;
 }
 
+Tensor& ConvLayer::forwardBatch (const Tensor& input)
+{
+    inputBatch_ = input;
+    convolveIm2Col_();
+    
+    //At this point, we have convolved the minibatch and the activations are sat in activationsBatch
+    
+    //We need to separate them back into activations for the rest of the process to work
+        
+    if(bPooling_)
+    {
+        maxPoolBatch_();
+        return pooledBatch_;
+    }
+    
+    return activationBatch_;
+}
+
 Scalar ConvLayer::kernelValue(std::size_t outputChannel, std::size_t inputChannel, std::size_t y, std::size_t x) const
 {
     return kernels_(outputChannel, inputChannel, y, x);
@@ -86,7 +108,7 @@ Scalar ConvLayer::activationValue(std::size_t channel, std::size_t y, std::size_
     return activation_(channel, y, x);
 }
 
-Tensor ConvLayer::backward(const Tensor& outputGradient, const bool returnInputGradient)
+Tensor ConvLayer::backward(const Tensor& outputGradient, const bool returnInputGradient, int miniBatchIndex)
 {
     //unpool
     //Relu derivative
@@ -108,14 +130,30 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, const bool returnInputG
     const auto inputY = input_.dim(1);
     const auto inputX = input_.dim(2);
     const auto inputChannels = input_.dim(0);
+    
+    const Scalar* inputData;
+    const Scalar* activationData;
+    const Scalar* maxPoolSourceData;
 
     //faster access code
 
     const Scalar* kernelData = kernels_.data();
     Scalar* kernelGradientData = kernelGradient_.data();
-    const Scalar* inputData = input_.data();
-    const Scalar* activationData = activation_.data();
-    const Scalar* maxPoolSourceData = maxPoolSource_.data();
+ 
+    if(miniBatchIndex == -1)
+    {
+        inputData = input_.data();
+        activationData = activation_.data();
+        maxPoolSourceData = maxPoolSource_.data();
+    }
+    else
+    {
+        inputData = inputBatch_.data() + miniBatchIndex * input_.size();
+        activationData = activationBatch_.data() + miniBatchIndex * activation_.size();
+        maxPoolSourceData = maxPoolSourceBatch_.data() + miniBatchIndex * maxPoolSource_.size();
+        std::cout << "assigning for batch index " << miniBatchIndex <<std::endl;
+    }
+    
     const Scalar* outputGradientData = outputGradient.data();
 
     const std::size_t kernelStride = kernels_.dim(2) * kernels_.dim(3);
@@ -1000,6 +1038,46 @@ void ConvLayer::maxPool_()
     }
 }
 
+
+void ConvLayer::maxPoolBatch_()
+{
+    std::size_t channels = activation_.dim(0);
+
+    std::size_t outputY = pooled_.dim(1);
+    std::size_t outputX = pooled_.dim(2);
+
+    std::array<Scalar, stride*stride> candidates;
+
+    for(std::size_t batchIndex = 0; batchIndex < miniBatchSize; batchIndex++)
+    {
+        for(std::size_t chan = 0; chan < channels; chan++)
+        {
+            std::size_t indexX = 0;
+            std::size_t indexY = 0;
+            
+            for(std::size_t j=0;j<outputY;j++)
+            {
+                for(std::size_t i=0;i<outputX;i++)
+                {
+                    for(std::size_t x=0;x<stride;x++)
+                        for(std::size_t y=0;y<stride;y++)
+                        {
+                            candidates[x+y*stride] = activation_(chan,indexY + y,indexX + x);
+                        }
+                    auto max = std::max_element(candidates.begin(), candidates.end());
+                    pooled_(batchIndex,chan,j,i) = *max;
+                    maxPoolSource_(batchIndex,chan,j,i) = max - candidates.begin();
+                    indexX += stride;
+                }
+                indexY += stride;
+                indexX = 0;
+            }
+        }
+    }
+}
+
+
+
 void ConvLayer::setKernel(std::size_t outputChannel, std::size_t inputChannel, const std::vector<Scalar>& data)
 {
         auto d = data.begin();
@@ -1071,6 +1149,15 @@ void ConvLayer::pushCache()
     cache_.push(cache);
 }
 
+void ConvLayer::pushCacheBatch()
+{
+    ConvCache cache;
+    cache.input = inputBatch_;
+    cache.activation = activationBatch_;
+    cache.maxPoolSource = maxPoolSourceBatch_;
+    cache_.push(cache);
+}
+
 
 void ConvLayer::popCache()
 {
@@ -1081,6 +1168,14 @@ void ConvLayer::popCache()
     maxPoolSource_ = std::move(cache.maxPoolSource);
 }
 
+void ConvLayer::popCacheBatch()
+{
+    auto cache = std::move(cache_.front());
+    cache_.pop();
+    inputBatch_ = std::move(cache.input);
+    activationBatch_ = std::move(cache.activation);
+    maxPoolSourceBatch_ = std::move(cache.maxPoolSource);
+}
 
 void ConvLayer::initialiseWeights()
 {
@@ -1178,16 +1273,15 @@ void ConvLayer::load(std::ifstream& file)
 
 void ConvLayer::convolveIm2Col_()
 {
-    const auto inputChannels = input_.dim(0);
-    const auto inputY = input_.dim(1);
-    const auto inputX = input_.dim(2);
+    const auto inputChannels = inputBatch_.dim(1);
+    const auto inputY = inputBatch_.dim(2);
+    const auto inputX = inputBatch_.dim(3);
     const auto outputChannels = kernels_.dim(0);
     
     //faster access code
     
-    const Scalar* inputData = input_.data();
-    const Scalar* kernelData = kernels_.data();
-
+    const Scalar* inputData = inputBatch_.data();
+    
     const std::size_t channelStride = inputY * inputX;
     const std::size_t kernelStride = kernels_.dim(2) * kernels_.dim(3);
     const std::size_t inputMatrixCols = inputChannels * kernelStride;
@@ -1197,18 +1291,25 @@ void ConvLayer::convolveIm2Col_()
     Scalar* paddedData = paddedInput_.data();
     const std::size_t paddedWidth = inputX + 2;
     const std::size_t paddedChannelStride = (inputY + 2) * paddedWidth;
+    const std::size_t inputBatchStride = channelStride * miniBatchSize;
+    const std::size_t paddedBatchStride = paddedChannelStride * miniBatchSize;
     
-    for(std::size_t inChan = 0; inChan < inputChannels; inChan++)
+    for(std::size_t batchIndex = 0; batchIndex < miniBatchSize; batchIndex++)
     {
-        const Scalar *inputChannel = inputData + (inChan * channelStride);
-        Scalar *paddedInputChannel = paddedData + (inChan * paddedChannelStride);
+        const Scalar* inputBatch = inputData + batchIndex * inputBatchStride;
+        Scalar* paddedInputBatch = paddedData + batchIndex * paddedBatchStride;
         
-        for(std::size_t i = 0; i < inputY; i++)
+        for(std::size_t inChan = 0; inChan < inputChannels; inChan++)
         {
-            std::memcpy(paddedInputChannel + (i+1) * (inputX+2) + 1, inputChannel + i * inputX, inputX * sizeof(Scalar));
+            const Scalar* inputChannel = inputBatch + (inChan * channelStride);
+            Scalar* paddedInputChannel = paddedInputBatch + (inChan * paddedChannelStride);
+            
+            for(std::size_t i = 0; i < inputY; i++)
+            {
+                std::memcpy(paddedInputChannel + (i+1) * (inputX+2) + 1, inputChannel + i * inputX, inputX * sizeof(Scalar));
+            }
         }
     }
-    
     
     //Im2Col
     // Need to create two matrices
@@ -1216,7 +1317,9 @@ void ConvLayer::convolveIm2Col_()
     // One row for each position on the input image, i.e. rows = InputY x Input X
     // Each row contains InputChannels x 3 x 3 elements, i.e. columns = InputChannels x kernelStride
     
-    //Matrix inputIm2Col(inputX * inputY, inputMatrixCols);
+    //This now sits as a member of the class: Matrix inputIm2Col_(inputX * inputY, inputChannels * kernelStride);
+    
+    //To turn this into a batch operation, we need to change the number of rows to miniBatchSize * inputX * inputY
     
     // populate input matrix from paddedData
     
@@ -1224,66 +1327,79 @@ void ConvLayer::convolveIm2Col_()
     std::size_t destIndex = 0; //points to current cell of matrix to be populated
     Scalar* inputMatrixData = inputIm2Col_.data(); //points to inputMatrix
     
-    Scalar* currentChanPaddedData = paddedData;
-    
-    for(std::size_t posIndexY = 0; posIndexY < inputY; posIndexY++) //walks down every actual image column
+    for(std::size_t batchIndex = 0; batchIndex < miniBatchSize; batchIndex++) //walk through minibatch
     {
-        for(std::size_t posIndexX = 0; posIndexX < inputX; posIndexX++) // walks across every actual image row
+        Scalar* currentBatchPaddedData = paddedData + batchIndex * paddedBatchStride;
+        Scalar* currentChanPaddedData = currentBatchPaddedData;
+        
+        for(std::size_t posIndexY = 0; posIndexY < inputY; posIndexY++) //walks down every actual image column
         {
-            for(std::size_t inChan = 0; inChan < inputChannels; inChan++) //walks through all inputchannels
+            for(std::size_t posIndexX = 0; posIndexX < inputX; posIndexX++) // walks across every actual image row
             {
-                // adds nine points at a time to the matrix
-                const Scalar* row0 = currentChanPaddedData + sourceIndex;
-                const Scalar* row1 = row0 + paddedWidth;
-                const Scalar* row2 = row1 + paddedWidth;
-                
-                inputMatrixData[destIndex++] = row0[0];
-                inputMatrixData[destIndex++] = row0[1];
-                inputMatrixData[destIndex++] = row0[2];
-                inputMatrixData[destIndex++] = row1[0];
-                inputMatrixData[destIndex++] = row1[1];
-                inputMatrixData[destIndex++] = row1[2];
-                inputMatrixData[destIndex++] = row2[0];
-                inputMatrixData[destIndex++] = row2[1];
-                inputMatrixData[destIndex++] = row2[2];
-                
-                currentChanPaddedData += paddedChannelStride; // on to next channel
+                for(std::size_t inChan = 0; inChan < inputChannels; inChan++) //walks through all inputchannels
+                {
+                    // adds nine points at a time to the matrix
+                    const Scalar* row0 = currentChanPaddedData + sourceIndex;
+                    const Scalar* row1 = row0 + paddedWidth;
+                    const Scalar* row2 = row1 + paddedWidth;
+                    
+                    inputMatrixData[destIndex++] = row0[0];
+                    inputMatrixData[destIndex++] = row0[1];
+                    inputMatrixData[destIndex++] = row0[2];
+                    inputMatrixData[destIndex++] = row1[0];
+                    inputMatrixData[destIndex++] = row1[1];
+                    inputMatrixData[destIndex++] = row1[2];
+                    inputMatrixData[destIndex++] = row2[0];
+                    inputMatrixData[destIndex++] = row2[1];
+                    inputMatrixData[destIndex++] = row2[2];
+                    
+                    currentChanPaddedData += paddedChannelStride; // on to next channel
+                }
+                sourceIndex++; //step along row by one pixel
+                currentChanPaddedData = currentBatchPaddedData;
             }
-            sourceIndex++; //step along row by one pixel
-            currentChanPaddedData = paddedData;
+            sourceIndex += 2;
+            currentChanPaddedData = currentBatchPaddedData;
         }
-        sourceIndex += 2;
-        currentChanPaddedData = paddedData;
     }
-    
-    //second matrix is the our existing kernel tensor
+    //second matrix is the our existing kernel tensor with dimensions
     //now just need to do kernels_ * inputIm2Col T -> activation
     
+    //std::cout << "About to sgemm. Kernels Matrix A: " << std::endl;
+    //kernels_.print();
+    //std::cout << "Inputs Matrix B. Rows = " << inputIm2Col_.rows() << " Cols = " << inputIm2Col_.cols() << " Size = " << inputIm2Col_.size() << std::endl;
+    
     cblas_sgemm(
-                CblasRowMajor,
-                CblasNoTrans,
-                CblasTrans,
-                outputChannels,
-                channelStride,
-                inputMatrixCols,
-                1.0f,
-                kernels_.data(),
-                inputMatrixCols,
-                inputIm2Col_.data(),
-                inputMatrixCols,
-                0.0f,
-                activation_.data(),
-                channelStride
+                CblasRowMajor, //order of matrices
+                CblasNoTrans, //transpose matrix A?
+                CblasTrans, //transpose matrix B?
+                outputChannels, //rows in matrix A
+                inputBatchStride, //columns in matrix B => inputX * InputY * miniBatchSize
+                inputMatrixCols, //columns in matrix A & rows in matrix B => inputChannels * 9
+                1.0f, //scaling factor
+                kernels_.data(), //matrix A
+                inputMatrixCols, //first dimension of matrix A => inputChannels * 9
+                inputIm2Col_.data(), // matrix B
+                inputMatrixCols, //first dimension of matrix B => inputChannels * 9
+                0.0f, //scaling factor for Matrix C
+                activationBatch_.data(), // matrix C
+                inputBatchStride // first dimension of matrix C => inputX * InputY * miniBatchSize
                 );
     
+    const std::size_t activationBatchStride = outputChannels * inputX * inputY;
     
-    for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
-        for(std::size_t i = 0; i < inputX*inputY; i++)
-        {
-            Scalar& value = activation_.data()[outChan * channelStride + i];
-            value = std::max(0.0f, value + biases_[outChan]);
-        }
+    int count = 0;
     
+    for(std::size_t batchIndex = 0; batchIndex < miniBatchSize; batchIndex++)
+        for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
+            for(std::size_t i = 0; i < inputX * inputY; i++)
+            {
+                Scalar& value = activationBatch_.data()[batchIndex * activationBatchStride + outChan * channelStride + i];
+                value = std::max(0.0f, value + biases_[outChan]);
+                
+                //std::cout << "Batch Index: " << batchIndex << " Count: " << count++ << " Value: " << value << std::endl;
+            }
+    //std::cout << "End of Convolve()" << std::endl;
 }
             
 

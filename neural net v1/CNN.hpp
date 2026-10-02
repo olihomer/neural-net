@@ -27,7 +27,11 @@ public:
                    Scalar dropout);
     
     const Tensor& forward(const Tensor& input);
+    const Tensor& forwardBatch(const Tensor& input);
+
     void backward(const Tensor& outputGradient);
+    void backwardBatch(const Tensor& outputGradient, std::size_t miniBatchIndex);
+
     
     void print() const;
     std::vector<ConvLayer> convLayer_;

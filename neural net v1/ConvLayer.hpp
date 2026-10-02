@@ -35,12 +35,17 @@ public:
     
     void setKernel(std::size_t outputChannel, std::size_t inputChannel, const std::vector<Scalar>& data);
     Tensor& forward(const Tensor& input);
-    Tensor backward(const Tensor& outputGradient, const bool returnInputGradient);
+    Tensor& forwardBatch(const Tensor& input);
+
+    Tensor backward(const Tensor& outputGradient, const bool returnInputGradient, int miniBatchIndex = -1);
     void print() const;
     void zeroGradients();
     void gradient_descent(std::size_t batchSize, const Scalar learningRate);
     void pushCache();
+    void pushCacheBatch();
     void popCache();
+    void popCacheBatch();
+
     std::size_t getInputWidth() const {return input_.dim(2);};
     std::size_t getInputHeight() const {return input_.dim(1);};
     std::size_t getOutputChannels() const {return pooled_.dim(0);};
@@ -67,6 +72,7 @@ public:
     static constexpr Scalar beta1 = 0.9f;
     static constexpr Scalar beta2 = 0.999f;
     static constexpr Scalar epsilon = 1e-8f;
+    static constexpr std::size_t miniBatchSize = 16;
     inline static Scalar beta1pow = 1.0f;
     inline static Scalar beta2pow = 1.0f;
     
@@ -76,9 +82,13 @@ private:
     Tensor kernel_m_;
     Tensor kernel_v_;
     Tensor input_;
+    Tensor inputBatch_;
     Tensor activation_;
+    Tensor activationBatch_;
     Tensor pooled_;
+    Tensor pooledBatch_;
     Tensor maxPoolSource_;
+    Tensor maxPoolSourceBatch_;
     static std::mt19937 rng_;
     static std::random_device rd_;
     bool bPooling_;
@@ -99,6 +109,7 @@ private:
     void convolveIm2Col_();
 
     void maxPool_();
+    void maxPoolBatch_();
     
 };
 
