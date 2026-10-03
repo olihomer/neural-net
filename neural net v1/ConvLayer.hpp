@@ -107,6 +107,7 @@ private:
     void convolve_();
     void convolvePadded_();
     void convolveIm2Col_();
+    void convolveIm2ColBatch_();
 
     void maxPool_();
     void maxPoolBatch_();

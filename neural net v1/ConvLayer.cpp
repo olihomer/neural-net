@@ -78,7 +78,7 @@ Tensor& ConvLayer::forward (const Tensor& input)
 Tensor& ConvLayer::forwardBatch (const Tensor& input)
 {
     inputBatch_ = input;
-    convolveIm2Col_();
+    convolveIm2ColBatch_();
     
     //At this point, we have convolved the minibatch and the activations are sat in activationsBatch
     
@@ -151,7 +151,6 @@ Tensor ConvLayer::backward(const Tensor& outputGradient, const bool returnInputG
         inputData = inputBatch_.data() + miniBatchIndex * input_.size();
         activationData = activationBatch_.data() + miniBatchIndex * activation_.size();
         maxPoolSourceData = maxPoolSourceBatch_.data() + miniBatchIndex * maxPoolSource_.size();
-        std::cout << "assigning for batch index " << miniBatchIndex <<std::endl;
     }
     
     const Scalar* outputGradientData = outputGradient.data();
@@ -1062,10 +1061,10 @@ void ConvLayer::maxPoolBatch_()
                     for(std::size_t x=0;x<stride;x++)
                         for(std::size_t y=0;y<stride;y++)
                         {
-                            candidates[x+y*stride] = activation_(chan,indexY + y,indexX + x);
+                            candidates[x+y*stride] = activationBatch_(batchIndex, chan,indexY + y,indexX + x);
                         }
                     auto max = std::max_element(candidates.begin(), candidates.end());
-                    pooled_(batchIndex,chan,j,i) = *max;
+                    pooledBatch_(batchIndex,chan,j,i) = *max;
                     maxPoolSource_(batchIndex,chan,j,i) = max - candidates.begin();
                     indexX += stride;
                 }
@@ -1271,12 +1270,14 @@ void ConvLayer::load(std::ifstream& file)
 
 
 
-void ConvLayer::convolveIm2Col_()
+void ConvLayer::convolveIm2ColBatch_()
 {
     const auto inputChannels = inputBatch_.dim(1);
     const auto inputY = inputBatch_.dim(2);
     const auto inputX = inputBatch_.dim(3);
     const auto outputChannels = kernels_.dim(0);
+    
+    Tensor gemmOutput({miniBatchSize,outputChannels,inputX,inputY});
     
     //faster access code
     
@@ -1291,8 +1292,8 @@ void ConvLayer::convolveIm2Col_()
     Scalar* paddedData = paddedInput_.data();
     const std::size_t paddedWidth = inputX + 2;
     const std::size_t paddedChannelStride = (inputY + 2) * paddedWidth;
-    const std::size_t inputBatchStride = channelStride * miniBatchSize;
-    const std::size_t paddedBatchStride = paddedChannelStride * miniBatchSize;
+    const std::size_t inputBatchStride = channelStride * inputChannels;
+    const std::size_t paddedBatchStride = paddedChannelStride * inputChannels;
     
     for(std::size_t batchIndex = 0; batchIndex < miniBatchSize; batchIndex++)
     {
@@ -1323,7 +1324,6 @@ void ConvLayer::convolveIm2Col_()
     
     // populate input matrix from paddedData
     
-    std::size_t sourceIndex = 0; //points to current top-left position on paddedData
     std::size_t destIndex = 0; //points to current cell of matrix to be populated
     Scalar* inputMatrixData = inputIm2Col_.data(); //points to inputMatrix
     
@@ -1336,6 +1336,7 @@ void ConvLayer::convolveIm2Col_()
         {
             for(std::size_t posIndexX = 0; posIndexX < inputX; posIndexX++) // walks across every actual image row
             {
+                const std::size_t sourceIndex = posIndexY * paddedWidth + posIndexX;
                 for(std::size_t inChan = 0; inChan < inputChannels; inChan++) //walks through all inputchannels
                 {
                     // adds nine points at a time to the matrix
@@ -1355,10 +1356,8 @@ void ConvLayer::convolveIm2Col_()
                     
                     currentChanPaddedData += paddedChannelStride; // on to next channel
                 }
-                sourceIndex++; //step along row by one pixel
                 currentChanPaddedData = currentBatchPaddedData;
             }
-            sourceIndex += 2;
             currentChanPaddedData = currentBatchPaddedData;
         }
     }
@@ -1368,6 +1367,7 @@ void ConvLayer::convolveIm2Col_()
     //std::cout << "About to sgemm. Kernels Matrix A: " << std::endl;
     //kernels_.print();
     //std::cout << "Inputs Matrix B. Rows = " << inputIm2Col_.rows() << " Cols = " << inputIm2Col_.cols() << " Size = " << inputIm2Col_.size() << std::endl;
+    
     
     cblas_sgemm(
                 CblasRowMajor, //order of matrices
@@ -1382,24 +1382,138 @@ void ConvLayer::convolveIm2Col_()
                 inputIm2Col_.data(), // matrix B
                 inputMatrixCols, //first dimension of matrix B => inputChannels * 9
                 0.0f, //scaling factor for Matrix C
-                activationBatch_.data(), // matrix C
+                gemmOutput.data(), // matrix C
                 inputBatchStride // first dimension of matrix C => inputX * InputY * miniBatchSize
                 );
     
-    const std::size_t activationBatchStride = outputChannels * inputX * inputY;
+    //rearrange gemm data from [O][N][H][W] -> [N][O][H][W]
     
-    int count = 0;
+    const std::size_t P = inputX * inputY;
+    const std::size_t R = miniBatchSize * P;
     
-    for(std::size_t batchIndex = 0; batchIndex < miniBatchSize; batchIndex++)
-        for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
-            for(std::size_t i = 0; i < inputX * inputY; i++)
-            {
-                Scalar& value = activationBatch_.data()[batchIndex * activationBatchStride + outChan * channelStride + i];
-                value = std::max(0.0f, value + biases_[outChan]);
-                
-                //std::cout << "Batch Index: " << batchIndex << " Count: " << count++ << " Value: " << value << std::endl;
-            }
+    for(std::size_t n = 0; n < miniBatchSize; n++)
+    {
+        for(std::size_t o = 0; o < outputChannels; o++)
+        {
+            const Scalar* src = gemmOutput.data() + o * R + n * P;
+            
+            Scalar* dst = activationBatch_.data() + (n * outputChannels + o) * P;
+            
+            for(std::size_t p = 0; p < P; p++)
+                dst[p] = std::max(0.0f, src[p] + biases_[o]);
+        }
+    }
+    
     //std::cout << "End of Convolve()" << std::endl;
 }
             
 
+void ConvLayer::convolveIm2Col_()
+{
+    const auto inputChannels = input_.dim(0);
+    const auto inputY = input_.dim(1);
+    const auto inputX = input_.dim(2);
+    const auto outputChannels = kernels_.dim(0);
+    
+    //faster access code
+    
+    const Scalar* inputData = input_.data();
+    const Scalar* kernelData = kernels_.data();
+
+    const std::size_t channelStride = inputY * inputX;
+    const std::size_t kernelStride = kernels_.dim(2) * kernels_.dim(3);
+    const std::size_t inputMatrixCols = inputChannels * kernelStride;
+    
+    
+    //padded buffer
+    Scalar* paddedData = paddedInput_.data();
+    const std::size_t paddedWidth = inputX + 2;
+    const std::size_t paddedChannelStride = (inputY + 2) * paddedWidth;
+    
+    for(std::size_t inChan = 0; inChan < inputChannels; inChan++)
+    {
+        const Scalar *inputChannel = inputData + (inChan * channelStride);
+        Scalar *paddedInputChannel = paddedData + (inChan * paddedChannelStride);
+        
+        for(std::size_t i = 0; i < inputY; i++)
+        {
+            std::memcpy(paddedInputChannel + (i+1) * (inputX+2) + 1, inputChannel + i * inputX, inputX * sizeof(Scalar));
+        }
+    }
+    
+    
+    //Im2Col
+    // Need to create two matrices
+    // First matrix is the inputs divided into patches same size as kernel (3x3)
+    // One row for each position on the input image, i.e. rows = InputY x Input X
+    // Each row contains InputChannels x 3 x 3 elements, i.e. columns = InputChannels x kernelStride
+    
+    //Matrix inputIm2Col(inputX * inputY, inputMatrixCols);
+    
+    // populate input matrix from paddedData
+    
+    std::size_t sourceIndex = 0; //points to current top-left position on paddedData
+    std::size_t destIndex = 0; //points to current cell of matrix to be populated
+    Scalar* inputMatrixData = inputIm2Col_.data(); //points to inputMatrix
+    
+    Scalar* currentChanPaddedData = paddedData;
+    
+    for(std::size_t posIndexY = 0; posIndexY < inputY; posIndexY++) //walks down every actual image column
+    {
+        for(std::size_t posIndexX = 0; posIndexX < inputX; posIndexX++) // walks across every actual image row
+        {
+            for(std::size_t inChan = 0; inChan < inputChannels; inChan++) //walks through all inputchannels
+            {
+                // adds nine points at a time to the matrix
+                const Scalar* row0 = currentChanPaddedData + sourceIndex;
+                const Scalar* row1 = row0 + paddedWidth;
+                const Scalar* row2 = row1 + paddedWidth;
+                
+                inputMatrixData[destIndex++] = row0[0];
+                inputMatrixData[destIndex++] = row0[1];
+                inputMatrixData[destIndex++] = row0[2];
+                inputMatrixData[destIndex++] = row1[0];
+                inputMatrixData[destIndex++] = row1[1];
+                inputMatrixData[destIndex++] = row1[2];
+                inputMatrixData[destIndex++] = row2[0];
+                inputMatrixData[destIndex++] = row2[1];
+                inputMatrixData[destIndex++] = row2[2];
+                
+                currentChanPaddedData += paddedChannelStride; // on to next channel
+            }
+            sourceIndex++; //step along row by one pixel
+            currentChanPaddedData = paddedData;
+        }
+        sourceIndex += 2;
+        currentChanPaddedData = paddedData;
+    }
+    
+    //second matrix is the our existing kernel tensor
+    //now just need to do kernels_ * inputIm2Col T -> activation
+    
+    cblas_sgemm(
+                CblasRowMajor,
+                CblasNoTrans,
+                CblasTrans,
+                outputChannels,
+                channelStride,
+                inputMatrixCols,
+                1.0f,
+                kernels_.data(),
+                inputMatrixCols,
+                inputIm2Col_.data(),
+                inputMatrixCols,
+                0.0f,
+                activation_.data(),
+                channelStride
+                );
+    
+    
+    for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
+        for(std::size_t i = 0; i < inputX*inputY; i++)
+        {
+            Scalar& value = activation_.data()[outChan * channelStride + i];
+            value = std::max(0.0f, value + biases_[outChan]);
+        }
+    
+}

@@ -142,7 +142,6 @@ void CNN::gradient_descent(std::size_t trainingSize, double learningRate)
 
 double CNN::trainBatch(const data_set& training_data, const std::span<const std::size_t> batch)
 {
-    std::cout << "CNN::trainBatch" << std::endl;
     std::chrono::steady_clock::time_point batchStart;
     if constexpr (profileCNN)
         batchStart = std::chrono::steady_clock::now();
@@ -179,7 +178,7 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
             Scalar* inputBatch = input.data() + miniBatchIndex * training_data.n_inputs();
             
             for(std::size_t i=0; i < training_data.n_inputs(); i++)
-                inputBatch[i] = training_data.get_data()[batch[miniBatchIndex]].inputs.data()[i];
+                inputBatch[i] = training_data.get_data()[batch[batchIndex]].inputs.data()[i];
         
             //populate the matching targets
             for(std::size_t i=0; i<training_data.n_outputs(); i++)
@@ -191,26 +190,26 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
         }
         
         //Now convolve the minibatch of inputs
-        std::cout << "Calling forwardBatch. batchIndex = " << batchIndex << std::endl;
         const auto& outputTensor = forwardBatch(input);
-        std::cout << "Output from miniBatch with size " << thisMiniBatchSize << std::endl;
-        outputTensor.print();
         
         //we've now got outputTensor which is 784 outputs x 16 minibatches, arranged into 16 columns
         //let's copy it into MLPInputs. Annoyingly, it is arranged in columns
         
         std::size_t inputsToCopy = outputTensor.size()/miniBatchSize;
+        const std::size_t batchStart = batchIndex - thisMiniBatchSize;
         
-        for(std::size_t i = batchIndex - thisMiniBatchSize; i < thisMiniBatchSize; i++)
+        for(std::size_t local = 0; local < thisMiniBatchSize; local++)
+        {
+            const std::size_t global = batchStart + local;
+            
             for(std::size_t j = 0; j < inputsToCopy; j++)
-                MLPinputs(j,i) = outputTensor.data()[i * inputsToCopy + j];
-               
+                MLPinputs(j,global) = outputTensor.data()[local * inputsToCopy + j];
+        }
+        
         //cache network values for backwards pass
         for(std::size_t i = 0; i < nLayers_; i++)
             convLayer_[i].pushCacheBatch();
-        
-        std::cout << "Broken" << std::endl;
-        
+                
 
     }
  
@@ -256,16 +255,12 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
     if constexpr (profileCNN)
         classifierTrainStart = std::chrono::steady_clock::now();
 
-    std::cout << "Calling classifer train batch" << std::endl;
     
     total_error = classifier_.trainBatch(MLPinputs, MLPtargets);
 
     if constexpr (profileCNN)
         classifierTrainElapsed += std::chrono::steady_clock::now() - classifierTrainStart;
 
-    
-    std::cout << "Calling classifer get input error" << std::endl;
-    
     Matrix inputError = classifier_.get_input_error();
 
     //inputError matrix now contains error gradients for entire batch. Backprop through CNN one at a time.
@@ -273,8 +268,6 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
     Tensor outputGradient({convLayer_[nLayers_-1].getOutputChannels(), convLayer_[nLayers_-1].getOutputHeight(), convLayer_[nLayers_-1].getOutputWidth()});
 
     //Batch backprop through MLP
-    
-    std::cout << "Starting backprop" << std::endl;
 
     std::size_t miniBatchIndex = 0;
     
@@ -302,7 +295,7 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
         backwardBatch(outputGradient, miniBatchIndex);
 
         miniBatchIndex++;
-        if(miniBatchIndex == miniBatchSize)
+        if(miniBatchIndex == miniBatchSize && index + 1 < batch.size())
         {
             for(std::size_t i = 0; i < nLayers_; i++)
                  convLayer_[i].popCacheBatch();
