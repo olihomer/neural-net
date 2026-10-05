@@ -34,7 +34,7 @@ public struct SwiftUIView: View {
     @State private var epochsText = "50"
     @State private var trainingExamplesText = "1000"
     @State private var evaluationExamplesText = "100"
-    @State private var batchSizeText = "50"
+    @State private var batchSizeText = "128"
     @State private var learningRateText = "0.001"
     @State private var dropoutText = "0.1"
     @State private var cnnConvChannelTexts = ["8", "16", "32"]

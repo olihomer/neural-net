@@ -42,7 +42,7 @@ public:
 
     Tensor backward(const Tensor& outputGradient, const bool returnInputGradient, int miniBatchIndex = -1);
     
-    void unPool(const Scalar *activationData, Scalar *&activationGradientData, Matrix &activationGradients, std::size_t inputX, std::size_t inputY, const Scalar *maxPoolSourceData, std::size_t outputChannels, const GradientView &outputGradient, std::size_t outputX, std::size_t outputY, int thisMiniBatchSize);
+    void unPool(const Scalar *activationData, Scalar *activationGradientData, std::size_t inputX, std::size_t inputY, const Scalar *maxPoolSourceData, std::size_t outputChannels, const GradientView &outputGradient, std::size_t outputX, std::size_t outputY, int thisMiniBatchSize);
     
     void biasGradients(Scalar *activationGradientData, std::size_t gradientWidth, std::size_t outputChannels);
     
@@ -86,7 +86,7 @@ public:
     static constexpr Scalar beta1 = 0.9f;
     static constexpr Scalar beta2 = 0.999f;
     static constexpr Scalar epsilon = 1e-8f;
-    static constexpr std::size_t miniBatchSize = 32;
+    static constexpr std::size_t miniBatchSize = 16;
     inline static Scalar beta1pow = 1.0f;
     inline static Scalar beta2pow = 1.0f;
     std::size_t cacheSize = 0;

@@ -1528,9 +1528,8 @@ void ConvLayer::convolveIm2Col_()
 
 
 
-void ConvLayer::unPool(const Scalar *activationData, Scalar *&activationGradientData, Matrix &activationGradients, std::size_t inputX, std::size_t inputY, const Scalar *maxPoolSourceData, std::size_t outputChannels, const GradientView &outputGradient, std::size_t outputX, std::size_t outputY, int thisMiniBatchSize) {
-    activationGradients = Matrix(outputChannels, thisMiniBatchSize * inputY * inputX);
-    activationGradientData = activationGradients.data();
+void ConvLayer::unPool(const Scalar *activationData, Scalar *activationGradientData, std::size_t inputX, std::size_t inputY, const Scalar *maxPoolSourceData, std::size_t outputChannels, const GradientView &outputGradient, std::size_t outputX, std::size_t outputY, int thisMiniBatchSize)
+{
     
     // unpool/unrelu and put the gradient into activationGradientBatch
     
@@ -1563,8 +1562,11 @@ void ConvLayer::unPool(const Scalar *activationData, Scalar *&activationGradient
                     const std::size_t winY = indexY + dy;
                     
                     if(*(activationChannel + (winY * inputX) + winX) > 0.0f)
-                        activationGradientChannel[winY * inputX + winX] = outputGradient(n,outChan*outputX*outputY + j * outputX + i);
-                    
+                    {
+                        auto temp = outputGradient(n,outChan*outputX*outputY + j * outputX + i);
+                        activationGradientChannel[winY * inputX + winX] = temp;
+                        biasGradient_[outChan] += temp;
+                    }
                     indexX += bPooling_ ? stride : 1;
                 }
                 indexY += bPooling_ ? stride : 1;
@@ -1587,8 +1589,9 @@ void ConvLayer::biasGradients(Scalar *activationGradientData, std::size_t gradie
     }
 }
 
-void ConvLayer::Col2Im(std::size_t inputChannels, Matrix &inputGradient, std::size_t inputX, std::size_t inputY, std::size_t &paddedBatchStride, std::size_t &paddedChannelStride, std::size_t &paddedWidth, int thisMiniBatchSize) {
-    std::size_t sourceIndex = 0; //points to current top-left position on paddedData
+
+void ConvLayer::Col2Im(std::size_t inputChannels, Matrix &inputGradient, std::size_t inputX, std::size_t inputY, std::size_t &paddedBatchStride, std::size_t &paddedChannelStride, std::size_t &paddedWidth, int thisMiniBatchSize)
+{
     std::size_t destIndex = 0; //points to current cell of matrix to be populated
     Scalar* inputMatrixData = inputGradient.data(); //points to inputGradient matrix
     
@@ -1642,11 +1645,7 @@ void ConvLayer::unPad(std::size_t inputChannels, std::size_t inputX, std::size_t
             Scalar *src = paddedInputGradient_.data() + batchIndex * paddedBatchStride + c * paddedChannelStride;
             
             for(std::size_t j = 0; j < inputY; j++)
-            {
                 memcpy(dst + j * inputX, src + (j+1) * paddedWidth + 1, inputX * sizeof(Scalar));
-                src += (inputX + 2);
-                dst += inputX;
-            }
         }
     }
 }
@@ -1676,14 +1675,14 @@ GradientView ConvLayer::backwardBatch(const GradientView& outputGradient, const 
     const Scalar* activationData = activationBatch_.data();
     const Scalar* maxPoolSourceData = maxPoolSourceBatch_.data();
     
-    Matrix activationGradients;
-    Scalar * activationGradientData;
-    
-    unPool(activationData, activationGradientData, activationGradients, inputX, inputY, maxPoolSourceData, outputChannels, outputGradient, outputX, outputY, thisMiniBatchSize);
+    Matrix activationGradients = Matrix(outputChannels, thisMiniBatchSize * inputY * inputX);
+    Scalar *activationGradientData = activationGradients.data();
+        
+    unPool(activationData, activationGradientData, inputX, inputY, maxPoolSourceData, outputChannels, outputGradient, outputX, outputY, thisMiniBatchSize);
  
     const std::size_t gradientWidth = thisMiniBatchSize * inputY * inputX;
     
-    biasGradients(activationGradientData, gradientWidth, outputChannels);
+    //biasGradients(activationGradientData, gradientWidth, outputChannels);
     
     //activationGradients now has the right gradients in the right places and is a matrix with [O, NxP] = dY
     // inputIm2Col is [NxP,K] = Xcol

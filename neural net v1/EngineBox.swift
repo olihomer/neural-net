@@ -42,7 +42,7 @@ struct TrainingSettings: Sendable {
     var epochs: Int = 50
     var trainingExamples: Int = 1000
     var evaluationExamples: Int = 100
-    var batchSize: Int = 50
+    var batchSize: Int = 128
     var learningRate: Double = 0.001
     var dropout: Double = 0.1
     var hiddenActivation: ActivationChoice = .relu
