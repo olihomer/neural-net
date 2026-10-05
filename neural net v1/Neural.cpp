@@ -276,7 +276,7 @@ void Neural::gradient_descent(std::size_t trainingSize, double learningRate)
         
         for(std::size_t i = 0; i < current.weight.size(); i++)
         {
-            const Scalar g = current.weight_gradient.data()[i];
+            const Scalar g = current.weight_gradient.data()[i]/static_cast<Scalar>(trainingSize);
             
             current.weight_m.data()[i] = current.weight_m.data()[i] * current.beta1 + g * (1 - current.beta1);
             current.weight_v.data()[i] = current.weight_v.data()[i] * current.beta2 + g * g * (1 - current.beta2);
@@ -288,7 +288,7 @@ void Neural::gradient_descent(std::size_t trainingSize, double learningRate)
  
         for(std::size_t i = 0; i < current.bias.size(); i++)
         {
-            const Scalar g = current.bias_gradient.data()[i];
+            const Scalar g = current.bias_gradient.data()[i]/static_cast<Scalar>(trainingSize);
             
             current.bias_m.data()[i] = current.bias_m.data()[i] * current.beta1 + g * (1 - current.beta1);
             current.bias_v.data()[i] = current.bias_v.data()[i] * current.beta2 + g * g * (1 - current.beta2);

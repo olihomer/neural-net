@@ -17,8 +17,7 @@
 
 namespace
 {
-    constexpr std::size_t FILE_VERSION = 5;
-    constexpr bool profileCNN = false;
+    constexpr std::size_t FILE_VERSION = 6;
 }
 
 CNN::CNN()
@@ -105,7 +104,7 @@ void CNN::backward(const Tensor& outputGradient)
 {
     Tensor x;
 
-    x = convLayer_[nLayers_-1].backward(outputGradient, true);
+    if(nLayers_>1)x = convLayer_[nLayers_-1].backward(outputGradient, true);
 
     for(std::size_t i = nLayers_ - 1; i-- > 1;)
     {
@@ -141,14 +140,6 @@ void CNN::gradient_descent(std::size_t trainingSize, double learningRate)
 
 double CNN::trainBatch(const data_set& training_data, const std::span<const std::size_t> batch)
 {
-    std::chrono::steady_clock::time_point batchStart;
-    if constexpr (profileCNN)
-        batchStart = std::chrono::steady_clock::now();
-    
-    std::chrono::duration<double> forwardElapsed{0.0};
-    std::chrono::duration<double> classifierTrainElapsed{0.0};
-    std::chrono::duration<double> backwardElapsed{0.0};
-    
     double total_error = 0;
     
     for(std::size_t i = 0; i < nLayers_; i++)
@@ -218,15 +209,7 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
     
     //Run outputs from CNN through the MLP
     
-    std::chrono::steady_clock::time_point classifierTrainStart;
-    if constexpr (profileCNN)
-        classifierTrainStart = std::chrono::steady_clock::now();
-    
-    
     total_error = classifier_.trainBatch(MLPinputs, MLPtargets);
-    
-    if constexpr (profileCNN)
-        classifierTrainElapsed += std::chrono::steady_clock::now() - classifierTrainStart;
     
     Matrix inputError = classifier_.get_input_error();
     
@@ -252,65 +235,6 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
         batchStartIndex += thisMiniBatchSize;
     }
         
-    /*
-    
-    std::size_t miniBatchIndex = 0;
-    
-    for(std::size_t i = 0; i < nLayers_; i++)
-         convLayer_[i].popCacheBatch();
-    
-    for(std::size_t index=0; index<batch.size(); index++) //walk through the batch
-    {
-        //retrieve cache values from forward run in order for backprop to work
-
-        std::chrono::steady_clock::time_point forwardStart;
-        if constexpr (profileCNN)
-            forwardStart = std::chrono::steady_clock::now();
-        
-        if constexpr (profileCNN)
-            forwardElapsed += std::chrono::steady_clock::now() - forwardStart;
-
-        for(std::size_t i=0;i<outputGradient.size();i++)
-            outputGradient.data()[i] = inputError(i,index);
-
-        std::chrono::steady_clock::time_point backwardStart;
-        if constexpr (profileCNN)
-            backwardStart = std::chrono::steady_clock::now();
-
-        backwardBatch(outputGradient, miniBatchIndex);
-
-        miniBatchIndex++;
-        if(miniBatchIndex == miniBatchSize && index + 1 < batch.size())
-        {
-            for(std::size_t i = 0; i < nLayers_; i++)
-                 convLayer_[i].popCacheBatch();
-            miniBatchIndex = 0;
-        }
-        
-        if constexpr (profileCNN)
-            backwardElapsed += std::chrono::steady_clock::now() - backwardStart;
-    }
-
-    //timing info
-    if constexpr (profileCNN)
-    {
-        const auto batchEnd = std::chrono::steady_clock::now();
-        const std::chrono::duration<double> batchElapsed = batchEnd - batchStart;
-        const double batchSeconds = batchElapsed.count();
-
-        if(batchSeconds > 0.0)
-        {
-            std::cout << "CNN trainBatch benchmark: " << batch.size() << " samples in "
-                      << batchSeconds << " seconds" << std::endl;
-            std::cout << "  CNN::forward: " << forwardElapsed.count() << " seconds, "
-                      << (forwardElapsed.count() / batchSeconds) * 100.0 << "%" << std::endl;
-            std::cout << "  Neural::trainBatch: " << classifierTrainElapsed.count() << " seconds, "
-                      << (classifierTrainElapsed.count() / batchSeconds) * 100.0 << "%" << std::endl;
-            std::cout << "  CNN::backward: " << backwardElapsed.count() << " seconds, "
-                      << (backwardElapsed.count() / batchSeconds) * 100.0 << "%" << std::endl;
-        }
-    }
-*/
     return total_error;
 }
 

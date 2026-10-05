@@ -919,8 +919,6 @@ void ConvLayer::convolvePadded_()
                 sum > 0.0f ? sum : 0.0f;
             }
         }
-        
-        
     }
 
 }
@@ -980,19 +978,16 @@ void ConvLayer::gradient_descent(std::size_t batchSize, const Scalar learningRat
 
                     for(int i = 0; i < kX; i++)
                     {
-                        const Scalar g = kernelGradientRow[i];
+                        const Scalar g = kernelGradientRow[i]/static_cast<Scalar>(batchSize);
                         kernel_mRow[i] = beta1 * kernel_mRow[i] + (1 - beta1) * g;
                         kernel_vRow[i] = beta2 * kernel_vRow[i] + (1 - beta2) * g * g;
                         kernel_mHat = kernel_mRow[i] / (1 - beta1pow);
                         kernel_vHat = kernel_vRow[i] / (1 - beta2pow);
                         kernelRow[i] -= (kernel_mHat / (std::sqrt(kernel_vHat) + epsilon)) * learningRate;
-                        
-                       // *(kernelRow + i) -= *(kernelGradientRow + i) * scale;
-                        
                     }
                 }
             }
-            const Scalar g = biasGradient_[outChan];
+            const Scalar g = biasGradient_[outChan]/static_cast<Scalar>(batchSize);
             bias_m_[outChan] = beta1 * bias_m_[outChan] + (1 - beta1) * g;
             bias_v_[outChan] = beta2 * bias_v_[outChan] + (1 - beta2) * g * g;
             bias_mHat = bias_m_[outChan] / (1 - beta1pow);
@@ -1000,7 +995,6 @@ void ConvLayer::gradient_descent(std::size_t batchSize, const Scalar learningRat
             
             biases_[outChan] -= (bias_mHat / (std::sqrt(bias_vHat) + epsilon)) * learningRate;
             
-            //biases_[outChan] -= biasGradient_[outChan] * scale;
         }
 }
 
@@ -1249,21 +1243,40 @@ void ConvLayer::load(std::ifstream& file)
     std::size_t InputX;
     file.read(reinterpret_cast<char*>(&InputX),sizeof(InputX));
 
+    const std::size_t outputY = InputY / (bPooling_ ? stride : 1);
+    const std::size_t outputX = InputX / (bPooling_ ? stride : 1);
+    
     kernels_ = Tensor({outChans,inChans,3,3});
     kernelGradient_ = Tensor({outChans,inChans,3,3});
     kernel_m_ = Tensor({outChans,inChans,3,3});
     kernel_v_ = Tensor({outChans,inChans,3,3});
-    
+
     input_ = Tensor({inChans,InputY,InputX});
+    inputBatch_ = Tensor({miniBatchSize, inChans,InputY,InputX});
+
     activation_ = Tensor({outChans,InputY,InputX});
+    activationBatch_ = Tensor({miniBatchSize,outChans,InputY,InputX});
+
+    inputGradientBatch_ = Tensor({miniBatchSize, inChans,InputY,InputX});
+    
+    pooled_ = Tensor({outChans,outputY,outputX});
+    pooledBatch_ = Tensor({miniBatchSize,outChans,outputY,outputX});
+    
+    maxPoolSource_ = Tensor({outChans,outputY,outputX});
+    maxPoolSourceBatch_ = Tensor({miniBatchSize,outChans,outputY,outputX});
+
+    const std::size_t paddedSize = miniBatchSize * inChans * (InputX + 2) * (InputY + 2);
+    paddedInput_.assign(paddedSize, 0.0f);
+    paddedInputGradient_.assign(paddedSize, 0.0f);
+    
+    inputIm2Col_ = Matrix(miniBatchSize * InputY * InputX, inChans * 3 * 3);
+    
     biases_.resize(outChans);
     biasGradient_.resize(outChans);
     bias_m_.resize(outChans);
     bias_v_.resize(outChans);
-    paddedInput_.resize((InputX+2)*(InputY+2));
-    pooled_ = Tensor({outChans,InputY/(bPooling_?stride:1),InputX/(bPooling_?stride:1)});
-    maxPoolSource_ = Tensor({outChans,InputY/(bPooling_?stride:1),InputX/(bPooling_?stride:1)});
     cache_ = {};
+    cacheSize = 0;
 
     //Kernels
     file.read(reinterpret_cast<char*>(kernels_.data()),kernels_.size()*sizeof(Scalar));
@@ -1528,49 +1541,65 @@ void ConvLayer::convolveIm2Col_()
 
 
 
-void ConvLayer::unPool(const Scalar *activationData, Scalar *activationGradientData, std::size_t inputX, std::size_t inputY, const Scalar *maxPoolSourceData, std::size_t outputChannels, const GradientView &outputGradient, std::size_t outputX, std::size_t outputY, int thisMiniBatchSize)
+void ConvLayer::unPool(const Scalar* __restrict activationData, Scalar* __restrict activationGradientData, std::size_t inputX, std::size_t inputY, const Scalar* __restrict maxPoolSourceData, std::size_t outputChannels, const GradientView &outputGradient, std::size_t outputX, std::size_t outputY, int thisMiniBatchSize)
 {
     
     // unpool/unrelu and put the gradient into activationGradientBatch
     
     for(std::size_t n = 0; n < thisMiniBatchSize; n++)
     {
-        const Scalar* maxPoolSourceBatch = maxPoolSourceData + (n * outputChannels  * outputY * outputX);
-        const Scalar* activationBatch = activationData + (n * outputChannels * inputY * inputX);
+        const Scalar* __restrict maxPoolSourceBatch = maxPoolSourceData + (n * outputChannels  * outputY * outputX);
+        const Scalar* __restrict activationBatch = activationData + (n * outputChannels * inputY * inputX);
         
         
         for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
         {
-            std::size_t indexY = 0;
-            const Scalar* maxPoolSourceChannel = maxPoolSourceBatch + (outChan * outputY * outputX);
-            Scalar* activationGradientChannel = activationGradientData + outChan * (thisMiniBatchSize * inputX * inputY) + n * (inputX * inputY);
-            const Scalar* activationChannel = activationBatch + (outChan * inputY * inputX);
+            const Scalar* __restrict maxPoolSourceChannel = maxPoolSourceBatch + (outChan * outputY * outputX);
+            Scalar* __restrict activationGradientChannel = activationGradientData + outChan * (thisMiniBatchSize * inputX * inputY) + n * (inputX * inputY);
+            const Scalar* __restrict activationChannel = activationBatch + (outChan * inputY * inputX);
             
-            for(std::size_t j = 0; j < outputY; j++)
+            Scalar& biasSum = biasGradient_[outChan];
+            
+            if(bPooling_)
             {
-                std::size_t indexX = 0;
-                const Scalar* maxPoolSourceRow = maxPoolSourceChannel + (j * outputX);
-                
-                for(std::size_t i = 0; i < outputX; i++)
+                for(std::size_t j = 0; j < outputY; j++)
                 {
-                    //identify winner from activation tensor
-                    const std::size_t index = bPooling_ ? static_cast<std::size_t>(*(maxPoolSourceRow + i)) : 0;
-                    const std::size_t dx = (index == 2 || index == 0) ? 0 : 1;
-                    const std::size_t dy = index < 2 ? 0 : 1;
+                    const Scalar* __restrict maxPoolSourceRow = maxPoolSourceChannel + (j * outputX);
                     
-                    const std::size_t winX = indexX + dx;
-                    const std::size_t winY = indexY + dy;
-                    
-                    if(*(activationChannel + (winY * inputX) + winX) > 0.0f)
+                    for(std::size_t i = 0; i < outputX; i++)
                     {
-                        auto temp = outputGradient(n,outChan*outputX*outputY + j * outputX + i);
-                        activationGradientChannel[winY * inputX + winX] = temp;
-                        biasGradient_[outChan] += temp;
+                        //identify winner from activation tensor
+                        const std::size_t index = static_cast<std::size_t>(*(maxPoolSourceRow + i));
+
+                        const std::size_t winX = i * 2 + (index & 1);
+                        const std::size_t winY = j * 2 + (index >> 1);
+                        
+                        const std::size_t p = (winY * inputX) + winX;
+                        if(activationChannel[p] > 0.0f)
+                        {
+                            const Scalar g = outputGradient(n,outChan*outputX*outputY + j * outputX + i);
+                            activationGradientChannel[p] = g;
+                            biasSum += g;
+                        }
                     }
-                    indexX += bPooling_ ? stride : 1;
                 }
-                indexY += bPooling_ ? stride : 1;
             }
+            else //no pooling
+            {
+                for(std::size_t j = 0; j < outputY; j++)
+                    for(std::size_t i = 0; i < outputX; i++)
+                    {
+                        const std::size_t p = (j * inputX) + i;
+                        if(activationChannel[p] > 0.0f)
+                        {
+                            const Scalar g = outputGradient(n,outChan*outputX*outputY + j * outputX + i);
+                            activationGradientChannel[p] = g;
+                            biasSum += g;
+                        }
+                    }
+                
+            }
+            
         }
     }
 }
