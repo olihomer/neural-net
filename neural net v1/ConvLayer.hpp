@@ -41,6 +41,15 @@ public:
     Tensor& forwardBatch(const Tensor& input);
 
     Tensor backward(const Tensor& outputGradient, const bool returnInputGradient, int miniBatchIndex = -1);
+    
+    void unPool(const Scalar *activationData, Scalar *&activationGradientData, Matrix &activationGradients, std::size_t inputX, std::size_t inputY, const Scalar *maxPoolSourceData, std::size_t outputChannels, const GradientView &outputGradient, std::size_t outputX, std::size_t outputY, int thisMiniBatchSize);
+    
+    void biasGradients(Scalar *activationGradientData, std::size_t gradientWidth, std::size_t outputChannels);
+    
+    void Col2Im(std::size_t inputChannels, Matrix &inputGradient, std::size_t inputX, std::size_t inputY, std::size_t &paddedBatchStride, std::size_t &paddedChannelStride, std::size_t &paddedWidth, int thisMiniBatchSize);
+    
+    void unPad(std::size_t inputChannels, std::size_t inputX, std::size_t inputY, std::size_t paddedBatchStride, std::size_t paddedChannelStride, std::size_t paddedWidth, int thisMiniBatchSize);
+    
     GradientView backwardBatch(const GradientView& outputGradient, const bool returnInputGradient, int thisMiniBatchSize = -1);
 
     void print() const;

@@ -1139,7 +1139,6 @@ void ConvLayer::zeroGradients()
 {
     kernelGradient_.fill(0.0f);
     std::fill(biasGradient_.begin(),biasGradient_.end(),0.0f);
-    std::fill(paddedInputGradient_.begin(),paddedInputGradient_.end(),0.0f);
 }
 
 
@@ -1155,12 +1154,11 @@ void ConvLayer::pushCache()
 void ConvLayer::pushCacheBatch(const std::size_t batchSize)
 {
     ConvCache cache;
-    cache.input = inputBatch_;
     cache.activation = activationBatch_;
     cache.maxPoolSource = maxPoolSourceBatch_;
     cache.batchSize = batchSize;
     cache.inputIm2Col = inputIm2Col_;
-    cache_.push(cache);
+    cache_.push(std::move(cache));
     cacheSize++;
 }
 
@@ -1178,7 +1176,6 @@ std::size_t ConvLayer::popCacheBatch()
 {
     auto cache = std::move(cache_.front());
     cache_.pop();
-    inputBatch_ = std::move(cache.input);
     activationBatch_ = std::move(cache.activation);
     maxPoolSourceBatch_ = std::move(cache.maxPoolSource);
     inputIm2Col_ = std::move(cache.inputIm2Col);
@@ -1531,33 +1528,9 @@ void ConvLayer::convolveIm2Col_()
 
 
 
-GradientView ConvLayer::backwardBatch(const GradientView& outputGradient, const bool returnInputGradient, int thisMiniBatchSize)
-{
-    //unpool
-    //Relu derivative
-    //unconvolve
-    // - kernel gradients
-    // - bias gradients
-    // - input gradients
-    // return input gradients
-    
-    const std::size_t outputChannels = getOutputChannels();
-    const std::size_t outputY = getOutputHeight();
-    const std::size_t outputX = getOutputWidth();
-    
-    const auto inputY = input_.dim(1);
-    const auto inputX = input_.dim(2);
-    const auto inputChannels = input_.dim(0);
-    
-    const std::size_t kernelY = kernels_.dim(2);
-    const std::size_t kernelX = kernels_.dim(3);
-    
-    //these all have a mini batch worth of data popped into them
-    const Scalar* activationData = activationBatch_.data();
-    const Scalar* maxPoolSourceData = maxPoolSourceBatch_.data();
-    
-    Matrix activationGradients(outputChannels, thisMiniBatchSize * inputY * inputX);
-    Scalar* activationGradientData = activationGradients.data();
+void ConvLayer::unPool(const Scalar *activationData, Scalar *&activationGradientData, Matrix &activationGradients, std::size_t inputX, std::size_t inputY, const Scalar *maxPoolSourceData, std::size_t outputChannels, const GradientView &outputGradient, std::size_t outputX, std::size_t outputY, int thisMiniBatchSize) {
+    activationGradients = Matrix(outputChannels, thisMiniBatchSize * inputY * inputX);
+    activationGradientData = activationGradients.data();
     
     // unpool/unrelu and put the gradient into activationGradientBatch
     
@@ -1598,9 +1571,9 @@ GradientView ConvLayer::backwardBatch(const GradientView& outputGradient, const 
             }
         }
     }
- 
-    const std::size_t gradientWidth = thisMiniBatchSize * inputY * inputX;
-    
+}
+
+void ConvLayer::biasGradients(Scalar *activationGradientData, std::size_t gradientWidth, std::size_t outputChannels) {
     for(std::size_t o = 0; o < outputChannels; o++)
     {
         const Scalar* row = activationGradientData + o * gradientWidth;
@@ -1612,6 +1585,105 @@ GradientView ConvLayer::backwardBatch(const GradientView& outputGradient, const 
         
         biasGradient_[o] += sum;
     }
+}
+
+void ConvLayer::Col2Im(std::size_t inputChannels, Matrix &inputGradient, std::size_t inputX, std::size_t inputY, std::size_t &paddedBatchStride, std::size_t &paddedChannelStride, std::size_t &paddedWidth, int thisMiniBatchSize) {
+    std::size_t sourceIndex = 0; //points to current top-left position on paddedData
+    std::size_t destIndex = 0; //points to current cell of matrix to be populated
+    Scalar* inputMatrixData = inputGradient.data(); //points to inputGradient matrix
+    
+    Scalar* paddedData = paddedInputGradient_.data();
+    paddedWidth = inputX + 2;
+    paddedChannelStride = (inputY + 2) * (inputX + 2);
+    paddedBatchStride = paddedChannelStride  * inputChannels;
+    
+    std::fill_n(paddedInputGradient_.data(),thisMiniBatchSize * paddedBatchStride,0.0f);
+    
+    for(std::size_t batchIndex = 0; batchIndex < thisMiniBatchSize; batchIndex++) //walk through minibatch
+    {
+        Scalar* batch = paddedData + batchIndex * paddedBatchStride;
+        
+        for(std::size_t posIndexY = 0; posIndexY < inputY; posIndexY++) //walks down every actual image column
+        {
+            for(std::size_t posIndexX = 0; posIndexX < inputX; posIndexX++) // walks across every actual image row
+            {
+                const std::size_t sourceIndex = posIndexY * paddedWidth + posIndexX;
+                for(std::size_t inChan = 0; inChan < inputChannels; inChan++) //walks through all inputchannels
+                {
+                    // adds nine points at a time to the matrix
+                    Scalar* patch = batch + inChan * paddedChannelStride + sourceIndex;
+                    
+                    Scalar* row0 = patch;
+                    Scalar* row1 = row0 + paddedWidth;
+                    Scalar* row2 = row1 + paddedWidth;
+                    
+                    row0[0] += inputMatrixData[destIndex++] ;
+                    row0[1] += inputMatrixData[destIndex++];
+                    row0[2] += inputMatrixData[destIndex++];
+                    row1[0] += inputMatrixData[destIndex++];
+                    row1[1] += inputMatrixData[destIndex++];
+                    row1[2] += inputMatrixData[destIndex++];
+                    row2[0] += inputMatrixData[destIndex++];
+                    row2[1] += inputMatrixData[destIndex++];
+                    row2[2] += inputMatrixData[destIndex++];
+                    
+                }
+            }
+        }
+    }
+}
+
+void ConvLayer::unPad(std::size_t inputChannels, std::size_t inputX, std::size_t inputY, std::size_t paddedBatchStride, std::size_t paddedChannelStride, std::size_t paddedWidth, int thisMiniBatchSize) {
+    for(std::size_t batchIndex = 0; batchIndex < thisMiniBatchSize; batchIndex++) //walk through minibatch
+    {
+        for(std::size_t c = 0; c < inputChannels ; c++)
+        {
+            Scalar *dst = inputGradientBatch_.data() + batchIndex * inputChannels * inputX * inputY + c * inputX * inputY;
+            Scalar *src = paddedInputGradient_.data() + batchIndex * paddedBatchStride + c * paddedChannelStride;
+            
+            for(std::size_t j = 0; j < inputY; j++)
+            {
+                memcpy(dst + j * inputX, src + (j+1) * paddedWidth + 1, inputX * sizeof(Scalar));
+                src += (inputX + 2);
+                dst += inputX;
+            }
+        }
+    }
+}
+
+GradientView ConvLayer::backwardBatch(const GradientView& outputGradient, const bool returnInputGradient, int thisMiniBatchSize)
+{
+    //unpool
+    //Relu derivative
+    //unconvolve
+    // - kernel gradients
+    // - bias gradients
+    // - input gradients
+    // return input gradients
+    
+    const std::size_t outputChannels = getOutputChannels();
+    const std::size_t outputY = getOutputHeight();
+    const std::size_t outputX = getOutputWidth();
+    
+    const auto inputY = input_.dim(1);
+    const auto inputX = input_.dim(2);
+    const auto inputChannels = input_.dim(0);
+    
+    const std::size_t kernelY = kernels_.dim(2);
+    const std::size_t kernelX = kernels_.dim(3);
+    
+    //these all have a mini batch worth of data popped into them
+    const Scalar* activationData = activationBatch_.data();
+    const Scalar* maxPoolSourceData = maxPoolSourceBatch_.data();
+    
+    Matrix activationGradients;
+    Scalar * activationGradientData;
+    
+    unPool(activationData, activationGradientData, activationGradients, inputX, inputY, maxPoolSourceData, outputChannels, outputGradient, outputX, outputY, thisMiniBatchSize);
+ 
+    const std::size_t gradientWidth = thisMiniBatchSize * inputY * inputX;
+    
+    biasGradients(activationGradientData, gradientWidth, outputChannels);
     
     //activationGradients now has the right gradients in the right places and is a matrix with [O, NxP] = dY
     // inputIm2Col is [NxP,K] = Xcol
@@ -1636,101 +1708,53 @@ GradientView ConvLayer::backwardBatch(const GradientView& outputGradient, const 
                 inputChannels * kernelX * kernelY // first dimension of matrix C => inputX * InputY * miniBatchSize
                 );
     
-    // Now need to calculate the input gradient
-    // dXcol = dY T x W
-    // [NxP, K] = [NxP, O] x [O, K]
-    //     C          A T        B
-    
-    Matrix inputGradient(thisMiniBatchSize * inputX * inputY, inputChannels * kernelX * kernelY);
-    
-    cblas_sgemm(
-                CblasRowMajor, //order of matrices
-                CblasTrans, //transpose matrix A?
-                CblasNoTrans, //transpose matrix B?
-                thisMiniBatchSize * inputX * inputY, //rows in matrix A
-                inputChannels * kernelX * kernelY, //columns in matrix B
-                outputChannels, //columns in matrix A & rows in matrix B
-                1.0f, //scaling factor
-                activationGradients.data(), //matrix A
-                thisMiniBatchSize * inputX * inputY, //first dimension of matrix A
-                kernels_.data(), // matrix B
-                inputChannels * kernelX * kernelY, //first dimension of matrix B
-                0.0f, //scaling factor for Matrix C
-                inputGradient.data(), // matrix C
-                inputChannels * kernelX * kernelY // first dimension of matrix C => inputX * InputY * miniBatchSize
-                );
-    
-    
-    
-    //Col2IM
-    // inputGradient now contains the input gradients in a [NxP, K] matrix, just like we got from Im2Col
-    // i.e. inputs divided into patches same size as kernel (3x3)
-    // One row for each position on the input image and batch example, i.e. rows = InputY x Input X x miniBatchSize
-    // Each row contains InputChannels x 3 x 3 elements, i.e. columns = InputChannels x kernelStride
-    
-    std::size_t sourceIndex = 0; //points to current top-left position on paddedData
-    std::size_t destIndex = 0; //points to current cell of matrix to be populated
-    Scalar* inputMatrixData = inputGradient.data(); //points to inputGradient matrix
-    
-    Scalar* paddedData = paddedInputGradient_.data();
-    std::size_t paddedWidth = inputX + 2;
-    std::size_t paddedChannelStride = (inputY + 2) * (inputX + 2);
-    std::size_t paddedBatchStride = paddedChannelStride  * inputChannels;
-    
-    for(std::size_t batchIndex = 0; batchIndex < thisMiniBatchSize; batchIndex++) //walk through minibatch
+    if(returnInputGradient)
     {
-        Scalar* currentBatchPaddedData = paddedData + batchIndex * paddedBatchStride;
-        Scalar* currentChanPaddedData = currentBatchPaddedData;
         
-        for(std::size_t posIndexY = 0; posIndexY < inputY; posIndexY++) //walks down every actual image column
-        {
-            for(std::size_t posIndexX = 0; posIndexX < inputX; posIndexX++) // walks across every actual image row
-            {
-                for(std::size_t inChan = 0; inChan < inputChannels; inChan++) //walks through all inputchannels
-                {
-                    // adds nine points at a time to the matrix
-                    Scalar* row0 = currentChanPaddedData + sourceIndex;
-                    Scalar* row1 = row0 + paddedWidth;
-                    Scalar* row2 = row1 + paddedWidth;
-                    
-                    row0[0] += inputMatrixData[destIndex++] ;
-                    row0[1] += inputMatrixData[destIndex++];
-                    row0[2] += inputMatrixData[destIndex++];
-                    row1[0] += inputMatrixData[destIndex++];
-                    row1[1] += inputMatrixData[destIndex++];
-                    row1[2] += inputMatrixData[destIndex++];
-                    row2[0] += inputMatrixData[destIndex++];
-                    row2[1] += inputMatrixData[destIndex++];
-                    row2[2] += inputMatrixData[destIndex++];
-                    
-                    currentChanPaddedData += paddedChannelStride; // on to next channel
-                }
-                sourceIndex++; //step along row by one pixel
-                currentChanPaddedData = currentBatchPaddedData;
-            }
-            sourceIndex += 2;
-            currentChanPaddedData = currentBatchPaddedData;
-        }
-    }
-    
-    //paddedInputGradient should now contain the inputGradient data
-    //just need to unpad it and store in inputGradientBatch
-    
-   for(std::size_t batchIndex = 0; batchIndex < thisMiniBatchSize; batchIndex++) //walk through minibatch
-    {
-        Scalar *dst = inputGradientBatch_.data() + batchIndex * inputChannels * inputX * inputY;
-        Scalar *src = paddedInputGradient_.data() + batchIndex * inputChannels * (inputX + 2) * (inputY + 2);
+        // Now need to calculate the input gradient
+        // dXcol = dY T x W
+        // [NxP, K] = [NxP, O] x [O, K]
+        //     C          A T        B
         
-        for(std::size_t c = 0; c < inputChannels ; c++)
-        {
-            for(std::size_t j = 1; j < inputY + 1; j++)
-            {
-                memcpy(dst, src, inputX * sizeof(Scalar));
-                src += (inputX + 2);
-                dst += inputX;
-            }
-        }
+        Matrix inputGradient(thisMiniBatchSize * inputX * inputY, inputChannels * kernelX * kernelY);
+        
+        cblas_sgemm(
+                    CblasRowMajor, //order of matrices
+                    CblasTrans, //transpose matrix A?
+                    CblasNoTrans, //transpose matrix B?
+                    thisMiniBatchSize * inputX * inputY, //rows in matrix A
+                    inputChannels * kernelX * kernelY, //columns in matrix B
+                    outputChannels, //columns in matrix A & rows in matrix B
+                    1.0f, //scaling factor
+                    activationGradients.data(), //matrix A
+                    thisMiniBatchSize * inputX * inputY, //first dimension of matrix A
+                    kernels_.data(), // matrix B
+                    inputChannels * kernelX * kernelY, //first dimension of matrix B
+                    0.0f, //scaling factor for Matrix C
+                    inputGradient.data(), // matrix C
+                    inputChannels * kernelX * kernelY // first dimension of matrix C => inputX * InputY * miniBatchSize
+                    );
+        
+        
+        
+        //Col2IM
+        // inputGradient now contains the input gradients in a [NxP, K] matrix, just like we got from Im2Col
+        // i.e. inputs divided into patches same size as kernel (3x3)
+        // One row for each position on the input image and batch example, i.e. rows = InputY x Input X x miniBatchSize
+        // Each row contains InputChannels x 3 x 3 elements, i.e. columns = InputChannels x kernelStride
+        
+        std::size_t paddedWidth;
+        std::size_t paddedChannelStride;
+        std::size_t paddedBatchStride;
+        
+        Col2Im(inputChannels, inputGradient, inputX, inputY, paddedBatchStride, paddedChannelStride, paddedWidth, thisMiniBatchSize);
+        
+        //paddedInputGradient should now contain the inputGradient data
+        //just need to unpad it and store in inputGradientBatch
+        
+        unPad(inputChannels, inputX, inputY, paddedBatchStride, paddedChannelStride, paddedWidth, thisMiniBatchSize);
+        
+        return GradientView(inputGradientBatch_.data(), thisMiniBatchSize * input_.size(), input_.size(), 1);
     }
-    
-    return GradientView(inputGradientBatch_.data(), thisMiniBatchSize * input_.size(), input_.size(), 1);
+    return outputGradient;
 }
