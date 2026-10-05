@@ -20,6 +20,7 @@ public:
 
     explicit Matrix(std::size_t rows, std::size_t cols, const std::vector<Scalar> data);
     explicit Matrix(std::size_t rows, std::size_t cols);
+    Matrix();
     
     std::size_t rows() const {return rows_;};
     std::size_t cols() const {return cols_;};

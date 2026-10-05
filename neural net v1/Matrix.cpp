@@ -18,6 +18,10 @@ Matrix::Matrix(std::size_t rows, std::size_t cols, const std::vector<Scalar> dat
     if(data.size() != rows * cols)throw std::runtime_error("Matrix data size mismatch");
 }
 
+Matrix::Matrix()
+{
+    
+}
 
 Matrix::Matrix(std::size_t rows, std::size_t cols)
 : rows_(rows), cols_(cols), data_(rows*cols)

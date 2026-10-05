@@ -30,7 +30,7 @@ public:
     const Tensor& forwardBatch(const Tensor& input);
 
     void backward(const Tensor& outputGradient);
-    void backwardBatch(const Tensor& outputGradient, std::size_t miniBatchIndex);
+    void backwardBatch(const GradientView& outputGradient, std::size_t miniBatchIndex);
 
     
     void print() const;

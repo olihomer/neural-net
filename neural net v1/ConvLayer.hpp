@@ -16,12 +16,15 @@
 #include <queue>
 #include <random>
 #include "Matrix.hpp"
+#include "GradientView.hpp"
 
 struct ConvCache
 {
+    std::size_t batchSize;
     Tensor input;
     Tensor activation;
     Tensor maxPoolSource;
+    Matrix inputIm2Col;
 };
 
 class ConvLayer
@@ -38,13 +41,15 @@ public:
     Tensor& forwardBatch(const Tensor& input);
 
     Tensor backward(const Tensor& outputGradient, const bool returnInputGradient, int miniBatchIndex = -1);
+    GradientView backwardBatch(const GradientView& outputGradient, const bool returnInputGradient, int miniBatchIndex = -1);
+
     void print() const;
     void zeroGradients();
     void gradient_descent(std::size_t batchSize, const Scalar learningRate);
     void pushCache();
-    void pushCacheBatch();
+    void pushCacheBatch(const std::size_t batchSize);
     void popCache();
-    void popCacheBatch();
+    std::size_t popCacheBatch();
 
     std::size_t getInputWidth() const {return input_.dim(2);};
     std::size_t getInputHeight() const {return input_.dim(1);};
@@ -72,9 +77,10 @@ public:
     static constexpr Scalar beta1 = 0.9f;
     static constexpr Scalar beta2 = 0.999f;
     static constexpr Scalar epsilon = 1e-8f;
-    static constexpr std::size_t miniBatchSize = 16;
+    static constexpr std::size_t miniBatchSize = 32;
     inline static Scalar beta1pow = 1.0f;
     inline static Scalar beta2pow = 1.0f;
+    std::size_t cacheSize = 0;
     
 private:
     Tensor kernels_; //outputs, inputs, kernelY, kernelX
@@ -85,6 +91,7 @@ private:
     Tensor inputBatch_;
     Tensor activation_;
     Tensor activationBatch_;
+    Tensor activationGradientBatch_;
     Tensor pooled_;
     Tensor pooledBatch_;
     Tensor maxPoolSource_;

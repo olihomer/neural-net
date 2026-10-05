@@ -93,6 +93,7 @@
 		DED68A302B82477A004ED2CE /* data */ = {isa = PBXFileReference; lastKnownFileType = text; path = data; sourceTree = "<group>"; };
 		DED68A322B8E8C35004ED2CE /* Neural.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Neural.cpp; sourceTree = "<group>"; };
 		DED68A332B8E8C35004ED2CE /* Neural.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Neural.hpp; sourceTree = "<group>"; };
+		DEE799F33073C57F00787DCC /* GradientView.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = GradientView.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -156,6 +157,7 @@
 				DEA6372430582CAF0031E9F3 /* CNN.hpp */,
 				DEA6372730586B210031E9F3 /* ConvLayer.hpp */,
 				DEA6372830586B210031E9F3 /* ConvLayer.cpp */,
+				DEE799F33073C57F00787DCC /* GradientView.hpp */,
 				DED68A252B824122004ED2CE /* AppEngine.cpp */,
 				DEA636EC3044F2E90031E9F3 /* AppEngine.hpp */,
 				DEA636FB3052C3500031E9F3 /* Matrix.hpp */,

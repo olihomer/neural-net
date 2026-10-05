@@ -40,6 +40,7 @@ ConvLayer::ConvLayer(std::size_t outputChannels,
 inputBatch_({miniBatchSize,inputChannels,inputHeight,inputWidth}),
 activation_({outputChannels,inputHeight,inputWidth}),
 activationBatch_({miniBatchSize,outputChannels,inputHeight,inputWidth}),
+activationGradientBatch_({miniBatchSize,outputChannels,inputHeight,inputWidth}),
 pooled_({outputChannels,inputHeight/(bPooling ? stride : 1), inputWidth/(bPooling ? stride : 1)}),
 pooledBatch_({miniBatchSize,outputChannels,inputHeight/(bPooling ? stride : 1), inputWidth/(bPooling ? stride : 1)}),
 maxPoolSource_({outputChannels, inputHeight/(bPooling ? stride : 1), inputWidth/(bPooling ? stride : 1)}),
@@ -1065,7 +1066,7 @@ void ConvLayer::maxPoolBatch_()
                         }
                     auto max = std::max_element(candidates.begin(), candidates.end());
                     pooledBatch_(batchIndex,chan,j,i) = *max;
-                    maxPoolSource_(batchIndex,chan,j,i) = max - candidates.begin();
+                    maxPoolSourceBatch_(batchIndex,chan,j,i) = max - candidates.begin();
                     indexX += stride;
                 }
                 indexY += stride;
@@ -1148,13 +1149,16 @@ void ConvLayer::pushCache()
     cache_.push(cache);
 }
 
-void ConvLayer::pushCacheBatch()
+void ConvLayer::pushCacheBatch(const std::size_t batchSize)
 {
     ConvCache cache;
     cache.input = inputBatch_;
     cache.activation = activationBatch_;
     cache.maxPoolSource = maxPoolSourceBatch_;
+    cache.batchSize = batchSize;
+    cache.inputIm2Col = inputIm2Col_;
     cache_.push(cache);
+    cacheSize++;
 }
 
 
@@ -1167,13 +1171,16 @@ void ConvLayer::popCache()
     maxPoolSource_ = std::move(cache.maxPoolSource);
 }
 
-void ConvLayer::popCacheBatch()
+std::size_t ConvLayer::popCacheBatch()
 {
     auto cache = std::move(cache_.front());
     cache_.pop();
     inputBatch_ = std::move(cache.input);
     activationBatch_ = std::move(cache.activation);
     maxPoolSourceBatch_ = std::move(cache.maxPoolSource);
+    inputIm2Col_ = std::move(cache.inputIm2Col);
+    cacheSize--;
+    return cache.batchSize;
 }
 
 void ConvLayer::initialiseWeights()
@@ -1294,6 +1301,7 @@ void ConvLayer::convolveIm2ColBatch_()
     const std::size_t paddedChannelStride = (inputY + 2) * paddedWidth;
     const std::size_t inputBatchStride = channelStride * inputChannels;
     const std::size_t paddedBatchStride = paddedChannelStride * inputChannels;
+    const std::size_t im2colRows = miniBatchSize * channelStride;
     
     for(std::size_t batchIndex = 0; batchIndex < miniBatchSize; batchIndex++)
     {
@@ -1374,7 +1382,7 @@ void ConvLayer::convolveIm2ColBatch_()
                 CblasNoTrans, //transpose matrix A?
                 CblasTrans, //transpose matrix B?
                 outputChannels, //rows in matrix A
-                inputBatchStride, //columns in matrix B => inputX * InputY * miniBatchSize
+                im2colRows, //columns in matrix B => inputX * InputY * miniBatchSize
                 inputMatrixCols, //columns in matrix A & rows in matrix B => inputChannels * 9
                 1.0f, //scaling factor
                 kernels_.data(), //matrix A
@@ -1383,7 +1391,7 @@ void ConvLayer::convolveIm2ColBatch_()
                 inputMatrixCols, //first dimension of matrix B => inputChannels * 9
                 0.0f, //scaling factor for Matrix C
                 gemmOutput.data(), // matrix C
-                inputBatchStride // first dimension of matrix C => inputX * InputY * miniBatchSize
+                im2colRows // first dimension of matrix C => inputX * InputY * miniBatchSize
                 );
     
     //rearrange gemm data from [O][N][H][W] -> [N][O][H][W]
@@ -1515,5 +1523,109 @@ void ConvLayer::convolveIm2Col_()
             Scalar& value = activation_.data()[outChan * channelStride + i];
             value = std::max(0.0f, value + biases_[outChan]);
         }
+    
+}
+
+
+
+GradientView ConvLayer::backwardBatch(const GradientView& outputGradient, const bool returnInputGradient, int thisMiniBatchSize)
+{
+    //unpool
+    //Relu derivative
+    //unconvolve
+    // - kernel gradients
+    // - bias gradients
+    // - input gradients
+    // return input gradients
+    
+    
+    const std::size_t outputChannels = getOutputChannels();
+    const std::size_t outputY = getOutputHeight();
+    const std::size_t outputX = getOutputWidth();
+    
+    const auto inputY = input_.dim(1);
+    const auto inputX = input_.dim(2);
+    const auto inputChannels = input_.dim(0);
+    
+    const Scalar* kernelData = kernels_.data();
+    Scalar* kernelGradientData = kernelGradient_.data();
+    const std::size_t kernelStride = kernels_.dim(2) * kernels_.dim(3);
+    const std::size_t kernelY = kernels_.dim(2);
+    const std::size_t kernelX = kernels_.dim(3);
+    
+    //these all have a mini batch worth of data popped into them
+    const Scalar* inputData = inputBatch_.data();
+    const Scalar* activationData = activationBatch_.data();
+    const Scalar* maxPoolSourceData = maxPoolSourceBatch_.data();
+    
+    Matrix activationGradients(outputChannels, thisMiniBatchSize * inputY * inputX);
+    Scalar* activationGradientData = activationGradients.data();
+    
+    // unpool/unrelu and put the gradient into activationGradientBatch
+    
+    for(std::size_t n = 0; n < thisMiniBatchSize; n++)
+    {
+        const Scalar* maxPoolSourceBatch = maxPoolSourceData + (n * outputChannels  * outputY * outputX);
+        const Scalar* activationBatch = activationData + (n * outputChannels * inputY * inputX);
+        
+        
+        for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
+        {
+            std::size_t indexY = 0;
+            const Scalar* maxPoolSourceChannel = maxPoolSourceBatch + (outChan * outputY * outputX);
+            Scalar* activationGradientChannel = activationGradientData + outChan * (thisMiniBatchSize * inputX * inputY) + n * (inputX * inputY);
+            const Scalar* activationChannel = activationBatch + (outChan * inputY * inputX);
+            
+            for(std::size_t j = 0; j < outputY; j++)
+            {
+                std::size_t indexX = 0;
+                const Scalar* maxPoolSourceRow = maxPoolSourceChannel + (j * outputX);
+                
+                for(std::size_t i = 0; i < outputX; i++)
+                {
+                    //identify winner from activation tensor
+                    const std::size_t index = bPooling_ ? static_cast<std::size_t>(*(maxPoolSourceRow + i)) : 0;
+                    const std::size_t dx = (index == 2 || index == 0) ? 0 : 1;
+                    const std::size_t dy = index < 2 ? 0 : 1;
+                    
+                    const std::size_t winX = indexX + dx;
+                    const std::size_t winY = indexY + dy;
+                    
+                    if(*(activationChannel + (winY * inputX) + winX) > 0.0f)
+                        activationGradientChannel[winY * inputX + winX] = outputGradient(n,outChan*outputX*outputY + j * outputX + i);
+                    
+                    indexX += bPooling_ ? stride : 1;
+                }
+                indexY += bPooling_ ? stride : 1;
+            }
+        }
+    }
+ 
+    //activationGradients now has the right gradients in the right places and is a matrix with [O, NxP] = dY
+    // inputIm2Col is [NxP,K] = Xcol
+    // now need to calculate dW = dY x Xcol
+    // [O, NxP] x [NxP, K] = [O,K]
+    //  dY = A    Xcol = B
+    
+    Matrix gemmOutput(outputChannels,inputChannels * kernelX * kernelY);
+    
+    cblas_sgemm(
+                CblasRowMajor, //order of matrices
+                CblasNoTrans, //transpose matrix A?
+                CblasNoTrans, //transpose matrix B?
+                outputChannels, //rows in matrix A
+                inputChannels * kernelX * kernelY, //columns in matrix B
+                thisMiniBatchSize * inputX * inputY, //columns in matrix A & rows in matrix B
+                1.0f, //scaling factor
+                activationGradients.data(), //matrix A
+                thisMiniBatchSize * inputX * inputY, //first dimension of matrix A
+                inputIm2Col_.data(), // matrix B
+                inputChannels * kernelX * kernelY, //first dimension of matrix B
+                0.0f, //scaling factor for Matrix C
+                gemmOutput.data(), // matrix C
+                inputChannels * kernelX * kernelY // first dimension of matrix C => inputX * InputY * miniBatchSize
+                );
+    
+    return outputGradient;
     
 }
