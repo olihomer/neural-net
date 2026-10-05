@@ -478,7 +478,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
-				GCC_OPTIMIZATION_LEVEL = 3;
+				GCC_OPTIMIZATION_LEVEL = fast;
 				"OTHER_CPLUSPLUSFLAGS[arch=*]" = (
 					"-Rpass=loop-vectorize",
 					"-Rpass-analysis=loop-vectorize",

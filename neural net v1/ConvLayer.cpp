@@ -1301,7 +1301,7 @@ void ConvLayer::convolveIm2ColBatch_()
     
     //faster access code
     
-    const Scalar* inputData = inputBatch_.data();
+    const Scalar* __restrict inputData = inputBatch_.data();
     
     const std::size_t channelStride = inputY * inputX;
     const std::size_t kernelStride = kernels_.dim(2) * kernels_.dim(3);
@@ -1309,7 +1309,7 @@ void ConvLayer::convolveIm2ColBatch_()
     
     
     //padded buffer
-    Scalar* paddedData = paddedInput_.data();
+    Scalar* __restrict paddedData = paddedInput_.data();
     const std::size_t paddedWidth = inputX + 2;
     const std::size_t paddedChannelStride = (inputY + 2) * paddedWidth;
     const std::size_t inputBatchStride = channelStride * inputChannels;
@@ -1318,13 +1318,13 @@ void ConvLayer::convolveIm2ColBatch_()
     
     for(std::size_t batchIndex = 0; batchIndex < miniBatchSize; batchIndex++)
     {
-        const Scalar* inputBatch = inputData + batchIndex * inputBatchStride;
-        Scalar* paddedInputBatch = paddedData + batchIndex * paddedBatchStride;
+        const Scalar* __restrict inputBatch = inputData + batchIndex * inputBatchStride;
+        Scalar* __restrict paddedInputBatch = paddedData + batchIndex * paddedBatchStride;
         
         for(std::size_t inChan = 0; inChan < inputChannels; inChan++)
         {
-            const Scalar* inputChannel = inputBatch + (inChan * channelStride);
-            Scalar* paddedInputChannel = paddedInputBatch + (inChan * paddedChannelStride);
+            const Scalar* __restrict inputChannel = inputBatch + (inChan * channelStride);
+            Scalar* __restrict paddedInputChannel = paddedInputBatch + (inChan * paddedChannelStride);
             
             for(std::size_t i = 0; i < inputY; i++)
             {
@@ -1346,12 +1346,12 @@ void ConvLayer::convolveIm2ColBatch_()
     // populate input matrix from paddedData
     
     std::size_t destIndex = 0; //points to current cell of matrix to be populated
-    Scalar* inputMatrixData = inputIm2Col_.data(); //points to inputMatrix
+    Scalar* __restrict inputMatrixData = inputIm2Col_.data(); //points to inputMatrix
     
     for(std::size_t batchIndex = 0; batchIndex < miniBatchSize; batchIndex++) //walk through minibatch
     {
-        Scalar* currentBatchPaddedData = paddedData + batchIndex * paddedBatchStride;
-        Scalar* currentChanPaddedData = currentBatchPaddedData;
+        Scalar* __restrict currentBatchPaddedData = paddedData + batchIndex * paddedBatchStride;
+        Scalar* __restrict currentChanPaddedData = currentBatchPaddedData;
         
         for(std::size_t posIndexY = 0; posIndexY < inputY; posIndexY++) //walks down every actual image column
         {
@@ -1361,9 +1361,9 @@ void ConvLayer::convolveIm2ColBatch_()
                 for(std::size_t inChan = 0; inChan < inputChannels; inChan++) //walks through all inputchannels
                 {
                     // adds nine points at a time to the matrix
-                    const Scalar* row0 = currentChanPaddedData + sourceIndex;
-                    const Scalar* row1 = row0 + paddedWidth;
-                    const Scalar* row2 = row1 + paddedWidth;
+                    const Scalar* __restrict row0 = currentChanPaddedData + sourceIndex;
+                    const Scalar* __restrict row1 = row0 + paddedWidth;
+                    const Scalar* __restrict row2 = row1 + paddedWidth;
                     
                     inputMatrixData[destIndex++] = row0[0];
                     inputMatrixData[destIndex++] = row0[1];
@@ -1622,9 +1622,9 @@ void ConvLayer::biasGradients(Scalar *activationGradientData, std::size_t gradie
 void ConvLayer::Col2Im(std::size_t inputChannels, Matrix &inputGradient, std::size_t inputX, std::size_t inputY, std::size_t &paddedBatchStride, std::size_t &paddedChannelStride, std::size_t &paddedWidth, int thisMiniBatchSize)
 {
     std::size_t destIndex = 0; //points to current cell of matrix to be populated
-    Scalar* inputMatrixData = inputGradient.data(); //points to inputGradient matrix
+    Scalar* __restrict inputMatrixData = inputGradient.data(); //points to inputGradient matrix
     
-    Scalar* paddedData = paddedInputGradient_.data();
+    Scalar* __restrict paddedData = paddedInputGradient_.data();
     paddedWidth = inputX + 2;
     paddedChannelStride = (inputY + 2) * (inputX + 2);
     paddedBatchStride = paddedChannelStride  * inputChannels;
@@ -1633,7 +1633,7 @@ void ConvLayer::Col2Im(std::size_t inputChannels, Matrix &inputGradient, std::si
     
     for(std::size_t batchIndex = 0; batchIndex < thisMiniBatchSize; batchIndex++) //walk through minibatch
     {
-        Scalar* batch = paddedData + batchIndex * paddedBatchStride;
+        Scalar* __restrict batch = paddedData + batchIndex * paddedBatchStride;
         
         for(std::size_t posIndexY = 0; posIndexY < inputY; posIndexY++) //walks down every actual image column
         {
@@ -1643,11 +1643,11 @@ void ConvLayer::Col2Im(std::size_t inputChannels, Matrix &inputGradient, std::si
                 for(std::size_t inChan = 0; inChan < inputChannels; inChan++) //walks through all inputchannels
                 {
                     // adds nine points at a time to the matrix
-                    Scalar* patch = batch + inChan * paddedChannelStride + sourceIndex;
+                    Scalar* __restrict patch = batch + inChan * paddedChannelStride + sourceIndex;
                     
-                    Scalar* row0 = patch;
-                    Scalar* row1 = row0 + paddedWidth;
-                    Scalar* row2 = row1 + paddedWidth;
+                    Scalar* __restrict row0 = patch;
+                    Scalar* __restrict row1 = row0 + paddedWidth;
+                    Scalar* __restrict row2 = row1 + paddedWidth;
                     
                     row0[0] += inputMatrixData[destIndex++] ;
                     row0[1] += inputMatrixData[destIndex++];
@@ -1701,15 +1701,14 @@ GradientView ConvLayer::backwardBatch(const GradientView& outputGradient, const 
     const std::size_t kernelX = kernels_.dim(3);
     
     //these all have a mini batch worth of data popped into them
-    const Scalar* activationData = activationBatch_.data();
-    const Scalar* maxPoolSourceData = maxPoolSourceBatch_.data();
+    const Scalar* __restrict activationData = activationBatch_.data();
+    const Scalar* __restrict maxPoolSourceData = maxPoolSourceBatch_.data();
     
     Matrix activationGradients = Matrix(outputChannels, thisMiniBatchSize * inputY * inputX);
     Scalar *activationGradientData = activationGradients.data();
         
     unPool(activationData, activationGradientData, inputX, inputY, maxPoolSourceData, outputChannels, outputGradient, outputX, outputY, thisMiniBatchSize);
  
-    const std::size_t gradientWidth = thisMiniBatchSize * inputY * inputX;
     
     //biasGradients(activationGradientData, gradientWidth, outputChannels);
     
