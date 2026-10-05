@@ -1622,7 +1622,7 @@ GradientView ConvLayer::backwardBatch(const GradientView& outputGradient, const 
                 inputIm2Col_.data(), // matrix B
                 inputChannels * kernelX * kernelY, //first dimension of matrix B
                 0.0f, //scaling factor for Matrix C
-                gemmOutput.data(), // matrix C
+                kernelGradient_.data(), // matrix C
                 inputChannels * kernelX * kernelY // first dimension of matrix C => inputX * InputY * miniBatchSize
                 );
     
