@@ -41,7 +41,7 @@ public:
     Tensor& forwardBatch(const Tensor& input);
 
     Tensor backward(const Tensor& outputGradient, const bool returnInputGradient, int miniBatchIndex = -1);
-    GradientView backwardBatch(const GradientView& outputGradient, const bool returnInputGradient, int miniBatchIndex = -1);
+    GradientView backwardBatch(const GradientView& outputGradient, const bool returnInputGradient, int thisMiniBatchSize = -1);
 
     void print() const;
     void zeroGradients();
@@ -91,7 +91,7 @@ private:
     Tensor inputBatch_;
     Tensor activation_;
     Tensor activationBatch_;
-    Tensor activationGradientBatch_;
+    Tensor inputGradientBatch_;
     Tensor pooled_;
     Tensor pooledBatch_;
     Tensor maxPoolSource_;
@@ -105,6 +105,7 @@ private:
     std::vector<Scalar> bias_m_;
     std::vector<Scalar> bias_v_;
     std::vector<Scalar> paddedInput_;
+    std::vector<Scalar> paddedInputGradient_;
     
     Matrix inputIm2Col_;
     

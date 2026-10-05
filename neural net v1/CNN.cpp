@@ -236,18 +236,20 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
     
     //Batch backprop through MLP
     
-    for(std::size_t n = 0 ; n < convLayer_[0].cacheSize ; n++) // walk through the cache minibatches
+    std::size_t batchStartIndex = 0;
+    
+    while(convLayer_[0].cacheSize > 0) // walk through the cache minibatches
     {
         std::size_t thisMiniBatchSize = 0;
         
         for(std::size_t i = 0; i < nLayers_; i++)
             thisMiniBatchSize = convLayer_[i].popCacheBatch(); //pop network values from the cache
         
-        GradientView gradient(inputError.data() + n * miniBatchSize, inputError.rows() * thisMiniBatchSize, 1, inputError.cols());
+        GradientView gradient(inputError.data() + batchStartIndex, inputError.rows() * thisMiniBatchSize, 1, inputError.cols());
         
         backwardBatch(gradient, thisMiniBatchSize);
         
-        
+        batchStartIndex += thisMiniBatchSize;
     }
         
     /*
