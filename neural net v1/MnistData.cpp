@@ -5,20 +5,20 @@
 //  Created by Oliver Homer on 09/04/2024.
 //
 
-#include "mnist_data.hpp"
+#include "MnistData.hpp"
 #include <fstream>
 #include <string>
 #include <sstream>
 
 
-mnist_data::mnist_data()
+MnistData::MnistData()
 {
-    data_set();
+    DataSet();
 }
 
-mnist_data::mnist_data(const std::string &filename, int size)
+MnistData::MnistData(const std::string &filename, int size)
 {
-    data_set(); //call base ctor
+    DataSet(); //call base ctor
         
     n_inputs_ = IN_DIM;;
     n_outputs_ = OUT_DIM;
@@ -80,7 +80,7 @@ mnist_data::mnist_data(const std::string &filename, int size)
 }
 
 
-void mnist_data::print_data(std::ostream& stream)
+void MnistData::print_data(std::ostream& stream)
 {
     stream << "Mnist Data. Size: " << size_ << std::endl;
     
@@ -114,12 +114,12 @@ void mnist_data::print_data(std::ostream& stream)
     stream << "Data end." << std::endl;
 }
 
-const int mnist_data::get_label(int index)
+const int MnistData::get_label(int index)
 {
     return label_[index];
 }
 
-std::vector<float> mnist_data::preProcess(std::vector<float> rasterInput)
+std::vector<float> MnistData::preProcess(std::vector<float> rasterInput)
 {
     std::vector<float> output;
     output.resize(28 * 28);

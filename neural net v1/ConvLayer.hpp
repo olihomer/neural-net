@@ -42,15 +42,20 @@ public:
 
     Tensor backward(const Tensor& outputGradient, const bool returnInputGradient, int miniBatchIndex = -1);
     
-    void unPool(const Scalar *activationData, Scalar *activationGradientData, std::size_t inputX, std::size_t inputY, const Scalar *maxPoolSourceData, std::size_t outputChannels, const GradientView &outputGradient, std::size_t outputX, std::size_t outputY, int thisMiniBatchSize);
+    void unPool(const Scalar *activationData, Scalar *activationGradientData, std::size_t inputX, std::size_t inputY, const Scalar *maxPoolSourceData, std::size_t outputChannels, const GradientView &outputGradient, std::size_t outputX, std::size_t outputY, int thisMiniBatchSize, int miniBatchIndex = 0);
+
+    void unPoolMultiThread(const Scalar *activationData, Scalar *activationGradientData, std::size_t inputX, std::size_t inputY, const Scalar *maxPoolSourceData, std::size_t outputChannels, const GradientView &outputGradient, std::size_t outputX, std::size_t outputY, int thisMiniBatchSize, int miniBatchIndex = 0);
     
     void biasGradients(Scalar *activationGradientData, std::size_t gradientWidth, std::size_t outputChannels);
     
     void Col2Im(std::size_t inputChannels, Matrix &inputGradient, std::size_t inputX, std::size_t inputY, std::size_t &paddedBatchStride, std::size_t &paddedChannelStride, std::size_t &paddedWidth, int thisMiniBatchSize);
     
+    void Col2ImMultiThread(std::size_t inputChannels, Matrix &inputGradient, std::size_t inputX, std::size_t inputY, std::size_t &paddedBatchStride, std::size_t &paddedChannelStride, std::size_t &paddedWidth, int thisMiniBatchSize);
+
+    
     void unPad(std::size_t inputChannels, std::size_t inputX, std::size_t inputY, std::size_t paddedBatchStride, std::size_t paddedChannelStride, std::size_t paddedWidth, int thisMiniBatchSize);
     
-    GradientView backwardBatch(const GradientView& outputGradient, const bool returnInputGradient, int thisMiniBatchSize = -1);
+    GradientView backwardBatch(const GradientView& outputGradient, const bool returnInputGradient, int thisMiniBatchSize = -1, int miniBatchIdentifier = 0);
 
     void print() const;
     void zeroGradients();
@@ -87,9 +92,14 @@ public:
     static constexpr Scalar beta2 = 0.999f;
     static constexpr Scalar epsilon = 1e-8f;
     static constexpr std::size_t miniBatchSize = 16;
+    static constexpr std::size_t maxMiniBatchCount = 32;
+
     inline static Scalar beta1pow = 1.0f;
     inline static Scalar beta2pow = 1.0f;
     std::size_t cacheSize = 0;
+    std::vector<Scalar> biasGradient_;
+    std::vector<Scalar> biasGradientMiniBatch_;
+
     
 private:
     Tensor kernels_; //outputs, inputs, kernelY, kernelX
@@ -110,7 +120,7 @@ private:
     bool bPooling_;
     
     std::vector<Scalar> biases_;
-    std::vector<Scalar> biasGradient_;
+
     std::vector<Scalar> bias_m_;
     std::vector<Scalar> bias_v_;
     std::vector<Scalar> paddedInput_;

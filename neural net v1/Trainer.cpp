@@ -21,7 +21,7 @@ Trainer::Trainer(Trainable& network)
 }
 
 
-void Trainer::train(const data_set& data, std::size_t epochs, std::size_t batchSize, double learningRate, void(*progressCallback)(int32_t,double))
+void Trainer::train(const DataSet& data, std::size_t epochs, std::size_t batchSize, double learningRate, void(*progressCallback)(int32_t,double))
 {
     const std::size_t requestedBatchSize = static_cast<std::size_t>(batchSize);
     const std::size_t trainingExampleCount = static_cast<std::size_t>(data.size());

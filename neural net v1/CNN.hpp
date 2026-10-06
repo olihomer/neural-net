@@ -30,7 +30,7 @@ public:
     const Tensor& forwardBatch(const Tensor& input);
 
     void backward(const Tensor& outputGradient);
-    void backwardBatch(const GradientView& outputGradient, std::size_t miniBatchIndex);
+    void backwardBatch(const GradientView& outputGradient, std::size_t miniBatchIndex, std::size_t miniBatchIdentifier);
 
     
     void print() const;
@@ -38,7 +38,7 @@ public:
     Neural classifier_;
     
     void gradient_descent(std::size_t trainingSize, double learningRate) override;
-    double trainBatch(const data_set& training_data, const std::span<const std::size_t> batch) override;
+    double trainBatch(const DataSet& training_data, const std::span<const std::size_t> batch) override;
     void print_stats(std::ostream& ostream) override;
     
     void set_inputMLP(std::vector<Scalar>& input){classifier_.set_input(input);};

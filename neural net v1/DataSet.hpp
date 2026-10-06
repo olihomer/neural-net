@@ -20,13 +20,13 @@ struct data
     std::vector<Scalar> outputs;
 };
 
-class data_set
+class DataSet
 {
 public:
     //Constructors
-    data_set(){};
-    data_set(std::vector<Scalar> inputs, std::vector<Scalar> outputs);
-    data_set(const std::string& filename);
+    DataSet(){};
+    DataSet(std::vector<Scalar> inputs, std::vector<Scalar> outputs);
+    DataSet(const std::string& filename);
     //Getter
     const std::vector<data>& get_data() const {return data_;};
     const std::size_t n_inputs() const {return n_inputs_;};

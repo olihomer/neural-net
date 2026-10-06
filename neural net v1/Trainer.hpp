@@ -10,7 +10,7 @@
 
 #include <stdio.h>
 #include "Neural.hpp"
-#include "mnist_data.hpp"
+#include "MnistData.hpp"
 #include "Trainable.hpp"
 
 
@@ -20,7 +20,7 @@ public:
     Trainer (Trainable &network);
     
     void train(
-               const data_set& data,
+               const DataSet& data,
                std::size_t epochs,
                std::size_t batchSize,
                double learningRate,

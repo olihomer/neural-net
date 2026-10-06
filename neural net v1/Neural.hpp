@@ -12,7 +12,7 @@
 #include <vector>
 #include <iostream>
 #include <span>
-#include "data_set.hpp"
+#include "DataSet.hpp"
 #include "NeuronLayer.hpp"
 #include "ActivationFunction.hpp"
 #include "NeuralTypes.hpp"
@@ -44,7 +44,7 @@ public:
     
     void set_input(std::size_t node, Scalar value); //directly change a single input
     void set_input(const std::vector<Scalar>&); // directly change all inputs from a vector
-    void set_input(data_set& data,std::size_t index); //directly change all inputs by selecting an entry from a data set
+    void set_input(DataSet& data,std::size_t index); //directly change all inputs by selecting an entry from a data set
     std::size_t numLayers(){return layers_;};
     Matrix get_input_error(){return layer_[0].error;};
 
@@ -56,7 +56,7 @@ public:
     void propagate();
     void propagateBatch(bool training=false);
     void gradient_descent(std::size_t trainingSize, double learningRate) override;
-    double trainBatch(const data_set& training_data, const std::span<const std::size_t> batch) override;
+    double trainBatch(const DataSet& training_data, const std::span<const std::size_t> batch) override;
     double trainBatch(const Matrix& inputs, const Matrix& targets);
 
     void save(const std::string& filename) const;

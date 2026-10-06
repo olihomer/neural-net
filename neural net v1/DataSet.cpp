@@ -5,13 +5,13 @@
 //  Created by Oliver Homer on 26/03/2024.
 //
 
-#include "data_set.hpp"
+#include "DataSet.hpp"
 #include <fstream>
 #include <iostream>
 
 
 
-data_set::data_set(std::vector<Scalar> inputs, std::vector<Scalar> outputs) //constructor for singleton data item
+DataSet::DataSet(std::vector<Scalar> inputs, std::vector<Scalar> outputs) //constructor for singleton data item
 {
     size_ = 1;
     data_.resize(size_);
@@ -21,7 +21,7 @@ data_set::data_set(std::vector<Scalar> inputs, std::vector<Scalar> outputs) //co
     data_[0].outputs = outputs;
 }
 
-data_set::data_set(const std::string& filename)
+DataSet::DataSet(const std::string& filename)
 {
     std::fstream myfile;
     myfile.open(filename);
@@ -74,7 +74,7 @@ data_set::data_set(const std::string& filename)
 }
 
 
-void data_set::print_data(std::ostream& stream)
+void DataSet::print_data(std::ostream& stream)
 {
     stream << "Data:" << std::endl;
     

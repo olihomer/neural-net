@@ -22,6 +22,7 @@
 #define ACCELERATE_NEW_LAPACK
 #define ACCELERATE_LAPACK_ILP64
 #include <Accelerate/Accelerate.h>
+#include <dispatch/dispatch.h>
 
 std::random_device ConvLayer::rd_;
 std::mt19937 ConvLayer::rng_(ConvLayer::rd_());
@@ -58,7 +59,7 @@ inputIm2Col_(miniBatchSize * inputHeight * inputWidth, inputChannels * 3 * 3)
     bias_v_.resize(outputChannels);
     paddedInput_.resize(miniBatchSize * inputChannels * (inputWidth+2) * (inputHeight+2),0.0f);
     paddedInputGradient_.resize(miniBatchSize * inputChannels * (inputWidth+2) * (inputHeight+2),0.0f);
-
+    biasGradientMiniBatch_.resize(outputChannels * maxMiniBatchCount);
     
     initialiseWeights();
     std::cout << "Constructing ConvLayer with shape " << outputChannels << "," << inputChannels << "," << inputHeight << "," << inputWidth << std::endl;
@@ -1541,7 +1542,7 @@ void ConvLayer::convolveIm2Col_()
 
 
 
-void ConvLayer::unPool(const Scalar* __restrict activationData, Scalar* __restrict activationGradientData, std::size_t inputX, std::size_t inputY, const Scalar* __restrict maxPoolSourceData, std::size_t outputChannels, const GradientView &outputGradient, std::size_t outputX, std::size_t outputY, int thisMiniBatchSize)
+void ConvLayer::unPool(const Scalar* __restrict activationData, Scalar* __restrict activationGradientData, std::size_t inputX, std::size_t inputY, const Scalar* __restrict maxPoolSourceData, std::size_t outputChannels, const GradientView &outputGradient, std::size_t outputX, std::size_t outputY, int thisMiniBatchSize, int miniBatchIdentifier)
 {
     
     // unpool/unrelu and put the gradient into activationGradientBatch
@@ -1679,7 +1680,7 @@ void ConvLayer::unPad(std::size_t inputChannels, std::size_t inputX, std::size_t
     }
 }
 
-GradientView ConvLayer::backwardBatch(const GradientView& outputGradient, const bool returnInputGradient, int thisMiniBatchSize)
+GradientView ConvLayer::backwardBatch(const GradientView& outputGradient, const bool returnInputGradient, int thisMiniBatchSize, int miniBatchIdentifier)
 {
     //unpool
     //Relu derivative
@@ -1707,11 +1708,8 @@ GradientView ConvLayer::backwardBatch(const GradientView& outputGradient, const 
     Matrix activationGradients = Matrix(outputChannels, thisMiniBatchSize * inputY * inputX);
     Scalar *activationGradientData = activationGradients.data();
         
-    unPool(activationData, activationGradientData, inputX, inputY, maxPoolSourceData, outputChannels, outputGradient, outputX, outputY, thisMiniBatchSize);
+    unPoolMultiThread(activationData, activationGradientData, inputX, inputY, maxPoolSourceData, outputChannels, outputGradient, outputX, outputY, thisMiniBatchSize, miniBatchIdentifier);
  
-    
-    //biasGradients(activationGradientData, gradientWidth, outputChannels);
-    
     //activationGradients now has the right gradients in the right places and is a matrix with [O, NxP] = dY
     // inputIm2Col is [NxP,K] = Xcol
     // now need to calculate dW = dY x Xcol
@@ -1784,4 +1782,119 @@ GradientView ConvLayer::backwardBatch(const GradientView& outputGradient, const 
         return GradientView(inputGradientBatch_.data(), thisMiniBatchSize * input_.size(), input_.size(), 1);
     }
     return outputGradient;
+}
+
+
+void ConvLayer::Col2ImMultiThread(std::size_t inputChannels, Matrix &inputGradient, std::size_t inputX, std::size_t inputY, std::size_t &paddedBatchStride, std::size_t &paddedChannelStride, std::size_t &paddedWidth, int thisMiniBatchSize)
+{
+    const std::size_t K = inputChannels * kernelHeight() * kernelWidth();
+    const std::size_t P = inputX * inputY;
+    
+    Scalar* __restrict inputMatrixData = inputGradient.data(); //points to inputGradient matrix
+    
+    Scalar* __restrict paddedData = paddedInputGradient_.data();
+    paddedWidth = inputX + 2;
+    paddedChannelStride = (inputY + 2) * (inputX + 2);
+    paddedBatchStride = paddedChannelStride  * inputChannels;
+    
+    std::fill_n(paddedInputGradient_.data(),thisMiniBatchSize * paddedBatchStride,0.0f);
+    
+    dispatch_apply(thisMiniBatchSize, dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^(size_t batchIndex)
+    {
+        std::size_t destIndex = batchIndex * P * K;
+
+        Scalar* __restrict batch = paddedData + batchIndex * paddedBatchStride;
+        
+        for(std::size_t posIndexY = 0; posIndexY < inputY; posIndexY++) //walks down every actual image column
+        {
+            for(std::size_t posIndexX = 0; posIndexX < inputX; posIndexX++) // walks across every actual image row
+            {
+                const std::size_t sourceIndex = posIndexY * paddedWidth + posIndexX;
+                for(std::size_t inChan = 0; inChan < inputChannels; inChan++) //walks through all inputchannels
+                {
+                    // adds nine points at a time to the matrix
+                    Scalar* __restrict patch = batch + inChan * paddedChannelStride + sourceIndex;
+                    
+                    Scalar* __restrict row0 = patch;
+                    Scalar* __restrict row1 = row0 + paddedWidth;
+                    Scalar* __restrict row2 = row1 + paddedWidth;
+                    
+                    row0[0] += inputMatrixData[destIndex++] ;
+                    row0[1] += inputMatrixData[destIndex++];
+                    row0[2] += inputMatrixData[destIndex++];
+                    row1[0] += inputMatrixData[destIndex++];
+                    row1[1] += inputMatrixData[destIndex++];
+                    row1[2] += inputMatrixData[destIndex++];
+                    row2[0] += inputMatrixData[destIndex++];
+                    row2[1] += inputMatrixData[destIndex++];
+                    row2[2] += inputMatrixData[destIndex++];
+                    
+                }
+            }
+        }
+    });
+}
+
+
+void ConvLayer::unPoolMultiThread(const Scalar* __restrict activationData, Scalar* __restrict activationGradientData, std::size_t inputX, std::size_t inputY, const Scalar* __restrict maxPoolSourceData, std::size_t outputChannels, const GradientView &outputGradient, std::size_t outputX, std::size_t outputY, int thisMiniBatchSize, int miniBatchIdentifier)
+{
+    
+    // unpool/unrelu and put the gradient into activationGradientBatch
+    
+    dispatch_apply(thisMiniBatchSize, dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^(size_t n)
+    {
+        const Scalar* __restrict maxPoolSourceBatch = maxPoolSourceData + (n * outputChannels  * outputY * outputX);
+        const Scalar* __restrict activationBatch = activationData + (n * outputChannels * inputY * inputX);
+        
+        
+        for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
+        {
+            const Scalar* __restrict maxPoolSourceChannel = maxPoolSourceBatch + (outChan * outputY * outputX);
+            Scalar* __restrict activationGradientChannel = activationGradientData + outChan * (thisMiniBatchSize * inputX * inputY) + n * (inputX * inputY);
+            const Scalar* __restrict activationChannel = activationBatch + (outChan * inputY * inputX);
+            
+            Scalar& biasSum = biasGradientMiniBatch_[miniBatchIdentifier * outputChannels + outChan];
+            
+            if(bPooling_)
+            {
+                for(std::size_t j = 0; j < outputY; j++)
+                {
+                    const Scalar* __restrict maxPoolSourceRow = maxPoolSourceChannel + (j * outputX);
+                    
+                    for(std::size_t i = 0; i < outputX; i++)
+                    {
+                        //identify winner from activation tensor
+                        const std::size_t index = static_cast<std::size_t>(*(maxPoolSourceRow + i));
+
+                        const std::size_t winX = i * 2 + (index & 1);
+                        const std::size_t winY = j * 2 + (index >> 1);
+                        
+                        const std::size_t p = (winY * inputX) + winX;
+                        if(activationChannel[p] > 0.0f)
+                        {
+                            const Scalar g = outputGradient(n,outChan*outputX*outputY + j * outputX + i);
+                            activationGradientChannel[p] = g;
+                            biasSum += g;
+                        }
+                    }
+                }
+            }
+            else //no pooling
+            {
+                for(std::size_t j = 0; j < outputY; j++)
+                    for(std::size_t i = 0; i < outputX; i++)
+                    {
+                        const std::size_t p = (j * inputX) + i;
+                        if(activationChannel[p] > 0.0f)
+                        {
+                            const Scalar g = outputGradient(n,outChan*outputX*outputY + j * outputX + i);
+                            activationGradientChannel[p] = g;
+                            biasSum += g;
+                        }
+                    }
+                
+            }
+            
+        }
+    });
 }

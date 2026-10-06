@@ -13,14 +13,14 @@
 #include <string>
 #include <random>
 #include <vector>
-#include "data_set.hpp"
+#include "DataSet.hpp"
 
 
-class mnist_data : public data_set
+class MnistData : public DataSet
 {
 public:
-    mnist_data();
-    mnist_data(const std::string &filename, int size);
+    MnistData();
+    MnistData(const std::string &filename, int size);
     void print_data(std::ostream& stream);
     const int get_label (int index);
     

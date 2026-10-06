@@ -114,16 +114,16 @@ void CNN::backward(const Tensor& outputGradient)
     convLayer_[0].backward(x, false);
 }
 
-void CNN::backwardBatch(const GradientView& outputGradient, std::size_t miniBatchIndex)
+void CNN::backwardBatch(const GradientView& outputGradient, std::size_t miniBatchIndex, std::size_t miniBatchIdentifier)
 {
-    auto x = convLayer_[nLayers_-1].backwardBatch(outputGradient, true, (int)miniBatchIndex);
+    auto x = convLayer_[nLayers_-1].backwardBatch(outputGradient, true, (int)miniBatchIndex, (int)miniBatchIdentifier);
 
     for(std::size_t i = nLayers_ - 1; i-- > 1;)
     {
-            x = convLayer_[i].backwardBatch(x, true, (int)miniBatchIndex);
+            x = convLayer_[i].backwardBatch(x, true, (int)miniBatchIndex, (int)miniBatchIdentifier);
     }
 
-    convLayer_[0].backwardBatch(x, false, (int)miniBatchIndex);
+    convLayer_[0].backwardBatch(x, false, (int)miniBatchIndex, (int)miniBatchIdentifier);
 }
 
 void CNN::gradient_descent(std::size_t trainingSize, double learningRate)
@@ -138,7 +138,7 @@ void CNN::gradient_descent(std::size_t trainingSize, double learningRate)
     classifier_.gradient_descent(trainingSize, learningRate);
 }
 
-double CNN::trainBatch(const data_set& training_data, const std::span<const std::size_t> batch)
+double CNN::trainBatch(const DataSet& training_data, const std::span<const std::size_t> batch)
 {
     double total_error = 0;
     
@@ -220,6 +220,7 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
     //Batch backprop through MLP
     
     std::size_t batchStartIndex = 0;
+    std::size_t miniBatchIdentifier = 0;
     
     while(convLayer_[0].cacheSize > 0) // walk through the cache minibatches
     {
@@ -230,11 +231,18 @@ double CNN::trainBatch(const data_set& training_data, const std::span<const std:
         
         GradientView gradient(inputError.data() + batchStartIndex, inputError.rows() * thisMiniBatchSize, 1, inputError.cols());
         
-        backwardBatch(gradient, thisMiniBatchSize);
+        backwardBatch(gradient, thisMiniBatchSize, miniBatchIdentifier);
         
         batchStartIndex += thisMiniBatchSize;
+        miniBatchIdentifier++;
     }
-        
+    
+    //sum up the bias gradients that were separate threads
+    for(std::size_t layer = 0; layer < nLayers_; layer++)
+        for(std::size_t miniBatch = 0; miniBatch < miniBatchIdentifier; miniBatch ++)
+            for(std::size_t outChan = 0; outChan < convLayer_[layer].getOutputChannels(); outChan++)
+                convLayer_[layer].biasGradient_[outChan] += convLayer_[layer].biasGradientMiniBatch_[miniBatch * convLayer_[layer].getOutputChannels() + outChan];
+    
     return total_error;
 }
 

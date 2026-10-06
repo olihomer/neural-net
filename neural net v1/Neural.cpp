@@ -127,7 +127,7 @@ void Neural::save(const std::string& filename) const
     save(file);
 }
 
-double Neural::trainBatch(const data_set &training_data, const std::span<const std::size_t> batch)
+double Neural::trainBatch(const DataSet &training_data, const std::span<const std::size_t> batch)
 {
     if(training_data.n_inputs() != layer_[0].size || training_data.n_outputs() != layer_[layers_-1].size)
     {
@@ -471,7 +471,7 @@ void Neural::zero_training_error()
     
 }
 
-void Neural::set_input(data_set& data,std::size_t index)
+void Neural::set_input(DataSet& data,std::size_t index)
 {
     layer_[0].activation = Matrix(layer_[0].size, 1);
     for(std::size_t j=0;j<data.n_inputs();j++)

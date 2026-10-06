@@ -9,8 +9,8 @@
 #include <fstream>
 #include "AppEngine.hpp"
 #include "Neural.hpp"
-#include "data_set.hpp"
-#include "mnist_data.hpp"
+#include "DataSet.hpp"
+#include "MnistData.hpp"
 #include "ActivationFunction.hpp"
 #include "Trainer.hpp"
 #include <algorithm>
@@ -23,6 +23,7 @@
 #include "Tensor.hpp"
 #include "CNN.hpp"
 #include "ImageAugmenter.hpp"
+#include "EmnistData.hpp"
 
 
 namespace {
@@ -57,6 +58,17 @@ AppEngine::AppEngine()
 : mlp_({784,128,10}, ActivationType::Relu, ActivationType::Softmax, 0.1f)
 {
     std::cout << "Constructing Engine" << std::endl;
+    
+    try
+    {
+        //EmnistData emnistDataSet("/Users/oliverhomer/Xcode/neural net v1/data/emnist-balanced-train", 10);
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "ERROR: " << e.what() << '\n';
+        exit(99);
+    }
+    
     
 }
 
@@ -107,7 +119,7 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
     const ActivationType outputActivationType = activationTypeFor(outputActivation);
     const ModelKind selectedModel = modelKind == static_cast<int>(ModelKind::CNN) ? ModelKind::CNN : ModelKind::MLP;
         
-    mnist_data mnist("/Users/oliverhomer/Xcode/neural net v1/data/fashion-mnist_train.csv", trainingExamples);
+    MnistData mnist("/Users/oliverhomer/Xcode/neural net v1/data/fashion-mnist_train.csv", trainingExamples);
     
     selectModel(selectedModel);
 
@@ -135,7 +147,7 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
         return 0;
     }
     
-    mnist_data mnist_training_data2("/Users/oliverhomer/Xcode/neural net v1/data/fashion-mnist_test.csv", evaluationExamples);
+    MnistData mnist_training_data2("/Users/oliverhomer/Xcode/neural net v1/data/fashion-mnist_test.csv", evaluationExamples);
 
     int wrong = 0;
     
@@ -358,7 +370,7 @@ std::pair<int,float> AppEngine::sendRasterData(const float *data, std::size_t si
 
     std::vector<float> vectorData(data, data + size);
     
-    vectorData = mnist_data::preProcess(vectorData);
+    vectorData = MnistData::preProcess(vectorData);
     
     std::cout << "Raster after processing:" << std::endl;
     
