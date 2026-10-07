@@ -40,9 +40,9 @@ void CNN::configure(std::vector<std::size_t>convOutputChannels,
     if(nLayers_ == 0)
         throw std::runtime_error("CNN requires at least one convolution layer");
 
-    std::size_t inChannels = 1;
-    std::size_t height = 28;
-    std::size_t width = 28;
+    std::size_t inChannels = 3;
+    std::size_t height = 32;
+    std::size_t width = 32;
 
     std::size_t index = 0;
     

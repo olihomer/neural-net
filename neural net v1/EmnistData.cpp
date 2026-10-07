@@ -77,7 +77,7 @@ EmnistData::EmnistData(const std::string& fileprefix, std::size_t size)
             //read into temp before reorienting
             std::uint8_t inputInt8;
             imageFile.read(reinterpret_cast<char*>(&inputInt8),sizeof(inputInt8));
-            temp[i] = (float)inputInt8/255;
+            temp[i] = (float)inputInt8/255.0f;
         }
         
         //reorient images, store in class
