@@ -18,9 +18,11 @@ class EmnistData : public DataSet
 {
 public:
     EmnistData(const std::string& fileprefix, std::size_t size);
+    static constexpr std::string_view labelSet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabdefghnqrt";
+    const int get_label (int index);
 
 private:
-    
+    std::vector<int> label_;
 };
 
 

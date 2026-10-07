@@ -29,7 +29,8 @@ CNN::CNN()
 
 void CNN::configure(std::vector<std::size_t>convOutputChannels,
                     std::size_t classifierHiddenLayerSize,
-                    Scalar dropout)
+                    Scalar dropout,
+                    std::size_t mlpOutputs)
 {
     nLayers_ = convOutputChannels.size();
 
@@ -62,7 +63,7 @@ void CNN::configure(std::vector<std::size_t>convOutputChannels,
     const std::size_t classifierInputs = finalLayer.getOutputChannels() * finalLayer.getOutputHeight() * finalLayer.getOutputWidth();
     std::cout << "Classifier inputs: " << classifierInputs << " output height: " << finalLayer.getOutputHeight() << " output width: " << finalLayer.getOutputWidth() << " nLayers: " << nLayers_ << std::endl;
     classifier_.configure(
-        {static_cast<int>(classifierInputs), static_cast<int>(classifierHiddenLayerSize), 10},
+        {static_cast<int>(classifierInputs), static_cast<int>(classifierHiddenLayerSize), static_cast<int>(mlpOutputs)},
         ActivationType::Relu,
         ActivationType::Softmax,
         dropout);
@@ -114,16 +115,16 @@ void CNN::backward(const Tensor& outputGradient)
     convLayer_[0].backward(x, false);
 }
 
-void CNN::backwardBatch(const GradientView& outputGradient, std::size_t miniBatchIndex, std::size_t miniBatchIdentifier)
+void CNN::backwardBatch(const GradientView& outputGradient, std::size_t miniBatchIndex)
 {
-    auto x = convLayer_[nLayers_-1].backwardBatch(outputGradient, true, (int)miniBatchIndex, (int)miniBatchIdentifier);
+    auto x = convLayer_[nLayers_-1].backwardBatch(outputGradient, true, (int)miniBatchIndex);
 
     for(std::size_t i = nLayers_ - 1; i-- > 1;)
     {
-            x = convLayer_[i].backwardBatch(x, true, (int)miniBatchIndex, (int)miniBatchIdentifier);
+            x = convLayer_[i].backwardBatch(x, true, (int)miniBatchIndex);
     }
 
-    convLayer_[0].backwardBatch(x, false, (int)miniBatchIndex, (int)miniBatchIdentifier);
+    convLayer_[0].backwardBatch(x, false, (int)miniBatchIndex);
 }
 
 void CNN::gradient_descent(std::size_t trainingSize, double learningRate)
@@ -167,12 +168,14 @@ double CNN::trainBatch(const DataSet& training_data, const std::span<const std::
         {
             Scalar* inputBatch = input.data() + miniBatchIndex * training_data.n_inputs();
             
+            
             const std::size_t rotationIndex = static_cast<std::size_t>(rand()) % augmenter.rotationCount();
             augmenter.rotate(training_data.get_data()[batch[batchIndex]].inputs.data(), rotated.data(), 28, 28, rotationIndex);
-            augmenter.translate(rotated.data(), augmented.data(), 28, 28, -2 + rand() % 5, -2 + rand() % 5);
+            //augmenter.translate(rotated.data(), augmented.data(), 28, 28, -2 + rand() % 5, -2 + rand() % 5);
             
             for(std::size_t i=0; i < training_data.n_inputs(); i++)
-                inputBatch[i] = augmented[i];
+                //inputBatch[i] = training_data.get_data()[batch[batchIndex]].inputs[i];
+                inputBatch[i] = rotated[i];
             
             //populate the matching targets
             for(std::size_t i=0; i<training_data.n_outputs(); i++)
@@ -220,7 +223,6 @@ double CNN::trainBatch(const DataSet& training_data, const std::span<const std::
     //Batch backprop through MLP
     
     std::size_t batchStartIndex = 0;
-    std::size_t miniBatchIdentifier = 0;
     
     while(convLayer_[0].cacheSize > 0) // walk through the cache minibatches
     {
@@ -231,17 +233,10 @@ double CNN::trainBatch(const DataSet& training_data, const std::span<const std::
         
         GradientView gradient(inputError.data() + batchStartIndex, inputError.rows() * thisMiniBatchSize, 1, inputError.cols());
         
-        backwardBatch(gradient, thisMiniBatchSize, miniBatchIdentifier);
+        backwardBatch(gradient, thisMiniBatchSize);
         
         batchStartIndex += thisMiniBatchSize;
-        miniBatchIdentifier++;
     }
-    
-    //sum up the bias gradients that were separate threads
-    for(std::size_t layer = 0; layer < nLayers_; layer++)
-        for(std::size_t miniBatch = 0; miniBatch < miniBatchIdentifier; miniBatch ++)
-            for(std::size_t outChan = 0; outChan < convLayer_[layer].getOutputChannels(); outChan++)
-                convLayer_[layer].biasGradient_[outChan] += convLayer_[layer].biasGradientMiniBatch_[miniBatch * convLayer_[layer].getOutputChannels() + outChan];
     
     return total_error;
 }

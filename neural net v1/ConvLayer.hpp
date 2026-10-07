@@ -55,7 +55,7 @@ public:
     
     void unPad(std::size_t inputChannels, std::size_t inputX, std::size_t inputY, std::size_t paddedBatchStride, std::size_t paddedChannelStride, std::size_t paddedWidth, int thisMiniBatchSize);
     
-    GradientView backwardBatch(const GradientView& outputGradient, const bool returnInputGradient, int thisMiniBatchSize = -1, int miniBatchIdentifier = 0);
+    GradientView backwardBatch(const GradientView& outputGradient, const bool returnInputGradient, int thisMiniBatchSize = -1);
 
     void print() const;
     void zeroGradients();
@@ -91,14 +91,11 @@ public:
     static constexpr Scalar beta1 = 0.9f;
     static constexpr Scalar beta2 = 0.999f;
     static constexpr Scalar epsilon = 1e-8f;
-    static constexpr std::size_t miniBatchSize = 16;
-    static constexpr std::size_t maxMiniBatchCount = 32;
+    static constexpr std::size_t miniBatchSize = 32;
 
     inline static Scalar beta1pow = 1.0f;
     inline static Scalar beta2pow = 1.0f;
     std::size_t cacheSize = 0;
-    std::vector<Scalar> biasGradient_;
-    std::vector<Scalar> biasGradientMiniBatch_;
 
     
 private:
@@ -118,7 +115,8 @@ private:
     static std::mt19937 rng_;
     static std::random_device rd_;
     bool bPooling_;
-    
+    std::vector<Scalar> biasGradient_;
+
     std::vector<Scalar> biases_;
 
     std::vector<Scalar> bias_m_;

@@ -24,13 +24,14 @@ public:
     CNN();
     void configure(std::vector<std::size_t> convLayerOutputChannels,
                    std::size_t classifierHiddenLayerSize,
-                   Scalar dropout);
+                   Scalar dropout,
+                   std::size_t mlpOutputs);
     
     const Tensor& forward(const Tensor& input);
     const Tensor& forwardBatch(const Tensor& input);
 
     void backward(const Tensor& outputGradient);
-    void backwardBatch(const GradientView& outputGradient, std::size_t miniBatchIndex, std::size_t miniBatchIdentifier);
+    void backwardBatch(const GradientView& outputGradient, std::size_t miniBatchIndex);
 
     
     void print() const;

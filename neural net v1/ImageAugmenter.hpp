@@ -43,7 +43,7 @@ private:
     static constexpr std::size_t rotationImageSide_ = 28;
     static constexpr std::size_t rotationImageSize_ = rotationImageSide_ * rotationImageSide_;
     static constexpr Scalar pi_ = 3.14159265358979323846f;
-    static constexpr std::array<int, 3> rotationDegrees_ = {-5, 0, 5};
+    static constexpr std::array<int, 5> rotationDegrees_ = {-5, -3, 0, 3, 5};
 
     struct RotationContribution
     {

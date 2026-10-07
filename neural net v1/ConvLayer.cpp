@@ -21,6 +21,7 @@
 #include "Matrix.hpp"
 #define ACCELERATE_NEW_LAPACK
 #define ACCELERATE_LAPACK_ILP64
+#define MULTITHREAD 1
 #include <Accelerate/Accelerate.h>
 #include <dispatch/dispatch.h>
 
@@ -59,7 +60,6 @@ inputIm2Col_(miniBatchSize * inputHeight * inputWidth, inputChannels * 3 * 3)
     bias_v_.resize(outputChannels);
     paddedInput_.resize(miniBatchSize * inputChannels * (inputWidth+2) * (inputHeight+2),0.0f);
     paddedInputGradient_.resize(miniBatchSize * inputChannels * (inputWidth+2) * (inputHeight+2),0.0f);
-    biasGradientMiniBatch_.resize(outputChannels * maxMiniBatchCount);
     
     initialiseWeights();
     std::cout << "Constructing ConvLayer with shape " << outputChannels << "," << inputChannels << "," << inputHeight << "," << inputWidth << std::endl;
@@ -1680,7 +1680,7 @@ void ConvLayer::unPad(std::size_t inputChannels, std::size_t inputX, std::size_t
     }
 }
 
-GradientView ConvLayer::backwardBatch(const GradientView& outputGradient, const bool returnInputGradient, int thisMiniBatchSize, int miniBatchIdentifier)
+GradientView ConvLayer::backwardBatch(const GradientView& outputGradient, const bool returnInputGradient, int thisMiniBatchSize)
 {
     //unpool
     //Relu derivative
@@ -1708,7 +1708,14 @@ GradientView ConvLayer::backwardBatch(const GradientView& outputGradient, const 
     Matrix activationGradients = Matrix(outputChannels, thisMiniBatchSize * inputY * inputX);
     Scalar *activationGradientData = activationGradients.data();
         
-    unPoolMultiThread(activationData, activationGradientData, inputX, inputY, maxPoolSourceData, outputChannels, outputGradient, outputX, outputY, thisMiniBatchSize, miniBatchIdentifier);
+    if(MULTITHREAD)
+    {
+        unPoolMultiThread(activationData, activationGradientData, inputX, inputY, maxPoolSourceData, outputChannels, outputGradient, outputX, outputY, thisMiniBatchSize);
+    }
+    else
+    {
+        unPool(activationData, activationGradientData, inputX, inputY, maxPoolSourceData, outputChannels, outputGradient, outputX, outputY, thisMiniBatchSize);
+    }
  
     //activationGradients now has the right gradients in the right places and is a matrix with [O, NxP] = dY
     // inputIm2Col is [NxP,K] = Xcol
@@ -1772,7 +1779,14 @@ GradientView ConvLayer::backwardBatch(const GradientView& outputGradient, const 
         std::size_t paddedChannelStride;
         std::size_t paddedBatchStride;
         
-        Col2Im(inputChannels, inputGradient, inputX, inputY, paddedBatchStride, paddedChannelStride, paddedWidth, thisMiniBatchSize);
+        if(MULTITHREAD)
+        {
+            Col2ImMultiThread(inputChannels, inputGradient, inputX, inputY, paddedBatchStride, paddedChannelStride, paddedWidth, thisMiniBatchSize);
+        }
+        else
+        {
+            Col2Im(inputChannels, inputGradient, inputX, inputY, paddedBatchStride, paddedChannelStride, paddedWidth, thisMiniBatchSize);
+        }
         
         //paddedInputGradient should now contain the inputGradient data
         //just need to unpad it and store in inputGradientBatch
@@ -1841,20 +1855,19 @@ void ConvLayer::unPoolMultiThread(const Scalar* __restrict activationData, Scala
     
     // unpool/unrelu and put the gradient into activationGradientBatch
     
-    dispatch_apply(thisMiniBatchSize, dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^(size_t n)
+    dispatch_apply(outputChannels, dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^(size_t outChan)
     {
-        const Scalar* __restrict maxPoolSourceBatch = maxPoolSourceData + (n * outputChannels  * outputY * outputX);
-        const Scalar* __restrict activationBatch = activationData + (n * outputChannels * inputY * inputX);
-        
-        
-        for(std::size_t outChan = 0; outChan < outputChannels; outChan++)
+        Scalar& biasSum = biasGradient_[outChan];
+    
+        for(std::size_t n = 0; n < thisMiniBatchSize; n++)
         {
+            const Scalar* __restrict maxPoolSourceBatch = maxPoolSourceData + (n * outputChannels  * outputY * outputX);
+            const Scalar* __restrict activationBatch = activationData + (n * outputChannels * inputY * inputX);
+            
             const Scalar* __restrict maxPoolSourceChannel = maxPoolSourceBatch + (outChan * outputY * outputX);
             Scalar* __restrict activationGradientChannel = activationGradientData + outChan * (thisMiniBatchSize * inputX * inputY) + n * (inputX * inputY);
             const Scalar* __restrict activationChannel = activationBatch + (outChan * inputY * inputX);
-            
-            Scalar& biasSum = biasGradientMiniBatch_[miniBatchIdentifier * outputChannels + outChan];
-            
+        
             if(bPooling_)
             {
                 for(std::size_t j = 0; j < outputY; j++)

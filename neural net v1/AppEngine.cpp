@@ -24,7 +24,7 @@
 #include "CNN.hpp"
 #include "ImageAugmenter.hpp"
 #include "EmnistData.hpp"
-
+#include "Cifar10.hpp"
 
 namespace {
 
@@ -58,18 +58,16 @@ AppEngine::AppEngine()
 : mlp_({784,128,10}, ActivationType::Relu, ActivationType::Softmax, 0.1f)
 {
     std::cout << "Constructing Engine" << std::endl;
-    
+ 
     try
     {
-        //EmnistData emnistDataSet("/Users/oliverhomer/Xcode/neural net v1/data/emnist-balanced-train", 10);
+        Cifar10("/Users/oliverhomer/Xcode/neural net v1/data/data_batch_1", 10);
     }
     catch (const std::exception& e)
     {
         std::cerr << "ERROR: " << e.what() << '\n';
         exit(99);
     }
-    
-    
 }
 
 
@@ -119,8 +117,8 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
     const ActivationType outputActivationType = activationTypeFor(outputActivation);
     const ModelKind selectedModel = modelKind == static_cast<int>(ModelKind::CNN) ? ModelKind::CNN : ModelKind::MLP;
         
-    MnistData mnist("/Users/oliverhomer/Xcode/neural net v1/data/fashion-mnist_train.csv", trainingExamples);
-    
+    EmnistData emnistDataSet("/Users/oliverhomer/Xcode/neural net v1/data/emnist-balanced-train", trainingExamples);
+
     selectModel(selectedModel);
 
     if(activeModel_ == ModelKind::CNN)
@@ -128,18 +126,19 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
         cnn_.configure(
             cnnLayerChannels,
             static_cast<std::size_t>(cnnClassifierHiddenLayerSize),
-            static_cast<Scalar>(dropout));
+            static_cast<Scalar>(dropout),
+            (int)emnistDataSet.n_outputs());
     }
     else
     {
-        mlp_.configure({784, hiddenLayerSize, 10}, hiddenActivationType, outputActivationType, static_cast<Scalar>(dropout));
+        mlp_.configure({784, hiddenLayerSize, (int)emnistDataSet.n_outputs()}, hiddenActivationType, outputActivationType, static_cast<Scalar>(dropout));
     }
 
     Trainer trainer(activeTrainable());
     
     try
     {
-        trainer.train(mnist, epochs, batchSize, learningRate, progress);
+        trainer.train(emnistDataSet, epochs, batchSize, learningRate, progress);
     }
     catch (const std::exception& e)
     {
@@ -147,24 +146,50 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
         return 0;
     }
     
-    MnistData mnist_training_data2("/Users/oliverhomer/Xcode/neural net v1/data/fashion-mnist_test.csv", evaluationExamples);
+    EmnistData emnistDataSet2("/Users/oliverhomer/Xcode/neural net v1/data/emnist-balanced-test", evaluationExamples);
 
     int wrong = 0;
+    
+    Matrix confusionMatrix(emnistDataSet.n_outputs(),emnistDataSet.n_outputs());
     
     for(int i=0;i<evaluationExamples;i++)
     {
         int guess = i;
-        int guess_label = mnist_training_data2.get_label(guess);
+        int guess_label = emnistDataSet2.get_label(guess);
         //std::cout << "Guess = " << guess_label;
         
         std::pair<std::size_t, Scalar> prediction =
             activeModel_ == ModelKind::CNN
-            ? cnn_.predict(mnist_training_data2.get_data()[guess].inputs)
-            : mlp_.predict(mnist_training_data2.get_data()[guess].inputs);
+            ? cnn_.predict(emnistDataSet2.get_data()[guess].inputs)
+            : mlp_.predict(emnistDataSet2.get_data()[guess].inputs);
         
         //std::cout << ". Net guessed " << prediction.first << " with value of " << prediction.second << std::endl;
-        if(prediction.first!=guess_label){/*std::cout<<"WRONG!"<<std::endl;*/wrong++;}
+        if(prediction.first!=guess_label)
+        {
+            std::cout << ". Net guessed " << EmnistData::labelSet[prediction.first] << " with confidence of " << prediction.second << ". Correct label was " << EmnistData::labelSet[guess_label] << std::endl;
+            wrong++;
+            confusionMatrix(prediction.first,guess_label)++;
+        }
     }
+
+    //print confusion matrix
+    
+    std::cout <<  "  ";
+
+    for(std::size_t i = 0; i < emnistDataSet.n_outputs(); i++)
+        std::cout << EmnistData::labelSet[i] << " ";
+    std::cout << std::endl;
+    
+    for(std::size_t i = 0; i < emnistDataSet.n_outputs(); i++)
+    {
+        std::cout << EmnistData::labelSet[i] << " ";
+        for(std::size_t j = 0; j < emnistDataSet.n_outputs(); j++)
+            std::cout << confusionMatrix(i,j) << " ";
+        std::cout << std::endl;
+    }
+        
+    
+    
     
     std::cout << "Success rate: " << (1 - (float(wrong) / float(evaluationExamples)) ) << std::endl;
 
@@ -173,8 +198,8 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
         const std::size_t rotationIndex = static_cast<std::size_t>(rand()) % visualizationRotationDegrees.size();
         const Scalar theta = static_cast<Scalar>(visualizationRotationDegrees[rotationIndex]) * pi / 180.0f;
         ImageAugmenter augmenter;
-        std::vector<Scalar> augmented(mnist.get_data()[0].inputs.size());
-        augmenter.rotate(mnist.get_data()[0].inputs.data(), augmented.data(), 28, 28, theta);
+        std::vector<Scalar> augmented(emnistDataSet.get_data()[0].inputs.size());
+        augmenter.rotate(emnistDataSet.get_data()[0].inputs.data(), augmented.data(), 28, 28, theta);
         cnn_.predict(augmented);
     }
     

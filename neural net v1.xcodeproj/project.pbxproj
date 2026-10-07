@@ -31,6 +31,7 @@
 		DED68A262B824122004ED2CE /* AppEngine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DED68A252B824122004ED2CE /* AppEngine.cpp */; };
 		DED68A342B8E8C35004ED2CE /* Neural.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DED68A322B8E8C35004ED2CE /* Neural.cpp */; };
 		DEE799F63074D2A300787DCC /* EmnistData.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEE799F53074D2A300787DCC /* EmnistData.cpp */; };
+		DEE799F9307684A000787DCC /* Cifar10.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEE799F8307684A000787DCC /* Cifar10.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -97,6 +98,8 @@
 		DEE799F33073C57F00787DCC /* GradientView.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = GradientView.hpp; sourceTree = "<group>"; };
 		DEE799F43074D2A300787DCC /* EmnistData.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = EmnistData.hpp; sourceTree = "<group>"; };
 		DEE799F53074D2A300787DCC /* EmnistData.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = EmnistData.cpp; sourceTree = "<group>"; };
+		DEE799F7307684A000787DCC /* Cifar10.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Cifar10.hpp; sourceTree = "<group>"; };
+		DEE799F8307684A000787DCC /* Cifar10.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Cifar10.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -180,6 +183,8 @@
 				DE40C6552BB2C27400C67031 /* DataSet.hpp */,
 				DE40C6572BC5B00800C67031 /* MnistData.cpp */,
 				DE40C6582BC5B00800C67031 /* MnistData.hpp */,
+				DEE799F7307684A000787DCC /* Cifar10.hpp */,
+				DEE799F8307684A000787DCC /* Cifar10.cpp */,
 				DEE799F43074D2A300787DCC /* EmnistData.hpp */,
 				DEE799F53074D2A300787DCC /* EmnistData.cpp */,
 				DE414379302B6367009B4026 /* NeuronLayer.hpp */,
@@ -301,6 +306,7 @@
 				DE40C6562BB2C27400C67031 /* DataSet.cpp in Sources */,
 				DEA636E93044E3C40031E9F3 /* SwiftUIView.swift in Sources */,
 				DED68A262B824122004ED2CE /* AppEngine.cpp in Sources */,
+				DEE799F9307684A000787DCC /* Cifar10.cpp in Sources */,
 				DEA636F4305040ED0031E9F3 /* NeuronLayer.cpp in Sources */,
 				DEA636F0304724990031E9F3 /* DrawingPad.swift in Sources */,
 				DEA637233056C8EA0031E9F3 /* Tensor.cpp in Sources */,

@@ -65,10 +65,10 @@ public struct SwiftUIView: View {
                 commitInteger($epochsText, to: $settings.epochs, range: 1...5000)
             }
             integerField("Training examples", text: $trainingExamplesText, field: .trainingExamples) {
-                commitInteger($trainingExamplesText, to: $settings.trainingExamples, range: 1...60000)
+                commitInteger($trainingExamplesText, to: $settings.trainingExamples, range: 1...150000)
             }
             integerField("Evaluation examples", text: $evaluationExamplesText, field: .evaluationExamples) {
-                commitInteger($evaluationExamplesText, to: $settings.evaluationExamples, range: 1...10000)
+                commitInteger($evaluationExamplesText, to: $settings.evaluationExamples, range: 1...20000)
             }
             integerField("Batch size", text: $batchSizeText, field: .batchSize) {
                 commitInteger($batchSizeText, to: $settings.batchSize, range: 1...60000)
@@ -239,8 +239,8 @@ public struct SwiftUIView: View {
     private func commitNumericSettings() {
         commitInteger($hiddenLayerSizeText, to: $settings.hiddenLayerSize, range: 1...512)
         commitInteger($epochsText, to: $settings.epochs, range: 1...5000)
-        commitInteger($trainingExamplesText, to: $settings.trainingExamples, range: 1...60000)
-        commitInteger($evaluationExamplesText, to: $settings.evaluationExamples, range: 1...60000)
+        commitInteger($trainingExamplesText, to: $settings.trainingExamples, range: 1...150000)
+        commitInteger($evaluationExamplesText, to: $settings.evaluationExamples, range: 1...20000)
         commitInteger($batchSizeText, to: $settings.batchSize, range: 1...60000)
         commitDouble($learningRateText, to: $settings.learningRate, range: 0.0...2.0)
         commitDouble($dropoutText, to: $settings.dropout, range: 0.0...0.95)
