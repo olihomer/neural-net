@@ -108,7 +108,7 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
     const ActivationType outputActivationType = activationTypeFor(outputActivation);
     const ModelKind selectedModel = modelKind == static_cast<int>(ModelKind::CNN) ? ModelKind::CNN : ModelKind::MLP;
         
-    Cifar10 dataSet("/Users/oliverhomer/Xcode/neural net v1/data/data_batch_1.bin", trainingExamples);
+    Cifar10 dataSet("/Users/oliverhomer/Xcode/neural net v1/data/data_batch_all.bin", trainingExamples);
 
     selectModel(selectedModel);
 
@@ -118,7 +118,7 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
             cnnLayerChannels,
             static_cast<std::size_t>(cnnClassifierHiddenLayerSize),
             static_cast<Scalar>(dropout),
-            (int)dataSet.n_outputs());
+            (int)dataSet.n_outputs(), dataSet.inputX(), dataSet.inputY(), dataSet.inputChannels());
     }
     else
     {
@@ -184,7 +184,7 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
     
     std::cout << "Success rate: " << (1 - (float(wrong) / float(evaluationExamples)) ) << std::endl;
 
-    if(activeModel_ == ModelKind::CNN && trainingExamples > 0)
+   /* if(activeModel_ == ModelKind::CNN && trainingExamples > 0)
     {
         const std::size_t rotationIndex = static_cast<std::size_t>(rand()) % visualizationRotationDegrees.size();
         const Scalar theta = static_cast<Scalar>(visualizationRotationDegrees[rotationIndex]) * pi / 180.0f;
@@ -192,7 +192,7 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
         std::vector<Scalar> augmented(dataSet.get_data()[0].inputs.size());
         augmenter.rotate(dataSet.get_data()[0].inputs.data(), augmented.data(), 28, 28, theta);
         cnn_.predict(augmented);
-    }
+    }*/
     
     return 0;
 }

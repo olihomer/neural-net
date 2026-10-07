@@ -25,7 +25,10 @@ public:
     void configure(std::vector<std::size_t> convLayerOutputChannels,
                    std::size_t classifierHiddenLayerSize,
                    Scalar dropout,
-                   std::size_t mlpOutputs);
+                   std::size_t mlpOutputs,
+                   std::size_t inputX,
+                   std::size_t inputY,
+                   std::size_t inputChannels);
     
     const Tensor& forward(const Tensor& input);
     const Tensor& forwardBatch(const Tensor& input);

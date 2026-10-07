@@ -31,7 +31,8 @@ public:
     const std::vector<data>& get_data() const {return data_;};
     const std::size_t n_inputs() const {return n_inputs_;};
     const std::size_t inputX() const {return inputX_;};
-    const std::size_t inputY() const {return inputX_;};
+    const std::size_t inputY() const {return inputY_;};
+    const std::size_t inputChannels() const {return inputChannels_;};
     const std::size_t n_outputs() const {return n_outputs_;};
     const std::size_t size() const {return size_;};
     //Debug
@@ -42,6 +43,7 @@ protected:
     std::size_t n_inputs_;
     std::size_t inputX_;
     std::size_t inputY_;
+    std::size_t inputChannels_;
     std::size_t n_outputs_;
     std::size_t size_;
 };

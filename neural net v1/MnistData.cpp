@@ -22,6 +22,9 @@ MnistData::MnistData(const std::string &filename, int size)
         
     n_inputs_ = IN_DIM;;
     n_outputs_ = OUT_DIM;
+    inputX_ = 28;
+    inputY_ = 28;
+    inputChannels_ = 1;
     size_ = size;
     
     data_.reserve(size);

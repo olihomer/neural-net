@@ -30,7 +30,10 @@ CNN::CNN()
 void CNN::configure(std::vector<std::size_t>convOutputChannels,
                     std::size_t classifierHiddenLayerSize,
                     Scalar dropout,
-                    std::size_t mlpOutputs)
+                    std::size_t mlpOutputs,
+                    std::size_t inputX,
+                    std::size_t inputY,
+                    std::size_t inputChannels)
 {
     nLayers_ = convOutputChannels.size();
 
@@ -40,9 +43,9 @@ void CNN::configure(std::vector<std::size_t>convOutputChannels,
     if(nLayers_ == 0)
         throw std::runtime_error("CNN requires at least one convolution layer");
 
-    std::size_t inChannels = 3;
-    std::size_t height = 32;
-    std::size_t width = 32;
+    std::size_t inChannels = inputChannels;
+    std::size_t height = inputY;
+    std::size_t width = inputX;
 
     std::size_t index = 0;
     
@@ -156,9 +159,13 @@ double CNN::trainBatch(const DataSet& training_data, const std::span<const std::
     std::size_t batchIndex = 0;
     std::size_t miniBatchSize = convLayer_[0].miniBatchSize;
     
-    Tensor input({miniBatchSize,1,28,28});
+    Tensor input({miniBatchSize,convLayer_[0].inputChannels(),convLayer_[0].inputHeight(),convLayer_[0].inputWidth()});
+    const std::size_t inputSize = convLayer_[0].inputChannels() * convLayer_[0].inputHeight() * convLayer_[0].inputWidth();
     
     //populate the input tensor with the miniBatch
+    
+    if(training_data.n_inputs() != inputSize)
+        throw std::runtime_error("Dataset and CNN input shapes do not match.");
     
     while(batchIndex < batch.size())
     {
@@ -166,16 +173,24 @@ double CNN::trainBatch(const DataSet& training_data, const std::span<const std::
         std::size_t thisMiniBatchSize = 0;
         for(std::size_t miniBatchIndex = 0; miniBatchIndex < miniBatchSize; miniBatchIndex++)
         {
-            Scalar* inputBatch = input.data() + miniBatchIndex * training_data.n_inputs();
+            Scalar* inputBatch = input.data() + miniBatchIndex * inputSize;
             
             
-            const std::size_t rotationIndex = static_cast<std::size_t>(rand()) % augmenter.rotationCount();
-            augmenter.rotate(training_data.get_data()[batch[batchIndex]].inputs.data(), rotated.data(), 28, 28, rotationIndex);
+            //const std::size_t rotationIndex = static_cast<std::size_t>(rand()) % augmenter.rotationCount();
+            //augmenter.rotate(training_data.get_data()[batch[batchIndex]].inputs.data(), rotated.data(), 28, 28, rotationIndex);
             //augmenter.translate(rotated.data(), augmented.data(), 28, 28, -2 + rand() % 5, -2 + rand() % 5);
+
             
             for(std::size_t i=0; i < training_data.n_inputs(); i++)
-                //inputBatch[i] = training_data.get_data()[batch[batchIndex]].inputs[i];
-                inputBatch[i] = rotated[i];
+                if(rand()%5<3)
+                {
+                    inputBatch[i] = training_data.get_data()[batch[batchIndex]].inputs[i];
+                    
+                }
+                else
+                {
+                    augmenter.flip(training_data.get_data()[batch[batchIndex]].inputs.data(), inputBatch, convLayer_[0].inputWidth(), convLayer_[0].inputHeight());
+                }
             
             //populate the matching targets
             for(std::size_t i=0; i<training_data.n_outputs(); i++)
@@ -249,14 +264,17 @@ void CNN::print_stats(std::ostream& ostream)
 
 std::pair<std::size_t, Scalar> CNN::predict(const std::vector<Scalar>& input)
 {
-    if((convLayer_[0].getInputWidth()*convLayer_[0].getInputHeight())!=input.size())throw std::runtime_error("Input doesn't match CNN shape");
-
+    const auto channels = convLayer_[0].inputChannels();
+    const auto height = convLayer_[0].inputHeight();
+    const auto width = convLayer_[0].inputWidth();
+    
+    if(channels*height*width!=input.size())throw std::runtime_error("Input doesn't match CNN shape");
+    
     //load example into Tensor
-    Tensor inputTensor({1,convLayer_[0].getInputHeight(),convLayer_[0].getInputWidth()});
+    Tensor inputTensor({channels,height,width});
 
-    for(std::size_t j=0; j<input.size(); j++)
-        inputTensor.data()[j] = input[j];
-
+    std::copy(input.begin(),input.end(), inputTensor.data());
+    
     //Put through CNN
     auto outputTensor = forward(inputTensor);
 

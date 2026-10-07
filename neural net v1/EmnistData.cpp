@@ -55,6 +55,7 @@ EmnistData::EmnistData(const std::string& fileprefix, std::size_t size)
     size_ = std::min(size,dimSize[0]);
     inputX_ = dimSize[2];
     inputY_ = dimSize[1];
+    inputChannels_ = 1;
     n_inputs_ = inputX_ * inputY_;
     n_outputs_ = labelSet.length();
     

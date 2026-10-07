@@ -25,6 +25,12 @@ public:
                    int offsetX,
                    int offsetY) const;
 
+    void flip(const Scalar* input,
+                   Scalar* output,
+                   std::size_t width,
+                   std::size_t height) const;
+    
+    
     void rotate(const Scalar* input,
                 Scalar* output,
                 std::size_t width,
@@ -65,7 +71,7 @@ private:
 
     static void addContribution(SourcePixelRotation& sourcePixel, int targetX, int targetY, Scalar weight);
     [[nodiscard]] static RotationLookup makeRotationLookup(int degrees);
-    [[nodiscard]] static const std::array<RotationLookup, 3>& rotationLookups();
+    [[nodiscard]] static const std::array<RotationLookup, 5>& rotationLookups();
     [[nodiscard]] static std::size_t nearestRotationIndexForDegrees(int degrees);
     [[nodiscard]] std::size_t nearestRotationIndex(Scalar theta) const;
 };
@@ -96,6 +102,30 @@ inline void ImageAugmenter::translate(const Scalar* input,
                 continue;
             }
 
+            output[targetY * width + targetX] =
+                input[static_cast<std::size_t>(sourceY) * width + static_cast<std::size_t>(sourceX)];
+        }
+    }
+}
+
+
+inline void ImageAugmenter::flip(const Scalar* input,
+                                      Scalar* output,
+                                      std::size_t width,
+                                      std::size_t height) const
+{
+    if(input == nullptr || output == nullptr)
+        throw std::runtime_error("ImageAugmenter::translate received null image data");
+
+    std::fill(output, output + width * height, 0.0f);
+
+    for(std::size_t targetY = 0; targetY < height; targetY++)
+    {
+        for(std::size_t targetX = 0; targetX < width; targetX++)
+        {
+            const int sourceX = static_cast<int>(width-targetX-1);
+            const int sourceY = static_cast<int>(targetY);
+        
             output[targetY * width + targetX] =
                 input[static_cast<std::size_t>(sourceY) * width + static_cast<std::size_t>(sourceX)];
         }
@@ -202,12 +232,14 @@ inline ImageAugmenter::RotationLookup ImageAugmenter::makeRotationLookup(int deg
     return lookup;
 }
 
-inline const std::array<ImageAugmenter::RotationLookup, 3>& ImageAugmenter::rotationLookups()
+inline const std::array<ImageAugmenter::RotationLookup, 5>& ImageAugmenter::rotationLookups()
 {
-    static const std::array<RotationLookup, 3> lookups = {
+    static const std::array<RotationLookup, 5> lookups = {
         makeRotationLookup(rotationDegrees_[0]),
         makeRotationLookup(rotationDegrees_[1]),
-        makeRotationLookup(rotationDegrees_[2])
+        makeRotationLookup(rotationDegrees_[2]),
+        makeRotationLookup(rotationDegrees_[3]),
+        makeRotationLookup(rotationDegrees_[4])
     };
 
     return lookups;

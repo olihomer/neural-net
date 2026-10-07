@@ -28,13 +28,14 @@ Cifar10::Cifar10(const std::string& filename, std::size_t size)
     
     std::cout << "CIFAR10 file opened ok." << std::endl;
     
-    size_ = std::min((int)size, 10000);
+    size_ = std::min((int)size, 50000);
     
     data_.resize(size);
     label_.resize(size);
     n_inputs_ = 3072; // 3 x 32 x 32
     inputX_ = 32;
     inputY_ = 32;
+    inputChannels_ = 3;
     n_outputs_ = 10;
     
     std::uint8_t inputByte;
@@ -49,7 +50,6 @@ Cifar10::Cifar10(const std::string& filename, std::size_t size)
         //read label
         imageFile.read(reinterpret_cast<char*>(&inputByte),sizeof(inputByte));
         label_[i] = (int)inputByte;
-        std::cout << label_[i] << std::endl;
         
         //store pixels
         for(std::size_t j = 0; j < n_inputs_; j++)
@@ -64,7 +64,7 @@ Cifar10::Cifar10(const std::string& filename, std::size_t size)
     }
     
     //test print
-    for(std::size_t i = 0; i < size_; i++)
+    /*for(std::size_t i = 0; i < size_; i++)
     {
         std::cout << Cifar10::labelSet[label_[i]] << std::endl;
         for(std::size_t y = 0; y < inputY_; y++)
@@ -75,7 +75,7 @@ Cifar10::Cifar10(const std::string& filename, std::size_t size)
             }
             std::cout << std::endl;
         }
-    }
+    }*/
 }
 
 const int Cifar10::get_label(int index)
