@@ -112,13 +112,15 @@ inline void ImageAugmenter::translate(const Scalar* input,
 inline void ImageAugmenter::flip(const Scalar* input,
                                       Scalar* output,
                                       std::size_t width,
-                                      std::size_t height) const
+                                      std::size_t height,
+                                    std::size_t channels) const
 {
     if(input == nullptr || output == nullptr)
         throw std::runtime_error("ImageAugmenter::translate received null image data");
 
-    std::fill(output, output + width * height, 0.0f);
+    std::fill(output, output + width * height * channels, 0.0f);
 
+    for(std::size_t chan = 0; chan < channels; chan++)
     for(std::size_t targetY = 0; targetY < height; targetY++)
     {
         for(std::size_t targetX = 0; targetX < width; targetX++)
@@ -126,8 +128,8 @@ inline void ImageAugmenter::flip(const Scalar* input,
             const int sourceX = static_cast<int>(width-targetX-1);
             const int sourceY = static_cast<int>(targetY);
         
-            output[targetY * width + targetX] =
-                input[static_cast<std::size_t>(sourceY) * width + static_cast<std::size_t>(sourceX)];
+            output[chan * (width * height) + targetY * width + targetX] =
+                input[chan * (width * height) + (static_cast<std::size_t>(sourceY) * width) + static_cast<std::size_t>(sourceX)];
         }
     }
 }
