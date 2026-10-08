@@ -28,7 +28,12 @@ public:
     void flip(const Scalar* input,
                    Scalar* output,
                    std::size_t width,
-                   std::size_t height) const;
+                   std::size_t height, std::size_t channels) const;
+    
+    void randomCrop(const Scalar* input,
+                   Scalar* output,
+                   std::size_t width,
+                   std::size_t height, std::size_t channels) const;
     
     
     void rotate(const Scalar* input,
@@ -270,5 +275,41 @@ inline std::size_t ImageAugmenter::nearestRotationIndex(Scalar theta) const
     const int degrees = static_cast<int>(std::round(theta * 180.0f / pi_));
     return nearestRotationIndexForDegrees(degrees);
 }
+
+inline void ImageAugmenter::randomCrop(const Scalar* input,
+                                      Scalar* output,
+                                      std::size_t width,
+                                      std::size_t height,
+                                    std::size_t channels) const
+{
+    if(input == nullptr || output == nullptr)
+        throw std::runtime_error("ImageAugmenter::translate received null image data");
+
+    int xOffset = rand()%9;
+    int yOffset = rand()%9;
+    
+    std::fill(output, output + width * height * channels, 0.0f);
+
+    for(std::size_t chan = 0; chan < channels; chan++)
+    for(int targetY = 0; targetY < height; targetY++)
+    {
+        for(int targetX = 0; targetX < width; targetX++)
+        {
+            const int sourceX = (targetX + xOffset - 4);
+            const int sourceY = (targetY + yOffset - 4);
+        
+            if(sourceX < 0 || sourceY < 0 || sourceX > (width-1)|| sourceY > (height-1))
+            {
+                output[chan * (width * height) + targetY * width + targetX] = 0;
+            }
+            else
+            {
+                output[chan * (width * height) + static_cast<std::size_t>(targetY) * width + static_cast<std::size_t>(targetX)] =
+                input[chan * (width * height) + (static_cast<std::size_t>(sourceY) * width) + static_cast<std::size_t>(sourceX)];
+            }
+        }
+    }
+}
+
 
 #endif /* ImageAugmenter_hpp */

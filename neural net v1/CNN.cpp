@@ -180,16 +180,16 @@ double CNN::trainBatch(const DataSet& training_data, const std::span<const std::
             //augmenter.rotate(training_data.get_data()[batch[batchIndex]].inputs.data(), rotated.data(), 28, 28, rotationIndex);
             //augmenter.translate(rotated.data(), augmented.data(), 28, 28, -2 + rand() % 5, -2 + rand() % 5);
 
-            
-            for(std::size_t i=0; i < training_data.n_inputs(); i++)
-                if(rand()%5<3)
+            const auto& source = training_data.get_data()[batch[batchIndex]].inputs;
+
+                if(rand() % 2)
                 {
-                    inputBatch[i] = training_data.get_data()[batch[batchIndex]].inputs[i];
-                    
+                    std::copy(source.begin(),source.end(), inputBatch);
                 }
                 else
                 {
-                    augmenter.flip(training_data.get_data()[batch[batchIndex]].inputs.data(), inputBatch, convLayer_[0].inputWidth(), convLayer_[0].inputHeight());
+                    augmenter.flip(source.data(),augmented.data(), convLayer_[0].inputWidth(), convLayer_[0].inputHeight(), convLayer_[0].inputChannels());
+                    augmenter.flip(augmented.data(), inputBatch, convLayer_[0].inputWidth(), convLayer_[0].inputHeight(), convLayer_[0].inputChannels());
                 }
             
             //populate the matching targets
