@@ -108,8 +108,13 @@ public struct SwiftUIView: View {
                     .foregroundStyle(.secondary)
 
                 ForEach(cnnConvChannelTexts.indices, id: \.self) { index in
-                    integerField("Conv\(index + 1) channels", text: bindingForConvChannelText(at: index), field: .cnnConvChannels(index)) {
-                        commitConvChannel(at: index)
+                    HStack {
+                        integerField("Conv\(index + 1) channels", text: bindingForConvChannelText(at: index), field: .cnnConvChannels(index)) {
+                            commitConvChannel(at: index)
+                        }
+
+                        Toggle("Pooling", isOn: bindingForConvPooling(at: index))
+                            .toggleStyle(.checkbox)
                     }
                 }
 
@@ -291,9 +296,27 @@ public struct SwiftUIView: View {
         commitInteger(text, to: value, range: 1...512)
     }
 
+    private func bindingForConvPooling(at index: Int) -> Binding<Bool> {
+        Binding(
+            get: {
+                guard settings.cnnPoolingPerLayer.indices.contains(index) else {
+                    return false
+                }
+                return settings.cnnPoolingPerLayer[index]
+            },
+            set: { newValue in
+                guard settings.cnnPoolingPerLayer.indices.contains(index) else {
+                    return
+                }
+                settings.cnnPoolingPerLayer[index] = newValue
+            }
+        )
+    }
+
     private func addConvLayer() {
         cnnConvChannelTexts.append("32")
         settings.cnnConvChannels.append(32)
+        settings.cnnPoolingPerLayer.append(false)
     }
 
     private func removeConvLayer() {
@@ -302,6 +325,7 @@ public struct SwiftUIView: View {
         }
         cnnConvChannelTexts.removeLast()
         settings.cnnConvChannels.removeLast()
+        settings.cnnPoolingPerLayer.removeLast()
     }
 
     private func saveNetwork() {

@@ -23,6 +23,7 @@ class CNN : public Trainable
 public:
     CNN();
     void configure(std::vector<std::size_t> convLayerOutputChannels,
+                   std::vector<bool> bPoolingPerLayer,
                    std::size_t classifierHiddenLayerSize,
                    Scalar dropout,
                    std::size_t mlpOutputs,

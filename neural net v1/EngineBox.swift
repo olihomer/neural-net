@@ -48,6 +48,7 @@ struct TrainingSettings: Sendable {
     var hiddenActivation: ActivationChoice = .relu
     var outputActivation: ActivationChoice = .softmax
     var cnnConvChannels: [Int] = [8, 16, 32]
+    var cnnPoolingPerLayer: [Bool] = [true, true, false]
     var cnnClassifierHiddenLayerSize: Int = 128
 }
 
@@ -111,8 +112,10 @@ final class EngineBox: ObservableObject, @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         let convChannels = settings.cnnConvChannels.map { CInt(max($0, 1)) }
-        return convChannels.withUnsafeBufferPointer { buffer in
-            engine.runApp(
+        let poolingPerLayer = settings.cnnPoolingPerLayer.map { CInt($0 ? 1 : 0) }
+        return convChannels.withUnsafeBufferPointer { channelBuffer in
+            poolingPerLayer.withUnsafeBufferPointer { poolingBuffer in
+                engine.runApp(
                 progress_callback,
                 CInt(settings.model.rawValue),
                 CInt(settings.hiddenLayerSize),
@@ -123,11 +126,13 @@ final class EngineBox: ObservableObject, @unchecked Sendable {
                 settings.learningRate,
                 CInt(settings.hiddenActivation.rawValue),
                 CInt(settings.outputActivation.rawValue),
-                buffer.baseAddress,
-                CInt(buffer.count),
-                CInt(settings.cnnClassifierHiddenLayerSize),
-                settings.dropout
-            )
+                    channelBuffer.baseAddress,
+                    poolingBuffer.baseAddress,
+                    CInt(channelBuffer.count),
+                    CInt(settings.cnnClassifierHiddenLayerSize),
+                    settings.dropout
+                )
+            }
         }
     }
 

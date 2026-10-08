@@ -38,6 +38,7 @@ public:
                int hiddenActivation,
                int outputActivation,
                const int *cnnConvChannels,
+               const int *cnnPoolingPerLayer,
                int cnnConvLayerCount,
                int cnnClassifierHiddenLayerSize,
                double dropout);

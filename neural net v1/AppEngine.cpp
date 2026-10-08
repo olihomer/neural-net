@@ -79,6 +79,7 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
                       int hiddenActivation,
                       int outputActivation,
                       const int *cnnConvChannels,
+                      const int *cnnPoolingPerLayer,
                       int cnnConvLayerCount,
                       int cnnClassifierHiddenLayerSize,
                       double dropout)
@@ -92,17 +93,25 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
     learningRate = std::max(learningRate, 0.0);
     cnnClassifierHiddenLayerSize = std::max(cnnClassifierHiddenLayerSize, 1);
     dropout = std::clamp(dropout, 0.0, 0.95);
+    std::vector<bool> bPoolingPerLayer;
 
     std::vector<std::size_t> cnnLayerChannels;
     if(cnnConvChannels != nullptr && cnnConvLayerCount > 0)
     {
         cnnLayerChannels.reserve(static_cast<std::size_t>(cnnConvLayerCount));
+        bPoolingPerLayer.reserve(static_cast<std::size_t>(cnnConvLayerCount));
         for(int i = 0; i < cnnConvLayerCount; i++)
+        {
             cnnLayerChannels.push_back(static_cast<std::size_t>(std::max(cnnConvChannels[i], 1)));
+            bPoolingPerLayer.push_back(cnnPoolingPerLayer != nullptr && cnnPoolingPerLayer[i] != 0);
+        }
     }
 
     if(cnnLayerChannels.empty())
+    {
         cnnLayerChannels = {8, 16, 32};
+        bPoolingPerLayer = {true, true, false};
+    }
 
     const ActivationType hiddenActivationType = activationTypeFor(hiddenActivation);
     const ActivationType outputActivationType = activationTypeFor(outputActivation);
@@ -116,6 +125,7 @@ int AppEngine::runApp(void(*progress)(int32_t,double),
     {
         cnn_.configure(
             cnnLayerChannels,
+            bPoolingPerLayer,
             static_cast<std::size_t>(cnnClassifierHiddenLayerSize),
             static_cast<Scalar>(dropout),
             (int)dataSet.n_outputs(), dataSet.inputX(), dataSet.inputY(), dataSet.inputChannels());

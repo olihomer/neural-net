@@ -40,7 +40,7 @@ void Trainer::train(const DataSet& data, std::size_t epochs, std::size_t batchSi
         double epoch_error = 0;
         std::size_t batches = 0;
         
-        learningRate = initialLearningRate * std::pow(0.5f,i/15);
+        learningRate = initialLearningRate * std::pow(0.5f,i/20);
         
         std::shuffle(order_.begin(),order_.end(), rng);
 

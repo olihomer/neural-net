@@ -28,6 +28,7 @@ CNN::CNN()
 }
 
 void CNN::configure(std::vector<std::size_t>convOutputChannels,
+                    std::vector<bool>bPoolingPerLayer,
                     std::size_t classifierHiddenLayerSize,
                     Scalar dropout,
                     std::size_t mlpOutputs,
@@ -52,7 +53,8 @@ void CNN::configure(std::vector<std::size_t>convOutputChannels,
     for(std::size_t outChannels : convOutputChannels)
     {
         outChannels = std::max<std::size_t>(outChannels, 1);
-        convLayer_.emplace_back(outChannels, inChannels, height, width, index>1 ? false : true);
+        const bool poolingEnabled = index < bPoolingPerLayer.size() ? bPoolingPerLayer[index] : false;
+        convLayer_.emplace_back(outChannels, inChannels, height, width, poolingEnabled);
         inChannels = outChannels;
         height = convLayer_.back().getOutputHeight();
         width = convLayer_.back().getOutputWidth();
@@ -180,18 +182,17 @@ double CNN::trainBatch(const DataSet& training_data, const std::span<const std::
             //augmenter.rotate(training_data.get_data()[batch[batchIndex]].inputs.data(), rotated.data(), 28, 28, rotationIndex);
             //augmenter.translate(rotated.data(), augmented.data(), 28, 28, -2 + rand() % 5, -2 + rand() % 5);
 
-            const auto& source = training_data.get_data()[batch[batchIndex]].inputs;
+            const std::vector<Scalar>& source = training_data.get_data()[batch[batchIndex]].inputs;
+            const Scalar* cropSource = source.data();
 
                 if(rand() % 2)
                 {
-                    std::copy(source.begin(),source.end(), inputBatch);
-                }
-                else
-                {
                     augmenter.flip(source.data(),augmented.data(), convLayer_[0].inputWidth(), convLayer_[0].inputHeight(), convLayer_[0].inputChannels());
-                    augmenter.flip(augmented.data(), inputBatch, convLayer_[0].inputWidth(), convLayer_[0].inputHeight(), convLayer_[0].inputChannels());
+                    cropSource = augmented.data();
                 }
             
+            augmenter.randomCrop(cropSource, inputBatch, convLayer_[0].inputWidth(), convLayer_[0].inputHeight(), convLayer_[0].inputChannels());
+                
             //populate the matching targets
             for(std::size_t i=0; i<training_data.n_outputs(); i++)
                 MLPtargets(i,batchIndex) = training_data.get_data()[batch[batchIndex]].outputs[i];
